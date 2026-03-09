@@ -1,0 +1,147 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# SSE Sentiment Pipeline Configuration
+# Mount this file as /app/config.yaml in each service container.
+# Override any value with env var: SSE_SENTIMENT__<SECTION>__<KEY>
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── NLP backend selection ─────────────────────────────────────────────────────
+sentiment:
+  # Which NLP backends to run each cycle. All results are stored separately.
+  # Valid values: vader, textblob, finbert
+  active_algorithms:
+    - vader
+
+  # Which algorithm's output drives the live pricing formula.
+  # Must be a member of active_algorithms.
+  primary_algorithm: vader
+
+  # Minimum accuracy threshold for backend selection (used by compare_backends.py).
+  # If any active backend scores below this on the ground-truth dataset,
+  # the validation CLI exits with code 2 and prints an escalation warning.
+  # Override with env var: SSE_ACCURACY_THRESHOLD
+  accuracy_threshold: 0.70
+
+  # ── Text pre-processing (TASK-NLP03) ───────────────────────────────────────
+  preprocessing:
+    # Path to financial slang expansion dictionary (YAML).
+    # Entries map WSB/trading slang to sentiment-bearing plain English phrases.
+    slang_dict_path: /app/config/slang.yaml
+    # Path to emoji → semantic text mapping dictionary (YAML).
+    # Allows VADER and TextBlob to score emoji-heavy posts accurately.
+    emoji_dict_path: /app/config/emoji.yaml
+
+  # ── Scoring thresholds (TASK-NLP02) ────────────────────────────────────────
+  thresholds:
+    # NLP score above this value is classified as "bullish"
+    positive: 0.05
+    # NLP score below this value is classified as "bearish"
+    negative: -0.05
+
+  # ── Comment weighting (TASK-NLP12) ─────────────────────────────────────────
+  weighting:
+    # Engagement weight scales each comment's contribution by its Reddit net score.
+    # Formula: log(max(net_score, 0) + 1) / log(max_score + 1)
+    # Set engagement_weight_enabled: false to treat all comments equally.
+    engagement_weight_enabled: true
+    engagement_log_base: 10
+
+    # Controls how downvoted comments (negative net_score) are handled:
+    #   "ignore_sign"  — treat abs(net_score); downvotes still add weight (default)
+    #   "invert"       — flip the sentiment sign for net-negative comments
+    #   "attenuate"    — reduce weight but do not invert (weight approaches 0)
+    downvote_behavior: ignore_sign
+
+    # Temporal decay: newer posts score higher than older ones.
+    # Decay formula: weight = exp(-lambda * age_seconds)
+    # where lambda = ln(2) / (half_life_hours * 3600)
+    temporal_decay_enabled: true
+    # Comment weight halves every N hours
+    temporal_half_life_hours: 24
+    # Comments older than this are assigned weight 0.0 and excluded entirely
+    temporal_max_age_hours: 48
+
+  # ── Volume weighting (TASK-NLP15) ──────────────────────────────────────────
+  volume:
+    # Scaling function applied to weighted_comment_count before multiplying signal.
+    # "log"    — log(weighted_comment_count + 1)  [default — dampens outliers]
+    # "sqrt"   — sqrt(weighted_comment_count)
+    # "linear" — weighted_comment_count (no dampening)
+    scaling_function: log
+    # Tickers with fewer than this many weighted mentions are excluded from pricing.
+    min_mentions: 3
+
+  # ── Pricing formula (TASK-NLP16) ────────────────────────────────────────────
+  pricing:
+    # Overall delta magnitude multiplier applied to the computed sentiment_delta.
+    # sentiment_price = real_price + sentiment_delta
+    # Raise to amplify price swings; lower to dampen them.
+    sensitivity: 1.0
+    # Maximum sentiment_delta as a fraction of real_price.
+    # Caps extreme moves: delta = sign(delta) * min(abs(delta), real_price * max_delta_pct)
+    max_delta_pct: 0.10
+    # Tickers with weighted_comment_count above this threshold use a reduced sensitivity
+    # to avoid overreaction to high-volume viral posts.
+    high_volume_threshold: 100
+    high_volume_sensitivity_multiplier: 0.5
+
+  # ── FinBERT specific (TASK-NLP10) ────────────────────────────────────────────
+  finbert:
+    # HuggingFace model ID. Downloaded automatically on first processor startup.
+    # The huggingface_cache Docker volume persists the ~1.4 GB weights.
+    model_name: ProsusAI/finbert
+    # Number of texts processed per forward pass. Larger batches use more RAM.
+    # Valid range: 1–128. On CPU with 2 GB RAM, 32 is a safe default.
+    batch_size: 32
+    # Maximum token count per text. Texts exceeding this are truncated with a warning.
+    max_length: 512
+    # Inference device: "cpu" or "cuda". Omit to auto-detect.
+    device: cpu
+
+  # ── Caching / deduplication (TASK-NLP22) ─────────────────────────────────────
+  caching:
+    # If false (default), a comment that has already been analyzed is skipped on
+    # subsequent pipeline runs. Set to true to re-analyze when net_score changes.
+    recompute_on_score_change: false
+    # Minimum change in Reddit net_score that triggers re-analysis when
+    # recompute_on_score_change is true. Ignored when the flag is false.
+    recompute_score_delta_threshold: 10
+
+# ── Scraper ───────────────────────────────────────────────────────────────────
+scraper:
+  # Base interval between full scrape cycles (minutes).
+  base_interval_minutes: 15
+  # Adaptive backoff ceiling: the scraper will not wait longer than this
+  # between retries even under persistent errors.
+  max_interval_minutes: 60
+  # Random jitter added to each sleep interval to avoid thundering herd.
+  # Actual sleep = interval_minutes * 60 + rand(0, jitter_max_seconds)
+  jitter_max_seconds: 120
+
+  # Subreddits scraped for every tracked ticker in addition to ticker-named subs
+  # (e.g., r/TSLA is also scraped automatically when TSLA is a tracked ticker).
+  subreddits:
+    - wallstreetbets
+    - stocks
+    - investing
+    - options
+    - StockMarket
+
+  # Number of posts (threads) fetched per subreddit per scrape cycle.
+  posts_per_subreddit: 25
+
+  # Playwright concurrency limits (TASK-S29).
+  # max_concurrent_subreddits: how many subreddit scrapes run in parallel.
+  max_concurrent_subreddits: 4
+  # playwright_max_concurrent: number of simultaneous browser pages.
+  # Keep at 1 on the 4 GB droplet to avoid OOM-killing the scraper container.
+  playwright_max_concurrent: 1
+
+  # CAPTCHA detection (TASK-S28).
+  # When true, the scraper pauses and logs a CRITICAL alert on CAPTCHA detection
+  # rather than silently returning empty results.
+  captcha_detection_enabled: true
+
+  # Data retention policy (TASK-S19).
+  # Raw reddit_raw rows older than this many days are pruned by the scraper's
+  # nightly cleanup job to prevent unbounded table growth.
+  data_retention_days: 30

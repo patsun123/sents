@@ -1,0 +1,245 @@
+# Sentiment Stock Exchange — Production Docker Compose
+# All sensitive values are sourced from .env (never hardcoded here).
+# Run with: docker compose up -d
+# For local development overrides, docker-compose.override.yml is loaded automatically.
+
+version: "3.9"
+
+# ---------------------------------------------------------------------------
+# X-templates: YAML anchors for repeated patterns
+# ---------------------------------------------------------------------------
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-restart: &restart-policy
+  restart: unless-stopped
+
+x-depends-db: &depends-db
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+# ---------------------------------------------------------------------------
+# Services
+# ---------------------------------------------------------------------------
+services:
+
+  # ── PostgreSQL + TimescaleDB ─────────────────────────────────────────────
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - sse_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ── Redis ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - sse_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ── Scraper ──────────────────────────────────────────────────────────────
+  scraper:
+    build:
+      context: .
+      dockerfile: scraper/Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_URL_SCRAPER: ${POSTGRES_URL_SCRAPER}
+      REDIS_URL: ${REDIS_URL}
+      PROXY_POOL_URLS: ${PROXY_POOL_URLS:-}
+      SSE_CONFIG_PATH: /app/config.yaml
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      POSTS_PER_TICKER: ${POSTS_PER_TICKER:-25}
+    volumes:
+      - ./config.example.yaml:/app/config.yaml:ro
+    networks:
+      - sse_net
+    <<: *depends-db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+
+  # ── Sentiment Processor ──────────────────────────────────────────────────
+  # Memory limit set to 4G because FinBERT loads ~1.4 GB of model weights at
+  # startup (see TASK-OPS32). The huggingface_cache volume avoids re-downloading
+  # on every container restart.
+  processor:
+    build:
+      context: .
+      dockerfile: processor/Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_URL_PROCESSOR: ${POSTGRES_URL_PROCESSOR}
+      REDIS_URL: ${REDIS_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      HF_HOME: /app/.cache/huggingface
+    volumes:
+      - ./config.example.yaml:/app/config.yaml:ro
+      - huggingface_cache:/app/.cache/huggingface
+    networks:
+      - sse_net
+    <<: *depends-db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1500M
+    logging: *default-logging
+
+  # ── Pricing Engine ───────────────────────────────────────────────────────
+  pricing_engine:
+    build:
+      context: .
+      dockerfile: pricing_engine/Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_URL_PRICING: ${POSTGRES_URL_PRICING}
+      REDIS_URL: ${REDIS_URL}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY}
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-finnhub}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    networks:
+      - sse_net
+    <<: *depends-db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging: *default-logging
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_URL_API: ${POSTGRES_URL_API}
+      REDIS_URL: ${REDIS_URL}
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DEBUG: ${DEBUG:-false}
+    networks:
+      - sse_net
+    <<: *depends-db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+
+  # ── Frontend (React, served via nginx inside container) ──────────────────
+  frontend:
+    build: ./frontend
+    depends_on:
+      - api
+    networks:
+      - sse_net
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ── Nginx reverse proxy / TLS termination ────────────────────────────────
+  # Handles HTTP→HTTPS redirect, API proxying, SSE streaming, and static files.
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - api
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    networks:
+      - sse_net
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ── Certbot (Let's Encrypt certificate renewal) ──────────────────────────
+  # Runs renewal checks; certificates are shared with Nginx via certbot_certs.
+  # For initial issuance run:
+  #   docker compose run --rm certbot certonly --webroot \
+  #     --webroot-path=/var/www/certbot -d YOUR_DOMAIN
+  certbot:
+    image: certbot/certbot
+    command: renew --webroot --webroot-path=/var/www/certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    networks:
+      - sse_net
+    logging: *default-logging
+
+  # ── Uptime Kuma (internal availability monitoring) ───────────────────────
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    networks:
+      - sse_net
+    restart: unless-stopped
+    logging: *default-logging
+
+# ---------------------------------------------------------------------------
+# Named volumes
+# ---------------------------------------------------------------------------
+volumes:
+  postgres_data:
+  redis_data:
+  huggingface_cache:
+  certbot_certs:
+  certbot_www:
+  uptime_kuma_data:
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  sse_net:
+    driver: bridge
