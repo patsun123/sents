@@ -14,7 +14,7 @@ subtasks:
 - T005
 phase: Phase 0 - Foundation
 assignee: ''
-agent: ''
+agent: "claude-sonnet-4-6"
 shell_pid: "2472"
 review_status: ''
 reviewed_by: ''
@@ -412,3 +412,4 @@ No application logic exists in WP01 — tests will be added in subsequent WPs. T
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
+- 2026-03-10T16:07:47Z – claude-sonnet-4-6 – shell_pid=2472 – lane=doing – Assigned agent via workflow command
