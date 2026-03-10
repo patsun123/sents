@@ -1,8 +1,11 @@
 ---
 work_package_id: WP01
 title: Project Scaffold & CI
-lane: planned
+lane: "doing"
 dependencies: []
+base_branch: master
+base_commit: addfacf7f1924059eb3d6e5d084d96f4922bd46b
+created_at: '2026-03-10T16:07:47.490465+00:00'
 subtasks:
 - T001
 - T002
@@ -12,7 +15,7 @@ subtasks:
 phase: Phase 0 - Foundation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "2472"
 review_status: ''
 reviewed_by: ''
 history:
