@@ -17,7 +17,7 @@
 **Estimated size**: ~280 lines
 
 ### Included Subtasks
-- [ ] T001 Create `worker/` directory structure with `src/`, `tests/`, `Dockerfile`, `pyproject.toml`
+- [x] T001 Create `worker/` directory structure with `src/`, `tests/`, `Dockerfile`, `pyproject.toml`
 - [ ] T002 Configure `docker-compose.yml` at repo root (worker, postgres, redis services with health checks and `restart: unless-stopped`)
 - [ ] T003 [P] Set up ruff, mypy, and bandit with project-appropriate configuration
 - [ ] T004 [P] Set up pytest with pytest-asyncio, coverage config (90% gate), and asyncpg test fixtures
