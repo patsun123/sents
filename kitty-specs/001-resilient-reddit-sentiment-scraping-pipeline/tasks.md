@@ -50,12 +50,12 @@
 **Estimated size**: ~420 lines
 
 ### Included Subtasks
-- [ ] T006 Define `RedditScraper` Protocol and `RawComment` dataclass and error hierarchy in `worker/src/scrapers/base.py`
-- [ ] T007 Implement `JsonEndpointScraper` in `worker/src/scrapers/json_endpoint.py` (`.json` endpoint, User-Agent rotation, pagination via `after` param, incremental fetch by `created_utc`)
-- [ ] T008 Implement `PRAWOAuthScraper` in `worker/src/scrapers/praw_oauth.py` (PRAW script OAuth flow, same `RedditScraper` interface)
-- [ ] T009 [P] Implement exponential backoff and rate-limit detection in `JsonEndpointScraper` (429 -> backoff; 403/private -> `ScraperUnavailableError`)
-- [ ] T010 [P] Implement lane-switch logic stub in `worker/src/scrapers/__init__.py` (`get_scraper()` factory, reads `SCRAPER_BACKEND` env var; also used by pipeline runner for failover)
-- [ ] T011 Write unit tests for both scrapers in `worker/tests/unit/test_scrapers/` with `pytest-httpx` mocked responses
+- [x] T006 Define `RedditScraper` Protocol and `RawComment` dataclass and error hierarchy in `worker/src/scrapers/base.py`
+- [x] T007 Implement `JsonEndpointScraper` in `worker/src/scrapers/json_endpoint.py` (`.json` endpoint, User-Agent rotation, pagination via `after` param, incremental fetch by `created_utc`)
+- [x] T008 Implement `PRAWOAuthScraper` in `worker/src/scrapers/praw_oauth.py` (PRAW script OAuth flow, same `RedditScraper` interface)
+- [x] T009 [P] Implement exponential backoff and rate-limit detection in `JsonEndpointScraper` (429 -> backoff; 403/private -> `ScraperUnavailableError`)
+- [x] T010 [P] Implement lane-switch logic stub in `worker/src/scrapers/__init__.py` (`get_scraper()` factory, reads `SCRAPER_BACKEND` env var; also used by pipeline runner for failover)
+- [x] T011 Write unit tests for both scrapers in `worker/tests/unit/test_scrapers/` with `pytest-httpx` mocked responses
 
 ### Implementation Notes
 - `RawComment` must contain ONLY: `text`, `upvotes`, `created_utc` — no username, comment ID, post ID
