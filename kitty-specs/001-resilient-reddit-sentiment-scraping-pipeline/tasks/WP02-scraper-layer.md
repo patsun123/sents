@@ -1,8 +1,11 @@
 ---
 work_package_id: WP02
 title: Scraper Layer
-lane: planned
+lane: "doing"
 dependencies: [WP01]
+base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP01
+base_commit: 7e38de562c61693212607d5f4fb1061125053261
+created_at: '2026-03-11T04:43:13.523133+00:00'
 subtasks:
 - T006
 - T007
@@ -13,7 +16,7 @@ subtasks:
 phase: Phase 1 - Core Components
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "22984"
 review_status: ''
 reviewed_by: ''
 history:
