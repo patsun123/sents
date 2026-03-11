@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Scraper Layer
-lane: "doing"
+lane: "planned"
 dependencies: [WP01]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP01
 base_commit: 7e38de562c61693212607d5f4fb1061125053261
@@ -17,8 +17,9 @@ phase: Phase 1 - Core Components
 assignee: ''
 agent: "claude-sonnet-4-6"
 shell_pid: "24232"
-review_status: ''
-reviewed_by: ''
+review_status: "has_feedback"
+reviewed_by: "Patrick Sun"
+review_feedback_file: "C:\Users\patri\AppData\Local\Temp\spec-kitty-review-feedback-WP02.md"
 history:
 - timestamp: '2026-03-09T19:41:43Z'
   lane: planned
@@ -336,9 +337,99 @@ def get_fallback_scraper() -> RedditScraper | None:
 - Verify `is_available()` returns False when PRAW credentials are absent
 - Verify `mypy` passes (strict mode — all types annotated)
 
+## Review Feedback
+
+**Reviewed by**: Patrick Sun
+**Status**: ❌ Changes Requested
+**Date**: 2026-03-11
+**Feedback file**: `C:\Users\patri\AppData\Local\Temp\spec-kitty-review-feedback-WP02.md`
+
+# WP02 Review Feedback
+
+Overall the implementation is solid — all 27 tests pass, mypy and bandit are clean, coverage is 95.57%, and the core `src/scrapers/` code passes ruff. The only issues are **ruff violations in the test files**. The spec requires "ruff, mypy, bandit all clean" without qualification.
+
+---
+
+## Required fixes
+
+### 1. `F401` — unused `asyncio` import (test_json_endpoint.py:7)
+
+Remove the `import asyncio` line — it was used by `_noop` initially but the async sleep mock works without it.
+
+**File**: `worker/tests/unit/test_scrapers/test_json_endpoint.py`
+**Fix**: Delete `import asyncio` at line 7.
+
+---
+
+### 2. `UP017` — use `datetime.UTC` alias (3 occurrences)
+
+`timezone.utc` should be replaced with the `datetime.UTC` alias (Python 3.11+ style, which matches the 3.12+ target).
+
+**Files**:
+- `test_json_endpoint.py:34` — `_PAST_SINCE = datetime(2025, 1, 1, tzinfo=timezone.utc)`
+- `test_praw_oauth.py:25` — `_PAST_SINCE = datetime(2025, 1, 1, tzinfo=timezone.utc)`
+- `test_praw_oauth.py:119` — `assert comments[0].created_utc.tzinfo == timezone.utc`
+
+**Fix**: Replace `timezone.utc` with `UTC` (imported from `datetime import UTC`) and remove `timezone` from imports where no longer needed.
+
+---
+
+### 3. `E501` — lines too long (test_json_endpoint.py:45, :163)
+
+Two lines exceed the 100-character limit.
+
+**File**: `worker/tests/unit/test_scrapers/test_json_endpoint.py`
+
+Line 45:
+```python
+def _listing(children: list[dict[object, object]], after: str | None = None) -> dict[object, object]:
+```
+**Fix**: Wrap the return type onto its own line:
+```python
+def _listing(
+    children: list[dict[object, object]], after: str | None = None
+) -> dict[object, object]:
+```
+
+Line 163:
+```python
+async def test_user_agent_varies_across_pages(httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch) -> None:
+```
+**Fix**: Wrap parameters:
+```python
+async def test_user_agent_varies_across_pages(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+```
+
+---
+
+### 4. `S105` — hardcoded password false-positive (test_json_endpoint.py:309)
+
+`secret_text = "SUPERSECRET_TICKER_MENTION_XYZ"` trips the S105 rule because the variable name contains "secret".
+
+**File**: `worker/tests/unit/test_scrapers/test_json_endpoint.py:309`
+**Fix**: Rename to `sentinel_text` (or add `# noqa: S105  # test sentinel value, not a real secret`).
+
+---
+
+## What's working well (no changes needed)
+
+- `RawComment` correctly excludes all PII fields ✓
+- Comment text never appears in any log output ✓
+- Exponential backoff tested with increasing delays ✓
+- `is_available()` returns False without credentials ✓
+- `asyncio.to_thread()` used correctly for PRAW blocking calls ✓
+- Error hierarchy maps correctly for both scrapers ✓
+- mypy strict mode: clean ✓
+- bandit: clean ✓
+- Coverage 95.57% ✓
+
+
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-11T04:43:14Z – claude-sonnet-4-6 – shell_pid=22984 – lane=doing – Assigned agent via workflow command
 - 2026-03-11T04:53:04Z – claude-sonnet-4-6 – shell_pid=22984 – lane=for_review – Ready for review: scraper layer complete - dual-lane .json+PRAW, backoff, zero-PII RawComment, 28 tests at 95.6% coverage, all quality gates green
 - 2026-03-11T14:47:45Z – claude-sonnet-4-6 – shell_pid=24232 – lane=doing – Started review via workflow command
+- 2026-03-11T14:49:34Z – claude-sonnet-4-6 – shell_pid=24232 – lane=planned – Moved to planned
