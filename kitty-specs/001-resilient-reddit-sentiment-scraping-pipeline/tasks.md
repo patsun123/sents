@@ -21,7 +21,7 @@
 - [x] T002 Configure `docker-compose.yml` at repo root (worker, postgres, redis services with health checks and `restart: unless-stopped`)
 - [x] T003 [P] Set up ruff, mypy, and bandit with project-appropriate configuration
 - [x] T004 [P] Set up pytest with pytest-asyncio, coverage config (90% gate), and asyncpg test fixtures
-- [ ] T005 Configure GitHub Actions CI pipeline (test, lint, type-check, security scan — all gates required)
+- [x] T005 Configure GitHub Actions CI pipeline (test, lint, type-check, security scan — all gates required)
 
 ### Implementation Notes
 - Worker container runs `python -m worker` (no HTTP server)
