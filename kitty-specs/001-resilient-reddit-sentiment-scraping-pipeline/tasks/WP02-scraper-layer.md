@@ -15,7 +15,7 @@ subtasks:
 - T011
 phase: Phase 1 - Core Components
 assignee: ''
-agent: ''
+agent: "claude-sonnet-4-6"
 shell_pid: "22984"
 review_status: ''
 reviewed_by: ''
@@ -339,3 +339,4 @@ def get_fallback_scraper() -> RedditScraper | None:
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
+- 2026-03-11T04:43:14Z – claude-sonnet-4-6 – shell_pid=22984 – lane=doing – Assigned agent via workflow command
