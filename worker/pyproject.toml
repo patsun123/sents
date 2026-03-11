@@ -51,6 +51,11 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = false
 
+[[tool.mypy.overrides]]
+# praw and prawcore ship without type stubs.
+module = ["praw", "praw.*", "prawcore", "prawcore.*"]
+ignore_missing_imports = true
+
 [tool.coverage.run]
 source = ["src"]
 omit = ["tests/*"]

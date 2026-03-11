@@ -1,0 +1,25 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": null,
+    "dist": 2,
+    "children": [
+      {
+        "kind": "t3",
+        "data": {
+          "selftext": "I think AAPL is going to the moon this week!",
+          "ups": 42,
+          "created_utc": 1770000000.0
+        }
+      },
+      {
+        "kind": "t1",
+        "data": {
+          "body": "TSLA earnings looking great, very bullish.",
+          "ups": 17,
+          "created_utc": 1769999000.0
+        }
+      }
+    ]
+  }
+}
