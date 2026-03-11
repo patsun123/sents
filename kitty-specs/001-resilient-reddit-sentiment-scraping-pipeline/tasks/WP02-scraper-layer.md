@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Scraper Layer
-lane: "for_review"
+lane: "doing"
 dependencies: [WP01]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP01
 base_commit: 7e38de562c61693212607d5f4fb1061125053261
@@ -16,7 +16,7 @@ subtasks:
 phase: Phase 1 - Core Components
 assignee: ''
 agent: "claude-sonnet-4-6"
-shell_pid: "22984"
+shell_pid: "24232"
 review_status: ''
 reviewed_by: ''
 history:
@@ -341,3 +341,4 @@ def get_fallback_scraper() -> RedditScraper | None:
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-11T04:43:14Z – claude-sonnet-4-6 – shell_pid=22984 – lane=doing – Assigned agent via workflow command
 - 2026-03-11T04:53:04Z – claude-sonnet-4-6 – shell_pid=22984 – lane=for_review – Ready for review: scraper layer complete - dual-lane .json+PRAW, backoff, zero-PII RawComment, 28 tests at 95.6% coverage, all quality gates green
+- 2026-03-11T14:47:45Z – claude-sonnet-4-6 – shell_pid=24232 – lane=doing – Started review via workflow command
