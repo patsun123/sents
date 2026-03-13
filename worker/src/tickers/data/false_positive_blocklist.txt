@@ -1,0 +1,41 @@
+# Common English words that are also valid NYSE/NASDAQ ticker symbols.
+# These are excluded from bare ALL-CAPS extraction to prevent false positives.
+# Explicit $TICKER mentions bypass this list.
+#
+# Format: one symbol per line, uppercase.
+# Last updated: 2026-03-13
+#
+# To add a symbol: append uppercase ticker, one per line.
+# To allow a previously blocked symbol as explicit only: no change needed —
+# explicit $TICKER always bypasses this list.
+
+# Single letters (very noisy as bare tickers)
+A
+I
+
+# Two-letter common words
+AM
+AN
+AS
+AT
+BE
+BY
+DO
+GO
+HE
+IN
+IT
+OF
+ON
+OR
+SO
+TO
+UP
+US
+WE
+
+# Three-letter common words / pronouns / prepositions
+ARE
+FOR
+NOW
+SHE
