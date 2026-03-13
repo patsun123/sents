@@ -4,10 +4,9 @@ All HTTP calls are mocked via pytest-httpx. No real Reddit requests are made.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -31,7 +30,7 @@ _RECENT_TS = 1_770_000_000.0
 #: A second recent timestamp slightly earlier.
 _RECENT_TS_2 = 1_769_999_000.0
 #: Cutoff: only comments newer than this are yielded.
-_PAST_SINCE = datetime(2025, 1, 1, tzinfo=timezone.utc)  # Jan 2025
+_PAST_SINCE = datetime(2025, 1, 1, tzinfo=UTC)  # Jan 2025
 #: A timestamp older than PAST_SINCE (Jan 2020).
 _OLD_TS = 1_580_000_000.0
 
@@ -42,7 +41,9 @@ def _make_scraper(**kwargs: object) -> JsonEndpointScraper:
     return JsonEndpointScraper(user_agents=_USER_AGENTS, **kwargs)  # type: ignore[arg-type]
 
 
-def _listing(children: list[dict[object, object]], after: str | None = None) -> dict[object, object]:
+def _listing(
+    children: list[dict[object, object]], after: str | None = None
+) -> dict[object, object]:
     """Build a minimal Reddit Listing JSON structure."""
     return {
         "kind": "Listing",
@@ -160,7 +161,9 @@ async def test_user_agent_header_is_set(httpx_mock: HTTPXMock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_user_agent_varies_across_pages(httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_user_agent_varies_across_pages(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """User-Agent strings vary across paginated requests."""
     # Page 1 with an "after" cursor to trigger a second request.
     page1 = _listing([_post("Post 1", 1, _RECENT_TS)], after="t3_abc")
@@ -306,8 +309,8 @@ async def test_comment_text_never_logged(
     httpx_mock: HTTPXMock, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Comment text must not appear in any log output at any level."""
-    secret_text = "SUPERSECRET_TICKER_MENTION_XYZ"
-    listing = _listing([_post(secret_text, 10, _RECENT_TS)])
+    sentinel_text = "SENTINEL_TICKER_MENTION_XYZ"  # not a real secret
+    listing = _listing([_post(sentinel_text, 10, _RECENT_TS)])
     httpx_mock.add_response(json=listing)
 
     scraper = _make_scraper()
@@ -315,7 +318,7 @@ async def test_comment_text_never_logged(
         _ = [c async for c in scraper.fetch_comments("test", _PAST_SINCE)]
 
     for record in caplog.records:
-        assert secret_text not in record.getMessage()
+        assert sentinel_text not in record.getMessage()
 
 
 # ---------------------------------------------------------------------------

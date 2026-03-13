@@ -4,7 +4,7 @@ PRAW is mocked via unittest.mock — no real Reddit OAuth calls are made.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -22,7 +22,7 @@ from src.scrapers.base import (
 # ---------------------------------------------------------------------------
 
 _RECENT_TS = 1_770_000_000.0  # ~Mar 2026
-_PAST_SINCE = datetime(2025, 1, 1, tzinfo=timezone.utc)
+_PAST_SINCE = datetime(2025, 1, 1, tzinfo=UTC)
 _OLD_TS = 1_580_000_000.0  # Jan 2020
 
 _CREDS = {
@@ -116,7 +116,7 @@ async def test_fetch_returns_rawcomments(monkeypatch: pytest.MonkeyPatch) -> Non
     assert isinstance(comments[0], RawComment)
     assert comments[0].text == "AAPL to the moon!"
     assert comments[0].upvotes == 30
-    assert comments[0].created_utc.tzinfo == timezone.utc
+    assert comments[0].created_utc.tzinfo == UTC
 
 
 @pytest.mark.asyncio
