@@ -190,7 +190,7 @@
 **Estimated size**: ~450 lines
 
 ### Included Subtasks
-- [ ] T028 Implement `CycleRunner` in `worker/src/pipeline/runner.py` (single cycle: load sources -> scrape each -> extract tickers -> classify -> bulk insert signals -> update run status)
+- [x] T028 Implement `CycleRunner` in `worker/src/pipeline/runner.py` (single cycle: load sources -> scrape each -> extract tickers -> classify -> bulk insert signals -> update run status)
 - [ ] T029 Implement `CycleQueue` in `worker/src/pipeline/queue.py` (asyncio `Lock`-based sequential execution; queues next cycle if current is still running)
 - [ ] T030 Implement `Scheduler` in `worker/src/pipeline/scheduler.py` (APScheduler `AsyncIOScheduler`, 15-min `IntervalTrigger`, `max_instances=1`, PostgreSQL job store for restart persistence)
 - [ ] T031 Implement `Settings` in `worker/src/config.py` (Pydantic `BaseSettings`; all config via env vars: `DATABASE_URL`, `REDIS_URL`, `REDDIT_*`, `CLASSIFIER_BACKEND`, `SCRAPER_BACKEND`, `CYCLE_INTERVAL_MINUTES`)
