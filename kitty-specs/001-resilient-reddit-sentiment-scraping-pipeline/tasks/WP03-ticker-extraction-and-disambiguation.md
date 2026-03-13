@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Ticker Extraction & Disambiguation
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP01
 base_commit: 7e38de562c61693212607d5f4fb1061125053261
@@ -409,3 +409,4 @@ def test_reload(disambiguator, tmp_path):
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-13T14:53:35Z – claude-sonnet-4-6 – shell_pid=17964 – lane=doing – Assigned agent via workflow command
+- 2026-03-13T15:00:22Z – claude-sonnet-4-6 – shell_pid=17964 – lane=for_review – Implementation complete: TickerExtractor (regex extraction, explicit/bare modes), TickerDisambiguator (two-stage blocklist+universe filter with hot-reload), data files (28-word blocklist, 10416-symbol SEC EDGAR universe), 34 unit tests at 100% coverage; ruff/mypy/bandit all clean
