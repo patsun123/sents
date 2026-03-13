@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: Alerting & Observability
-lane: "doing"
+lane: "done"
 dependencies: [WP06]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP06
 base_commit: 9df8f58bdd2dee34d9306bfdab899bfccdcf422e
@@ -16,8 +16,8 @@ phase: Phase 3 - Operational Safety
 assignee: ''
 agent: "claude-sonnet-4-6"
 shell_pid: "25344"
-review_status: ''
-reviewed_by: ''
+review_status: "approved"
+reviewed_by: "Patrick Sun"
 history:
 - timestamp: '2026-03-09T19:41:43Z'
   lane: planned
@@ -353,3 +353,4 @@ class AlertThresholdTracker:
 - 2026-03-13T20:31:57Z – claude-sonnet-4-6 – shell_pid=11956 – lane=doing – Assigned agent via workflow command
 - 2026-03-13T20:43:33Z – claude-sonnet-4-6 – shell_pid=11956 – lane=for_review – Implementation complete: Sentry integration with PII scrubbing, structured JSON logging with PIIFilter, AlertThresholdTracker for consecutive failure alerting, Docker health file writing, and 72 new unit tests. 238 total tests, 98.69% coverage. All quality gates pass (ruff, mypy, bandit).
 - 2026-03-13T20:44:26Z – claude-sonnet-4-6 – shell_pid=25344 – lane=doing – Started review via workflow command
+- 2026-03-13T20:47:06Z – claude-sonnet-4-6 – shell_pid=25344 – lane=done – Review passed: Sentry init_sentry() is a no-op when DSN is absent (verified); _scrub_pii before_send hook correctly strips text/body/comment from exception frames; capture_cycle_failure() sends structured error-level Sentry message with run context; structured JSON logging via python-json-logger configured with PIIFilter redacting u/Username patterns; AlertThresholdTracker fires exactly at Nth failure and resets correctly on success; Docker HEALTHCHECK writes .health file on success/partial cycles with 1200s threshold; all 239 tests pass (72 new alerting tests), 98.69% coverage; ruff, mypy, bandit all clean; full docstrings on all public APIs.
