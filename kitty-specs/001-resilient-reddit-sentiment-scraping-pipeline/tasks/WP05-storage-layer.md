@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Storage Layer
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP01
 base_commit: 7e38de562c61693212607d5f4fb1061125053261
@@ -500,3 +500,4 @@ async def db_session():
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-13T14:53:48Z – claude-sonnet-4-6 – shell_pid=6432 – lane=doing – Assigned agent via workflow command
+- 2026-03-13T15:05:23Z – claude-sonnet-4-6 – shell_pid=6432 – lane=for_review – Implementation complete: SQLAlchemy async models, Alembic migrations, SignalStore/RunStore/SourceStore CRUD, 43 unit tests (mocked), 7 integration tests (skip w/o PG). ruff+mypy strict+bandit clean. Coverage 100%.
