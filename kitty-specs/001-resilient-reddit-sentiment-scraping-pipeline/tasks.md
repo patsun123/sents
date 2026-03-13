@@ -258,12 +258,12 @@
 **Estimated size**: ~380 lines
 
 ### Included Subtasks
-- [ ] T039 Write E2E integration test in `worker/tests/integration/test_pipeline_e2e.py` (full cycle with mocked Reddit `.json` responses and real PostgreSQL; assert signals stored, run status = success, no PII)
-- [ ] T040 [P] Write PII audit test in `worker/tests/integration/test_pii_audit.py` (assert no username, comment body, comment ID in any DB table after a cycle; assertion covers all columns of all tables)
-- [ ] T041 [P] Write cycle overlap test in `worker/tests/unit/test_pipeline/test_queue.py` (simulate two concurrent trigger fires; assert second queues, first completes, second runs after)
-- [ ] T042 [P] Write source isolation test in `worker/tests/integration/test_source_isolation.py` (one subreddit returns 503; assert other subreddits complete successfully and run status = partial)
-- [ ] T043 Run coverage gate: `pytest --cov=worker/src --cov-fail-under=90` — fix any gaps before marking done
-- [ ] T044 Documentation pass: `worker/README.md` (setup, env vars, running locally, adding subreddits); docstring audit on all public functions; `kitty-specs/001-.../contracts/` verify all contracts still match implementation
+- [x] T039 Write E2E integration test in `worker/tests/integration/test_pipeline_e2e.py` (full cycle with mocked Reddit `.json` responses and real PostgreSQL; assert signals stored, run status = success, no PII)
+- [x] T040 [P] Write PII audit test in `worker/tests/integration/test_pii_audit.py` (assert no username, comment body, comment ID in any DB table after a cycle; assertion covers all columns of all tables)
+- [x] T041 [P] Write cycle overlap test in `worker/tests/unit/test_pipeline/test_queue.py` (simulate two concurrent trigger fires; assert second queues, first completes, second runs after)
+- [x] T042 [P] Write source isolation test in `worker/tests/integration/test_source_isolation.py` (one subreddit returns 503; assert other subreddits complete successfully and run status = partial)
+- [x] T043 Run coverage gate: `pytest --cov=worker/src --cov-fail-under=90` — fix any gaps before marking done
+- [x] T044 Documentation pass: `worker/README.md` (setup, env vars, running locally, adding subreddits); docstring audit on all public functions; `kitty-specs/001-.../contracts/` verify all contracts still match implementation
 
 ### Implementation Notes
 - Integration tests require Docker Compose to be running (postgres, redis) — add `pytest-docker` or document manual prerequisite
