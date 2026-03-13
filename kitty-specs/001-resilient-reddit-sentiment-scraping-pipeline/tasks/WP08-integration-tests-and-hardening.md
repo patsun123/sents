@@ -17,7 +17,7 @@ subtasks:
 - T044
 phase: Phase 4 - Hardening
 assignee: ''
-agent: ''
+agent: "claude-sonnet-4-6"
 shell_pid: "27016"
 review_status: ''
 reviewed_by: ''
@@ -404,3 +404,4 @@ async def test_all_sources_failed_marks_run_failed(db_session, httpx_mock):
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
+- 2026-03-13T20:44:34Z – claude-sonnet-4-6 – shell_pid=27016 – lane=doing – Assigned agent via workflow command
