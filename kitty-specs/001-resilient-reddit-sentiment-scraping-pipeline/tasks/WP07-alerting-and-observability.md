@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: Alerting & Observability
-lane: "for_review"
+lane: "doing"
 dependencies: [WP06]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP06
 base_commit: 9df8f58bdd2dee34d9306bfdab899bfccdcf422e
@@ -15,7 +15,7 @@ subtasks:
 phase: Phase 3 - Operational Safety
 assignee: ''
 agent: "claude-sonnet-4-6"
-shell_pid: "11956"
+shell_pid: "25344"
 review_status: ''
 reviewed_by: ''
 history:
@@ -352,3 +352,4 @@ class AlertThresholdTracker:
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-13T20:31:57Z – claude-sonnet-4-6 – shell_pid=11956 – lane=doing – Assigned agent via workflow command
 - 2026-03-13T20:43:33Z – claude-sonnet-4-6 – shell_pid=11956 – lane=for_review – Implementation complete: Sentry integration with PII scrubbing, structured JSON logging with PIIFilter, AlertThresholdTracker for consecutive failure alerting, Docker health file writing, and 72 new unit tests. 238 total tests, 98.69% coverage. All quality gates pass (ruff, mypy, bandit).
+- 2026-03-13T20:44:26Z – claude-sonnet-4-6 – shell_pid=25344 – lane=doing – Started review via workflow command
