@@ -195,7 +195,7 @@
 - [x] T030 Implement `Scheduler` in `worker/src/pipeline/scheduler.py` (APScheduler `AsyncIOScheduler`, 15-min `IntervalTrigger`, `max_instances=1`, PostgreSQL job store for restart persistence)
 - [x] T031 Implement `Settings` in `worker/src/config.py` (Pydantic `BaseSettings`; all config via env vars: `DATABASE_URL`, `REDIS_URL`, `REDDIT_*`, `CLASSIFIER_BACKEND`, `SCRAPER_BACKEND`, `CYCLE_INTERVAL_MINUTES`)
 - [x] T032 [P] Write unit tests for `CycleRunner` in `worker/tests/unit/test_pipeline/` (mock all dependencies; verify signal count, run status transitions, PII-free output)
-- [ ] T033 Implement `worker/src/main.py` entry point (startup validation, scheduler start, asyncio event loop, graceful shutdown on SIGTERM)
+- [x] T033 Implement `worker/src/main.py` entry point (startup validation, scheduler start, asyncio event loop, graceful shutdown on SIGTERM)
 
 ### Implementation Notes
 - `CycleRunner` must catch all exceptions per subreddit — one failed source must NOT abort the cycle for other sources
