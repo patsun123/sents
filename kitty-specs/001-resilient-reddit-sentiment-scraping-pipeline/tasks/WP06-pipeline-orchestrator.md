@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Pipeline Orchestrator
-lane: "for_review"
+lane: "doing"
 dependencies: [WP02, WP03, WP04, WP05]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP06-merge-base
 base_commit: 1b5885f73e4941e43582d41eca698703726a730a
@@ -16,7 +16,7 @@ subtasks:
 phase: Phase 2 - Integration
 assignee: ''
 agent: "claude-sonnet-4-6"
-shell_pid: "22328"
+shell_pid: "4480"
 review_status: ''
 reviewed_by: ''
 history:
@@ -464,3 +464,4 @@ asyncio.run(main())
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-13T15:08:37Z – claude-sonnet-4-6 – shell_pid=22328 – lane=doing – Assigned agent via workflow command
 - 2026-03-13T20:31:11Z – claude-sonnet-4-6 – shell_pid=22328 – lane=for_review – Pipeline orchestrator complete: APScheduler sequential cycles, dual-lane scraping, 167 tests, 97.93% coverage, all gates green
+- 2026-03-13T20:31:45Z – claude-sonnet-4-6 – shell_pid=4480 – lane=doing – Started review via workflow command
