@@ -225,11 +225,11 @@
 **Estimated size**: ~320 lines
 
 ### Included Subtasks
-- [ ] T034 Implement Sentry integration in `worker/src/alerting/__init__.py` (`init_sentry()`, `capture_cycle_failure()`, `capture_error()`)
-- [ ] T035 [P] Implement structured JSON logging throughout all modules (`python-json-logger`; every log record includes `timestamp`, `level`, `module`, `cycle_id` — never username or comment text)
-- [ ] T036 [P] Implement error threshold logic in `CycleRunner` (alert via Sentry when N consecutive cycles fail; `N` configurable via `ALERT_THRESHOLD` env var, default 3)
-- [ ] T037 [P] Add Docker health check to `Dockerfile` (file-based: `worker/` writes `.health` timestamp after each successful cycle; `HEALTHCHECK` in Dockerfile reads it)
-- [ ] T038 Write tests for alerting in `worker/tests/unit/test_alerting/` (mock Sentry SDK; assert alert fires at threshold; assert no PII in log output)
+- [x] T034 Implement Sentry integration in `worker/src/alerting/__init__.py` (`init_sentry()`, `capture_cycle_failure()`, `capture_error()`)
+- [x] T035 [P] Implement structured JSON logging throughout all modules (`python-json-logger`; every log record includes `timestamp`, `level`, `module`, `cycle_id` — never username or comment text)
+- [x] T036 [P] Implement error threshold logic in `CycleRunner` (alert via Sentry when N consecutive cycles fail; `N` configurable via `ALERT_THRESHOLD` env var, default 3)
+- [x] T037 [P] Add Docker health check to `Dockerfile` (file-based: `worker/` writes `.health` timestamp after each successful cycle; `HEALTHCHECK` in Dockerfile reads it)
+- [x] T038 Write tests for alerting in `worker/tests/unit/test_alerting/` (mock Sentry SDK; assert alert fires at threshold; assert no PII in log output)
 
 ### Implementation Notes
 - Sentry DSN from `SENTRY_DSN` env var; if not set, alerting silently no-ops (safe for local dev)
