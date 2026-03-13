@@ -1,7 +1,7 @@
 ---
 work_package_id: WP08
 title: Integration Tests & Hardening
-lane: "doing"
+lane: "planned"
 dependencies:
 - WP07
 - WP02
@@ -19,8 +19,9 @@ phase: Phase 4 - Hardening
 assignee: ''
 agent: "claude-reviewer"
 shell_pid: "24052"
-review_status: ''
-reviewed_by: ''
+review_status: "has_feedback"
+reviewed_by: "Patrick Sun"
+review_feedback_file: "C:\Users\patri\AppData\Local\Temp\spec-kitty-review-feedback-WP08.md"
 history:
 - timestamp: '2026-03-09T19:41:43Z'
   lane: planned
@@ -401,9 +402,53 @@ async def test_all_sources_failed_marks_run_failed(db_session, httpx_mock):
 - Verify coverage report is generated in CI artifacts
 - Verify README covers all required env vars with correct defaults
 
+## Review Feedback
+
+**Reviewed by**: Patrick Sun
+**Status**: ❌ Changes Requested
+**Date**: 2026-03-13
+**Feedback file**: `C:\Users\patri\AppData\Local\Temp\spec-kitty-review-feedback-WP08.md`
+
+## WP08 Review Feedback
+
+Overall, this is an excellent implementation: 243 tests passing, 99.51% coverage, all quality gates (ruff, mypy, bandit) green. The E2E integration tests, PII audit, source isolation tests, and README all meet or exceed spec requirements.
+
+One change is required before approval:
+
+---
+
+**Issue: Queue ordering assertion does not verify strictly sequential execution**
+
+**File**: `worker/tests/unit/test_pipeline/test_queue.py`, lines 88–90
+
+The spec (WP08 Review Guidance) explicitly requires: "Verify cycle overlap test confirms execution_order is strictly sequential."
+
+The test currently asserts:
+```python
+# Both should have executed: slow first, then fast
+assert 1 in executed
+assert 2 in executed
+```
+
+These are set-membership assertions — they only verify both items appear, not their order. A broken concurrent implementation where `fast_task` ran before `slow_task` completed would still pass these assertions (e.g. `executed == [2, 1]` satisfies both `in` checks).
+
+**Fix** (replace lines 88–90):
+```python
+# Strict sequential order: slow task must complete before fast task starts
+assert executed == [1, 2]
+```
+
+This one-line change makes the test actually validate the "sequential execution" property it claims to test, and is the correct assertion for this barrier-based concurrency test pattern.
+
+---
+
+Note: The CI database name (`POSTGRES_DB: sse` + `DATABASE_URL: .../sse`) is internally consistent and correct — the `sse_test` hardcoded in `_build_runner`'s `Settings` object is never used because the runner receives an injected `session_factory` closure. No change needed there.
+
+
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-13T20:44:34Z – claude-sonnet-4-6 – shell_pid=27016 – lane=doing – Assigned agent via workflow command
 - 2026-03-13T20:56:05Z – claude-sonnet-4-6 – shell_pid=27016 – lane=for_review – Implementation complete: E2E integration test (T039), PII audit test (T040), cycle overlap test verified (T041), source isolation test (T042), coverage gaps filled to 99.51% (T043), README + docstrings updated (T044). All quality gates pass: ruff OK, mypy OK, bandit OK, 243 unit tests pass, 22 integration tests skip without DB (will run in CI). Coverage 99.51%.
 - 2026-03-13T20:57:41Z – claude-reviewer – shell_pid=24052 – lane=doing – Started review via workflow command
+- 2026-03-13T21:02:32Z – claude-reviewer – shell_pid=24052 – lane=planned – Moved to planned
