@@ -15,7 +15,7 @@ subtasks:
 - T027
 phase: Phase 1 - Core Components
 assignee: ''
-agent: ''
+agent: "claude-sonnet-4-6"
 shell_pid: "6432"
 review_status: ''
 reviewed_by: ''
@@ -499,3 +499,4 @@ async def db_session():
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
+- 2026-03-13T14:53:48Z – claude-sonnet-4-6 – shell_pid=6432 – lane=doing – Assigned agent via workflow command
