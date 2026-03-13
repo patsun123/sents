@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Storage Layer
-lane: "doing"
+lane: "done"
 dependencies: [WP01]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP01
 base_commit: 7e38de562c61693212607d5f4fb1061125053261
@@ -17,8 +17,8 @@ phase: Phase 1 - Core Components
 assignee: ''
 agent: "claude-sonnet-4-6"
 shell_pid: "3776"
-review_status: ''
-reviewed_by: ''
+review_status: "approved"
+reviewed_by: "Patrick Sun"
 history:
 - timestamp: '2026-03-09T19:41:43Z'
   lane: planned
@@ -502,3 +502,4 @@ async def db_session():
 - 2026-03-13T14:53:48Z – claude-sonnet-4-6 – shell_pid=6432 – lane=doing – Assigned agent via workflow command
 - 2026-03-13T15:05:23Z – claude-sonnet-4-6 – shell_pid=6432 – lane=for_review – Implementation complete: SQLAlchemy async models, Alembic migrations, SignalStore/RunStore/SourceStore CRUD, 43 unit tests (mocked), 7 integration tests (skip w/o PG). ruff+mypy strict+bandit clean. Coverage 100%.
 - 2026-03-13T15:06:18Z – claude-sonnet-4-6 – shell_pid=3776 – lane=doing – Started review via workflow command
+- 2026-03-13T15:07:44Z – claude-sonnet-4-6 – shell_pid=3776 – lane=done – Review passed: All quality gates clean (ruff, mypy strict, bandit, 100% coverage). SentimentSignal has zero PII columns. CollectionRun defaults to status='failed'. bulk_insert_signals uses ON CONFLICT DO NOTHING. SourceStore.disable_source is a soft-delete. Integration tests skip gracefully without PG. Alembic migration matches schema.sql column-for-column.
