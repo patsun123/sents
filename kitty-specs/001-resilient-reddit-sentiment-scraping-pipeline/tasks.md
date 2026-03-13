@@ -153,12 +153,12 @@
 **Estimated size**: ~400 lines
 
 ### Included Subtasks
-- [ ] T022 Create SQLAlchemy 2.x async models in `worker/src/storage/models.py` (`DataSource`, `CollectionRun`, `SentimentSignal`, `ScoredResult` — matching `contracts/schema.sql`)
-- [ ] T023 Set up Alembic migrations in `worker/` with initial migration matching `contracts/schema.sql`; include all indexes
-- [ ] T024 Implement `SignalStore` in `worker/src/storage/signals.py` (`bulk_insert_signals()`, `get_signals_for_window()`)
-- [ ] T025 Implement `RunStore` in `worker/src/storage/runs.py` (`create_run()`, `update_run_status()`, `get_last_successful_run()`, pessimistic default status)
-- [ ] T026 [P] Implement `SourceStore` in `worker/src/storage/sources.py` (`get_active_sources()`, `disable_source()`)
-- [ ] T027 Write integration tests for all storage operations in `worker/tests/integration/test_storage.py` (real PostgreSQL via Docker)
+- [x] T022 Create SQLAlchemy 2.x async models in `worker/src/storage/models.py` (`DataSource`, `CollectionRun`, `SentimentSignal`, `ScoredResult` — matching `contracts/schema.sql`)
+- [x] T023 Set up Alembic migrations in `worker/` with initial migration matching `contracts/schema.sql`; include all indexes
+- [x] T024 Implement `SignalStore` in `worker/src/storage/signals.py` (`bulk_insert_signals()`, `get_signals_for_window()`)
+- [x] T025 Implement `RunStore` in `worker/src/storage/runs.py` (`create_run()`, `update_run_status()`, `get_last_successful_run()`, pessimistic default status)
+- [x] T026 [P] Implement `SourceStore` in `worker/src/storage/sources.py` (`get_active_sources()`, `disable_source()`)
+- [x] T027 Write integration tests for all storage operations in `worker/tests/integration/test_storage.py` (real PostgreSQL via Docker)
 
 ### Implementation Notes
 - Use `asyncpg` engine with SQLAlchemy async session
