@@ -1,10 +1,13 @@
 ---
 work_package_id: WP08
 title: Integration Tests & Hardening
-lane: planned
+lane: "doing"
 dependencies:
 - WP07
 - WP02
+base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP08-merge-base
+base_commit: 28a261740b45cc89954d1a7785099f830e8ec57e
+created_at: '2026-03-13T20:44:34.244350+00:00'
 subtasks:
 - T039
 - T040
@@ -15,7 +18,7 @@ subtasks:
 phase: Phase 4 - Hardening
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "27016"
 review_status: ''
 reviewed_by: ''
 history:
