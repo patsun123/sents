@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer  # type: ignore[import-untyped]
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from .base import ClassificationResult, ClassifierError
 

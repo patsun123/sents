@@ -56,6 +56,20 @@ ignore_missing_imports = false
 module = ["praw", "praw.*", "prawcore", "prawcore.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# vaderSentiment ships without type stubs.
+module = ["vaderSentiment", "vaderSentiment.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# finbert is an optional heavy dependency (torch + transformers).
+module = ["worker.src.classifiers.finbert", "src.classifiers.finbert"]
+ignore_missing_imports = true
+
 [tool.coverage.run]
 source = ["src"]
-omit = ["tests/*"]
+omit = [
+  "tests/*",
+  "src/main.py",       # entry-point wiring — requires full infrastructure
+  "src/__main__.py",   # CLI entry point — tested via integration/smoke tests
+]

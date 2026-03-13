@@ -41,7 +41,7 @@ def get_classifier() -> SentimentClassifier:
             # Lazy import: FinBERT requires torch + transformers (~2GB).
             # Raises ImportError with a clear message if the module is absent.
             try:
-                from .finbert import (  # type: ignore[import-not-found]
+                from .finbert import (
                     FinBERTClassifier as _FinBERT,
                 )
             except ImportError as exc:
