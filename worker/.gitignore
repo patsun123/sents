@@ -15,3 +15,5 @@ htmlcov/
 .ruff_cache/
 *.env
 .env
+# Docker health check state file (written at runtime, not source control)
+.health
