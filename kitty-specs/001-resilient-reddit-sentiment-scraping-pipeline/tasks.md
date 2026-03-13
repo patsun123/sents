@@ -85,11 +85,11 @@
 **Estimated size**: ~320 lines
 
 ### Included Subtasks
-- [ ] T012 Implement `TickerExtractor` in `worker/src/tickers/extractor.py` (regex for `$TICKER` explicit mentions and bare `ALL-CAPS` 1-5 char patterns)
-- [ ] T013 Implement `TickerDisambiguator` in `worker/src/tickers/disambiguator.py` (false-positive blocklist lookup + NYSE/NASDAQ universe validation; `$TICKER` explicit mentions bypass blocklist)
-- [ ] T014 Create and version `worker/src/tickers/data/false_positive_blocklist.txt` and `worker/src/tickers/data/ticker_universe.txt` (sourced from SEC EDGAR or equivalent)
-- [ ] T015 [P] Write unit tests for `TickerExtractor` in `worker/tests/unit/test_tickers/test_extractor.py`
-- [ ] T016 [P] Write unit tests for `TickerDisambiguator` in `worker/tests/unit/test_tickers/test_disambiguator.py`
+- [x] T012 Implement `TickerExtractor` in `worker/src/tickers/extractor.py` (regex for `$TICKER` explicit mentions and bare `ALL-CAPS` 1-5 char patterns)
+- [x] T013 Implement `TickerDisambiguator` in `worker/src/tickers/disambiguator.py` (false-positive blocklist lookup + NYSE/NASDAQ universe validation; `$TICKER` explicit mentions bypass blocklist)
+- [x] T014 Create and version `worker/src/tickers/data/false_positive_blocklist.txt` and `worker/src/tickers/data/ticker_universe.txt` (sourced from SEC EDGAR or equivalent)
+- [x] T015 [P] Write unit tests for `TickerExtractor` in `worker/tests/unit/test_tickers/test_extractor.py`
+- [x] T016 [P] Write unit tests for `TickerDisambiguator` in `worker/tests/unit/test_tickers/test_disambiguator.py`
 
 ### Implementation Notes
 - Regex patterns: `\$([A-Z]{1,5})\b` for explicit; `\b([A-Z]{2,5})\b` for bare (note: 2-char minimum for bare to reduce noise)
