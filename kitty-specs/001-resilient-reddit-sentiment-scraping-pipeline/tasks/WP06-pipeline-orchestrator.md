@@ -1,8 +1,11 @@
 ---
 work_package_id: WP06
 title: Pipeline Orchestrator
-lane: planned
+lane: "doing"
 dependencies: [WP02, WP03, WP04, WP05]
+base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP06-merge-base
+base_commit: 1b5885f73e4941e43582d41eca698703726a730a
+created_at: '2026-03-13T15:08:36.475085+00:00'
 subtasks:
 - T028
 - T029
@@ -13,7 +16,7 @@ subtasks:
 phase: Phase 2 - Integration
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "22328"
 review_status: ''
 reviewed_by: ''
 history:
