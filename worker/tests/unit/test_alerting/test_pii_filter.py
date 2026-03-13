@@ -148,3 +148,27 @@ class TestConfigureLogging:
         handler = root_logger.handlers[0]
         pii_filters = [f for f in handler.filters if isinstance(f, PIIFilter)]
         assert pii_filters, "PIIFilter must be attached to the console handler"
+
+    def test_configure_logging_fallback_to_plain_formatter(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """configure_logging() falls back to logging.Formatter when pythonjsonlogger is absent."""
+        import builtins  # noqa: PLC0415
+        import sys  # noqa: PLC0415
+
+        real_import = builtins.__import__
+
+        def mock_import(name: str, *args: object, **kwargs: object) -> object:
+            if name.startswith("pythonjsonlogger"):
+                raise ImportError("pythonjsonlogger not installed")
+            return real_import(name, *args, **kwargs)  # type: ignore[arg-type]
+
+        # Also remove it from sys.modules cache so the import attempt happens fresh
+        saved = {k: v for k, v in sys.modules.items() if "pythonjsonlogger" in k}
+        for key in saved:
+            sys.modules.pop(key, None)
+
+        monkeypatch.setattr(builtins, "__import__", mock_import)
+
+        # Should not raise — falls back gracefully to plain text formatter
+        configure_logging(level="INFO")

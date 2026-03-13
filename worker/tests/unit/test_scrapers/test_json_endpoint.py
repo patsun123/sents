@@ -332,3 +332,30 @@ def test_json_endpoint_scraper_satisfies_protocol() -> None:
 
     scraper = _make_scraper()
     assert isinstance(scraper, RedditScraper)
+
+
+def test_empty_user_agents_raises_value_error() -> None:
+    """Constructing JsonEndpointScraper with an empty user-agent list raises ValueError."""
+    with pytest.raises(ValueError, match="user_agents must contain at least one entry"):
+        JsonEndpointScraper(user_agents=[])
+
+
+def test_is_available_returns_true() -> None:
+    """is_available() always returns True (no credentials required)."""
+    scraper = _make_scraper()
+    assert scraper.is_available() is True
+
+
+@pytest.mark.asyncio
+async def test_unexpected_status_code_raises_scraper_error(
+    httpx_mock: HTTPXMock,
+) -> None:
+    """Unexpected HTTP status codes (not 200/429/403/404/5xx) raise ScraperError."""
+    from src.scrapers.base import ScraperError
+
+    # HTTP 418 (I'm a teapot) is unexpected
+    httpx_mock.add_response(status_code=418)
+
+    scraper = _make_scraper()
+    with pytest.raises(ScraperError, match="Unexpected HTTP 418"):
+        _ = [c async for c in scraper.fetch_comments("test", _PAST_SINCE)]
