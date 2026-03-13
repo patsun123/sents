@@ -119,11 +119,11 @@
 **Estimated size**: ~300 lines
 
 ### Included Subtasks
-- [ ] T017 Define `SentimentClassifier` Protocol and `ClassificationResult` dataclass in `worker/src/classifiers/base.py` (per `contracts/classifier-interface.md`)
-- [ ] T018 Implement `VADERClassifier` in `worker/src/classifiers/vader.py` (VADER compound score -> polarity mapping; neutral [-0.05, 0.05] -> `discarded=True`)
-- [ ] T019 Implement classifier factory `get_classifier()` in `worker/src/classifiers/__init__.py` (`CLASSIFIER_BACKEND` env var; lazy FinBERT import)
-- [ ] T020 [P] Write unit tests for VADER in `worker/tests/unit/test_classifiers/test_vader.py` (positive, negative, neutral, edge cases)
-- [ ] T021 [P] Write integration test for classifier selection via `CLASSIFIER_BACKEND` env var
+- [x] T017 Define `SentimentClassifier` Protocol and `ClassificationResult` dataclass in `worker/src/classifiers/base.py` (per `contracts/classifier-interface.md`)
+- [x] T018 Implement `VADERClassifier` in `worker/src/classifiers/vader.py` (VADER compound score -> polarity mapping; neutral [-0.05, 0.05] -> `discarded=True`)
+- [x] T019 Implement classifier factory `get_classifier()` in `worker/src/classifiers/__init__.py` (`CLASSIFIER_BACKEND` env var; lazy FinBERT import)
+- [x] T020 [P] Write unit tests for VADER in `worker/tests/unit/test_classifiers/test_vader.py` (positive, negative, neutral, edge cases)
+- [x] T021 [P] Write integration test for classifier selection via `CLASSIFIER_BACKEND` env var
 
 ### Implementation Notes
 - VADER `SentimentIntensityAnalyzer` must be instantiated once at `__init__` (not per call) — it's expensive
