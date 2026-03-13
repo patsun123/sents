@@ -14,7 +14,7 @@ subtasks:
 - T021
 phase: Phase 1 - Core Components
 assignee: ''
-agent: ''
+agent: "claude-sonnet-4-6"
 shell_pid: "11224"
 review_status: ''
 reviewed_by: ''
@@ -420,3 +420,4 @@ def test_vader_classify_roundtrip():
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
+- 2026-03-13T14:53:40Z – claude-sonnet-4-6 – shell_pid=11224 – lane=doing – Assigned agent via workflow command
