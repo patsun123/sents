@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Scraper Layer
-lane: "planned"
+lane: "for_review"
 dependencies: [WP01]
 base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP01
 base_commit: 7e38de562c61693212607d5f4fb1061125053261
@@ -433,3 +433,4 @@ async def test_user_agent_varies_across_pages(
 - 2026-03-11T04:53:04Z – claude-sonnet-4-6 – shell_pid=22984 – lane=for_review – Ready for review: scraper layer complete - dual-lane .json+PRAW, backoff, zero-PII RawComment, 28 tests at 95.6% coverage, all quality gates green
 - 2026-03-11T14:47:45Z – claude-sonnet-4-6 – shell_pid=24232 – lane=doing – Started review via workflow command
 - 2026-03-11T14:49:34Z – claude-sonnet-4-6 – shell_pid=24232 – lane=planned – Moved to planned
+- 2026-03-13T14:52:05Z – claude-sonnet-4-6 – shell_pid=24232 – lane=for_review – Ruff violations fixed: F401, UP017x3, E501x2, S105
