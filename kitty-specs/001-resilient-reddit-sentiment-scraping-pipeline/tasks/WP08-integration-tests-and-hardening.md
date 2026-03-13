@@ -1,7 +1,7 @@
 ---
 work_package_id: WP08
 title: Integration Tests & Hardening
-lane: "for_review"
+lane: "doing"
 dependencies:
 - WP07
 - WP02
@@ -17,8 +17,8 @@ subtasks:
 - T044
 phase: Phase 4 - Hardening
 assignee: ''
-agent: "claude-sonnet-4-6"
-shell_pid: "27016"
+agent: "claude-reviewer"
+shell_pid: "24052"
 review_status: ''
 reviewed_by: ''
 history:
@@ -406,3 +406,4 @@ async def test_all_sources_failed_marks_run_failed(db_session, httpx_mock):
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
 - 2026-03-13T20:44:34Z – claude-sonnet-4-6 – shell_pid=27016 – lane=doing – Assigned agent via workflow command
 - 2026-03-13T20:56:05Z – claude-sonnet-4-6 – shell_pid=27016 – lane=for_review – Implementation complete: E2E integration test (T039), PII audit test (T040), cycle overlap test verified (T041), source isolation test (T042), coverage gaps filled to 99.51% (T043), README + docstrings updated (T044). All quality gates pass: ruff OK, mypy OK, bandit OK, 243 unit tests pass, 22 integration tests skip without DB (will run in CI). Coverage 99.51%.
+- 2026-03-13T20:57:41Z – claude-reviewer – shell_pid=24052 – lane=doing – Started review via workflow command
