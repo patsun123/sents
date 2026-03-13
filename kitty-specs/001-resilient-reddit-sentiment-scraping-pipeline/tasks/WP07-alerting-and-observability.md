@@ -14,7 +14,7 @@ subtasks:
 - T038
 phase: Phase 3 - Operational Safety
 assignee: ''
-agent: ''
+agent: "claude-sonnet-4-6"
 shell_pid: "11956"
 review_status: ''
 reviewed_by: ''
@@ -350,3 +350,4 @@ class AlertThresholdTracker:
 ## Activity Log
 
 - 2026-03-09T19:41:43Z - system - lane=planned - Prompt created.
+- 2026-03-13T20:31:57Z – claude-sonnet-4-6 – shell_pid=11956 – lane=doing – Assigned agent via workflow command
