@@ -27,9 +27,11 @@ import sys
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from .alerting import init_sentry
+from .alerting import capture_cycle_failure, init_sentry
+from .alerting.threshold import AlertThresholdTracker
 from .classifiers import get_classifier
 from .config import Settings, get_settings
+from .logging_config import configure_logging
 from .pipeline.queue import CycleQueue
 from .pipeline.runner import CycleRunner
 from .pipeline.scheduler import create_scheduler
@@ -48,33 +50,6 @@ _DEFAULT_USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) SSEWorker/1.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SSEWorker/1.0",
 ]
-
-
-def _configure_logging(log_level: str) -> None:
-    """Configure structured logging.
-
-    Uses python-json-logger for JSON output if available; falls back to
-    plain-text logging for local development without the dependency.
-    """
-    level = getattr(logging, log_level.upper(), logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-
-    try:
-        import pythonjsonlogger.jsonlogger as _jl  # noqa: PLC0415
-
-        formatter = _jl.JsonFormatter(  # type: ignore[attr-defined]
-            "%(asctime)s %(name)s %(levelname)s %(message)s"
-        )
-        handler.setFormatter(formatter)
-    except (ImportError, AttributeError):
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s")
-        )
-
-    root = logging.getLogger()
-    root.handlers.clear()
-    root.addHandler(handler)
-    root.setLevel(level)
 
 
 async def _run_migrations(database_url: str) -> None:
@@ -139,7 +114,7 @@ async def main() -> None:
     """
     settings: Settings = get_settings()
 
-    _configure_logging(settings.log_level)
+    configure_logging(settings.log_level)
     init_sentry(settings.sentry_dsn)
 
     logger.info("worker_starting log_level=%s", settings.log_level)
@@ -175,6 +150,12 @@ async def main() -> None:
     extractor = TickerExtractor()
     disambiguator = TickerDisambiguator()
 
+    # Build alert threshold tracker
+    alert_tracker = AlertThresholdTracker(
+        threshold=settings.alert_threshold,
+        alert_fn=capture_cycle_failure,
+    )
+
     # Build CycleRunner
     runner = CycleRunner(
         settings=settings,
@@ -184,6 +165,7 @@ async def main() -> None:
         fallback_scraper=fallback_scraper,
         extractor=extractor,
         disambiguator=disambiguator,
+        alert_tracker=alert_tracker,
     )
 
     # Build CycleQueue (in-process sequential execution guard)

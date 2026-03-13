@@ -7,6 +7,8 @@ Cycle flow:
   3. For each source: scrape -> extract tickers -> classify -> accumulate signals
   4. Bulk insert all signals
   5. Update run status (success/partial/failed)
+  6. Write .health file on success/partial for Docker health check
+  7. Record success/failure with AlertThresholdTracker
 
 Source isolation: one failed source does NOT abort others.
 PII guarantee: RawComment objects are created in-memory and never stored.
@@ -16,8 +18,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
+from ..alerting.threshold import AlertThresholdTracker
 from ..classifiers.base import SentimentClassifier
 from ..config import Settings
 from ..scrapers.base import RedditScraper, ScraperRateLimitError, ScraperUnavailableError
@@ -36,6 +40,10 @@ _RATE_LIMIT_THRESHOLD = 3
 # Warn if cycle duration exceeds this fraction of cycle_interval_minutes
 _CYCLE_DURATION_WARN_FRACTION = 0.8
 
+# Path to the health file written after each successful cycle.
+# The Dockerfile HEALTHCHECK verifies this file's mtime.
+_HEALTH_FILE = Path(".health")
+
 
 class CycleRunner:
     """
@@ -52,6 +60,7 @@ class CycleRunner:
         fallback_scraper: Fallback scraper (PRAW OAuth).
         extractor: Ticker symbol extractor.
         disambiguator: Ticker disambiguation/validation filter.
+        alert_tracker: Optional threshold tracker for consecutive-failure alerts.
     """
 
     def __init__(
@@ -63,6 +72,7 @@ class CycleRunner:
         fallback_scraper: RedditScraper,
         extractor: TickerExtractor,
         disambiguator: TickerDisambiguator,
+        alert_tracker: AlertThresholdTracker | None = None,
     ) -> None:
         self._settings = settings
         self._session_factory = session_factory
@@ -71,6 +81,7 @@ class CycleRunner:
         self._fallback_scraper = fallback_scraper
         self._extractor = extractor
         self._disambiguator = disambiguator
+        self._alert_tracker = alert_tracker
         self._consecutive_rate_limits: int = 0
 
     @property
@@ -194,6 +205,21 @@ class CycleRunner:
                 error_summary=error_summary,
             )
             await session.commit()
+
+            # Write health file after any non-failed cycle outcome so Docker
+            # can detect that the pipeline is alive.
+            if status in ("success", "partial"):
+                _HEALTH_FILE.write_text(datetime.now(tz=UTC).isoformat())
+
+            # Alert threshold tracking
+            if self._alert_tracker is not None:
+                if status == "failed":
+                    self._alert_tracker.record_failure(
+                        run_id=str(run.id),
+                        error_summary=error_summary or "All sources failed",
+                    )
+                else:
+                    self._alert_tracker.record_success()
 
             # Warn if cycle took too long
             elapsed = (datetime.now(tz=UTC) - cycle_start).total_seconds()
