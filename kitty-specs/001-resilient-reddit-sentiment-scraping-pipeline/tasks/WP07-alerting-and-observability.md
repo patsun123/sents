@@ -1,8 +1,11 @@
 ---
 work_package_id: WP07
 title: Alerting & Observability
-lane: planned
+lane: "doing"
 dependencies: [WP06]
+base_branch: 001-resilient-reddit-sentiment-scraping-pipeline-WP06
+base_commit: 9df8f58bdd2dee34d9306bfdab899bfccdcf422e
+created_at: '2026-03-13T20:31:56.879516+00:00'
 subtasks:
 - T034
 - T035
@@ -12,7 +15,7 @@ subtasks:
 phase: Phase 3 - Operational Safety
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "11956"
 review_status: ''
 reviewed_by: ''
 history:
