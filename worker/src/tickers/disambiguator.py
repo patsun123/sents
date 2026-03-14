@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tickers.extractor import ExtractedTicker
+from .extractor import ExtractedTicker
 
 
 class TickerDisambiguator:
