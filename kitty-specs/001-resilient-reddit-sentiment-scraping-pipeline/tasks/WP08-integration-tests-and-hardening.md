@@ -1,7 +1,7 @@
 ---
 work_package_id: WP08
 title: Integration Tests & Hardening
-lane: "doing"
+lane: "done"
 dependencies:
 - WP07
 - WP02
@@ -454,3 +454,4 @@ Note: The CI database name (`POSTGRES_DB: sse` + `DATABASE_URL: .../sse`) is int
 - 2026-03-13T21:02:32Z – claude-reviewer – shell_pid=24052 – lane=planned – Moved to planned
 - 2026-03-14T01:53:34Z – claude-reviewer – shell_pid=24052 – lane=for_review – Applied review fix: strengthened queue ordering assertion from membership checks to strict list equality (executed == [1, 2])
 - 2026-03-14T01:53:43Z – claude-reviewer – shell_pid=11144 – lane=doing – Started review via workflow command
+- 2026-03-14T01:54:16Z – claude-reviewer – shell_pid=11144 – lane=done – Review passed: fix confirmed (assert executed == [1,2] strict ordering). All 6 success criteria met — E2E tests, PII audit, sequential queue enforcement, source isolation, 99.51% coverage, README complete. Feature 001 is fully implemented and verified.
