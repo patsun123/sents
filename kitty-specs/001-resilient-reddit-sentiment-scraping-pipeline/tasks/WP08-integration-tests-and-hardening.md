@@ -1,7 +1,7 @@
 ---
 work_package_id: WP08
 title: Integration Tests & Hardening
-lane: "planned"
+lane: "for_review"
 dependencies:
 - WP07
 - WP02
@@ -452,3 +452,4 @@ Note: The CI database name (`POSTGRES_DB: sse` + `DATABASE_URL: .../sse`) is int
 - 2026-03-13T20:56:05Z – claude-sonnet-4-6 – shell_pid=27016 – lane=for_review – Implementation complete: E2E integration test (T039), PII audit test (T040), cycle overlap test verified (T041), source isolation test (T042), coverage gaps filled to 99.51% (T043), README + docstrings updated (T044). All quality gates pass: ruff OK, mypy OK, bandit OK, 243 unit tests pass, 22 integration tests skip without DB (will run in CI). Coverage 99.51%.
 - 2026-03-13T20:57:41Z – claude-reviewer – shell_pid=24052 – lane=doing – Started review via workflow command
 - 2026-03-13T21:02:32Z – claude-reviewer – shell_pid=24052 – lane=planned – Moved to planned
+- 2026-03-14T01:53:34Z – claude-reviewer – shell_pid=24052 – lane=for_review – Applied review fix: strengthened queue ordering assertion from membership checks to strict list equality (executed == [1, 2])
