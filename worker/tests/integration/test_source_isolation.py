@@ -138,7 +138,9 @@ async def test_unavailable_source_does_not_block_others(
     wsb_url = "https://www.reddit.com/r/wallstreetbets/new/.json?limit=100"
     stocks_url = "https://www.reddit.com/r/stocks/new/.json?limit=100"
 
-    # wallstreetbets returns 503 (unavailable)
+    # wallstreetbets returns 503 (unavailable).  Two responses needed because
+    # JsonEndpointScraper retries once on 5xx before raising ScraperError.
+    httpx_mock.add_response(url=wsb_url, status_code=503)
     httpx_mock.add_response(url=wsb_url, status_code=503)
     # stocks returns valid data
     httpx_mock.add_response(url=stocks_url, json=MOCK_STOCKS_RESPONSE)
@@ -161,6 +163,8 @@ async def test_all_sources_failed_marks_run_failed(
     await _seed_sources(db_session, subreddits)
 
     wsb_url = "https://www.reddit.com/r/wallstreetbets/new/.json?limit=100"
+    # Two 503 responses needed: scraper retries once on 5xx before raising.
+    httpx_mock.add_response(url=wsb_url, status_code=503)
     httpx_mock.add_response(url=wsb_url, status_code=503)
 
     runner = _build_test_runner(db_session, subreddits)
@@ -206,6 +210,8 @@ async def test_error_summary_lists_failed_sources(
     await _seed_sources(db_session, subreddits)
 
     wsb_url = "https://www.reddit.com/r/wallstreetbets/new/.json?limit=100"
+    # Two 503 responses needed: scraper retries once on 5xx before raising.
+    httpx_mock.add_response(url=wsb_url, status_code=503)
     httpx_mock.add_response(url=wsb_url, status_code=503)
 
     runner = _build_test_runner(db_session, subreddits)

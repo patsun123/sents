@@ -236,7 +236,9 @@ async def test_run_error_summary_contains_no_usernames(
     httpx_mock: Any,
 ) -> None:
     """CollectionRun.error_summary must not contain Reddit username patterns."""
-    # Simulate a partial run (one source fails)
+    # Simulate a partial run (one source fails).  Two 503 responses needed
+    # because JsonEndpointScraper retries once on 5xx before raising ScraperError.
+    httpx_mock.add_response(status_code=503)
     httpx_mock.add_response(status_code=503)
 
     runner = _build_test_runner(pii_seeded_session)

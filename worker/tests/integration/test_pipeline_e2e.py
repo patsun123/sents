@@ -163,7 +163,14 @@ async def test_full_cycle_signals_have_correct_schema(
     seeded_db_session: Any,
     httpx_mock: Any,
 ) -> None:
-    """Stored signals have correct field types and valid polarity values."""
+    """Stored signals have correct field types and valid polarity values.
+
+    Uses TSLA rather than GME because VADER (pre-2014 lexicon) scores WSB slang
+    like "to the moon" as neutral and discards the GME mock comment.  The TSLA
+    bare-mention comment ("TSLA looking great this week") contains the word
+    "great" which VADER reliably classifies as positive, so TSLA signals are
+    guaranteed to be stored.
+    """
     from src.storage.signals import SignalStore  # noqa: PLC0415
 
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
@@ -178,13 +185,15 @@ async def test_full_cycle_signals_have_correct_schema(
     window_end = datetime(2099, 12, 31, tzinfo=UTC)
 
     signal_store = SignalStore(seeded_db_session)
-    gme_signals = await signal_store.get_signals_for_window("GME", window_start, window_end)
+    # TSLA appears in "TSLA looking great this week" — VADER scores "great"
+    # as strongly positive, so this signal is reliably stored.
+    tsla_signals = await signal_store.get_signals_for_window("TSLA", window_start, window_end)
 
-    assert len(gme_signals) > 0
-    for signal in gme_signals:
+    assert len(tsla_signals) > 0
+    for signal in tsla_signals:
         assert signal.sentiment_polarity in (-1, 1)
         assert signal.upvote_weight >= 0
-        assert signal.ticker_symbol == "GME"
+        assert signal.ticker_symbol == "TSLA"
         assert signal.source_subreddit == SUBREDDIT
         assert signal.collection_run_id == run.id
 
