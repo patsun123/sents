@@ -1,0 +1,12 @@
+{
+  "wp_id": "WP01",
+  "feature_slug": "001-resilient-reddit-sentiment-scraping-pipeline",
+  "worktree_path": ".worktrees\\001-resilient-reddit-sentiment-scraping-pipeline-WP01",
+  "branch_name": "001-resilient-reddit-sentiment-scraping-pipeline-WP01",
+  "base_branch": "master",
+  "base_commit": "addfacf7f1924059eb3d6e5d084d96f4922bd46b",
+  "dependencies": [],
+  "created_at": "2026-03-10T16:07:47.490465+00:00",
+  "created_by": "implement-command",
+  "vcs_backend": "git"
+}
