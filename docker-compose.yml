@@ -1,4 +1,15 @@
 services:
+  api:
+    build: ./api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sse:sse@postgres:5432/sse
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   worker:
     build: ./worker
     restart: unless-stopped

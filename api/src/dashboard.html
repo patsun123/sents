@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSE — Sentiment Stock Exchange</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;600&family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #07090f;
+      --surface:  #0c1120;
+      --card:     #101929;
+      --border:   #162035;
+      --text:     #b4cce4;
+      --muted:    #3d5a78;
+      --accent:   #0ea5e9;
+      --pos:      #10b981;
+      --neg:      #ef4444;
+      --warn:     #f59e0b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rubik', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 20px 24px 32px;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+
+    .brand-sse {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      letter-spacing: 6px;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .brand-full {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      line-height: 1.8;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--pos);
+      animation: blink 2.4s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--pos); }
+      50%       { opacity: 0.25; box-shadow: none; }
+    }
+
+    .refresh-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 1.5px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 5px 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .refresh-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .refresh-btn:active { opacity: 0.6; }
+
+    /* ── Stats row ───────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 2px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.pos    { color: var(--pos); }
+    .stat-value.neg    { color: var(--neg); }
+
+    .stat-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* ── Main grid ───────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    /* ── Section shell ───────────────────────── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .section-head {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .section-head span.badge {
+      color: var(--accent);
+      font-size: 0.6rem;
+    }
+
+    .scroll-body {
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      flex: 1;
+    }
+
+    /* ── Ticker table ────────────────────────── */
+    .ticker-row {
+      display: grid;
+      grid-template-columns: 26px 70px 1fr 90px 54px;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+
+    .ticker-row:last-child { border-bottom: none; }
+    .ticker-row:hover      { background: var(--card); }
+
+    .t-rank {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .t-symbol {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .t-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
+
+    .split-bar {
+      height: 5px;
+      background: var(--card);
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .bar-pos {
+      height: 100%;
+      background: var(--pos);
+      transition: width 0.6s ease;
+    }
+
+    .bar-neg {
+      height: 100%;
+      background: var(--neg);
+      transition: width 0.6s ease;
+    }
+
+    .t-subs {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .t-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 1px;
+      text-align: right;
+    }
+
+    .t-score.pos { color: var(--pos); }
+    .t-score.neg { color: var(--neg); }
+
+    .t-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── Runs ────────────────────────────────── */
+    .run-row {
+      display: grid;
+      grid-template-columns: 9px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .run-row:last-child { border-bottom: none; }
+
+    .run-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .run-dot.success { background: var(--pos); }
+    .run-dot.partial { background: var(--warn); }
+    .run-dot.failed  { background: var(--neg); }
+
+    .run-info { min-width: 0; }
+
+    .run-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text);
+    }
+
+    .run-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .run-sig {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.25rem;
+      letter-spacing: 1px;
+      color: var(--accent);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .run-sig-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.52rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── Signal feed ─────────────────────────── */
+    .feed-section { grid-column: 1 / -1; }
+
+    .signal-row {
+      display: grid;
+      grid-template-columns: 74px 62px 22px 1fr 80px;
+      align-items: center;
+      gap: 12px;
+      padding: 7px 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+
+    .signal-row:last-child { border-bottom: none; }
+    .signal-row:hover      { background: var(--card); }
+
+    .sig-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+
+    .sig-ticker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .sig-arrow {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      font-size: 0.65rem;
+      font-weight: 700;
+    }
+
+    .sig-arrow.up   { background: rgba(16, 185, 129, 0.12); color: var(--pos); }
+    .sig-arrow.down { background: rgba(239, 68, 68, 0.12);  color: var(--neg); }
+
+    .sig-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sig-upvotes {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── Shared states ───────────────────────── */
+    .empty {
+      padding: 40px 14px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .empty::before {
+      content: '○';
+      display: block;
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      opacity: 0.3;
+    }
+
+    .loading-msg {
+      padding: 28px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      animation: blink 1.6s ease-in-out infinite;
+    }
+
+    .error-bar {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: var(--neg);
+      padding: 8px 14px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 860px) {
+      .stats-row       { grid-template-columns: repeat(2, 1fr); }
+      .main-grid       { grid-template-columns: 1fr; }
+      .feed-section    { grid-column: 1; }
+      .signal-row      { grid-template-columns: 68px 55px 22px 1fr; }
+      .sig-upvotes     { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="error-bar" id="errBar"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="brand">
+    <span class="brand-sse">SSE</span>
+    <div>
+      <div class="brand-full">Sentiment Stock Exchange</div>
+      <div class="brand-full" style="opacity:0.5">Reddit Signal Dashboard</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span id="lastUpdated">—</span>
+    </div>
+    <span>24H · 30s refresh</span>
+    <button class="refresh-btn" onclick="fetchAll()">↺ Refresh</button>
+  </div>
+</div>
+
+<!-- Stats row -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Tickers (24H)</div>
+    <div class="stat-value accent" id="sTickers">—</div>
+    <div class="stat-sub">unique symbols</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Signals (24H)</div>
+    <div class="stat-value" id="sSignals">—</div>
+    <div class="stat-sub">total mentions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Bull / Bear</div>
+    <div class="stat-value" id="sBullBear" style="font-size:1.5rem">— / —</div>
+    <div class="stat-sub">positive / negative signals</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Last Run</div>
+    <div class="stat-value" id="sLastRun" style="font-size:1.1rem;font-family:'JetBrains Mono',monospace">—</div>
+    <div class="stat-sub" id="sLastRunStatus">—</div>
+  </div>
+</div>
+
+<!-- Main grid -->
+<div class="main-grid">
+
+  <!-- Tickers -->
+  <div class="section" style="max-height:420px">
+    <div class="section-head">
+      <span>Ticker Sentiment · 24H</span>
+      <span class="badge" id="tickerBadge"></span>
+    </div>
+    <div class="scroll-body" id="tickerBody">
+      <div class="loading-msg">loading…</div>
+    </div>
+  </div>
+
+  <!-- Runs -->
+  <div class="section" style="max-height:420px">
+    <div class="section-head">
+      <span>Collection Runs</span>
+      <span class="badge" id="runsBadge"></span>
+    </div>
+    <div class="scroll-body" id="runsBody">
+      <div class="loading-msg">loading…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Signal feed -->
+<div class="section feed-section">
+  <div class="section-head">
+    <span>Recent Signals</span>
+    <span class="badge">latest 60</span>
+  </div>
+  <div class="scroll-body" style="max-height:280px" id="signalBody">
+    <div class="loading-msg">loading…</div>
+  </div>
+</div>
+
+<script>
+  // ── Helpers ─────────────────────────────────────────────────────────
+
+  function fmt(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function ago(iso) {
+    if (!iso) return '—';
+    const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (s <  60)   return `${s}s ago`;
+    if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+    return `${Math.floor(s / 3600)}h ago`;
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById('errBar');
+    el.textContent = 'API ERROR: ' + msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 6000);
+  }
+
+  // ── Render: tickers ──────────────────────────────────────────────────
+
+  function renderTickers(data) {
+    const el = document.getElementById('tickerBody');
+    document.getElementById('tickerBadge').textContent = data.length + ' tickers';
+
+    if (!data.length) {
+      el.innerHTML = '<div class="empty">No signals yet — first cycle hasn\'t run</div>';
+      return;
+    }
+
+    // Update summary stats
+    const totalMentions = data.reduce((n, t) => n + t.mention_count, 0);
+    const totalBull = data.reduce((n, t) => n + t.positive_count, 0);
+    const totalBear = data.reduce((n, t) => n + t.negative_count, 0);
+    document.getElementById('sTickers').textContent = data.length;
+    document.getElementById('sSignals').textContent = totalMentions.toLocaleString();
+    document.getElementById('sBullBear').textContent =
+      totalBull.toLocaleString() + ' / ' + totalBear.toLocaleString();
+
+    el.innerHTML = data.map((t, i) => {
+      const total = (t.positive_count + t.negative_count) || 1;
+      const posW  = ((t.positive_count / total) * 100).toFixed(1);
+      const negW  = ((t.negative_count / total) * 100).toFixed(1);
+      const score = t.net_score;
+      const cls   = score >= 0 ? 'pos' : 'neg';
+      const str   = score >= 0 ? '+' + score.toLocaleString() : score.toLocaleString();
+
+      return `
+        <div class="ticker-row">
+          <span class="t-rank">${i + 1}</span>
+          <span class="t-symbol">$${t.ticker}</span>
+          <div class="t-bar-wrap">
+            <div class="split-bar">
+              <div class="bar-pos" style="width:${posW}%"></div>
+              <div class="bar-neg" style="width:${negW}%"></div>
+            </div>
+            <span class="t-subs">${t.subreddits}</span>
+          </div>
+          <span class="t-score ${cls}">${str}</span>
+          <span class="t-count">${t.mention_count.toLocaleString()}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Render: runs ─────────────────────────────────────────────────────
+
+  function renderRuns(data) {
+    const el = document.getElementById('runsBody');
+    document.getElementById('runsBadge').textContent = data.length;
+
+    if (!data.length) {
+      el.innerHTML = '<div class="empty">No runs recorded yet</div>';
+      return;
+    }
+
+    const latest = data[0];
+    document.getElementById('sLastRun').textContent = ago(latest.started_at);
+    document.getElementById('sLastRunStatus').textContent =
+      latest.status + ' · ' + latest.signals_stored + ' signals';
+
+    el.innerHTML = data.map(r => {
+      const dur = r.completed_at
+        ? Math.round((new Date(r.completed_at) - new Date(r.started_at)) / 1000) + 's'
+        : 'running';
+      return `
+        <div class="run-row">
+          <div class="run-dot ${r.status}"></div>
+          <div class="run-info">
+            <div class="run-time">${fmt(r.started_at)}</div>
+            <div class="run-meta">${r.status} · ${r.sources_succeeded}/${r.sources_attempted} src · ${dur}</div>
+          </div>
+          <div>
+            <div class="run-sig">${r.signals_stored}</div>
+            <div class="run-sig-label">signals</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Render: signals ──────────────────────────────────────────────────
+
+  function renderSignals(data) {
+    const el = document.getElementById('signalBody');
+
+    if (!data.length) {
+      el.innerHTML = '<div class="empty">No signals yet</div>';
+      return;
+    }
+
+    el.innerHTML = data.map(s => {
+      const cls = s.polarity === 1 ? 'up' : 'down';
+      const sym = s.polarity === 1 ? '▲' : '▼';
+      const upv = s.upvotes > 0 ? s.upvotes.toLocaleString() + ' ↑' : '—';
+      return `
+        <div class="signal-row">
+          <span class="sig-time">${fmt(s.collected_at)}</span>
+          <span class="sig-ticker">$${s.ticker}</span>
+          <span class="sig-arrow ${cls}">${sym}</span>
+          <span class="sig-sub">r/${s.subreddit}</span>
+          <span class="sig-upvotes">${upv}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Fetch all ────────────────────────────────────────────────────────
+
+  async function fetchAll() {
+    document.getElementById('lastUpdated').textContent = 'updating…';
+    try {
+      const [tickers, runs, signals] = await Promise.all([
+        fetch('/api/tickers').then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.detail))),
+        fetch('/api/runs').then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.detail))),
+        fetch('/api/signals/recent').then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.detail))),
+      ]);
+      renderTickers(tickers);
+      renderRuns(runs);
+      renderSignals(signals);
+      document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB');
+    } catch (err) {
+      showErr(err);
+      document.getElementById('lastUpdated').textContent = 'error';
+    }
+  }
+
+  fetchAll();
+  setInterval(fetchAll, 30_000);
+</script>
+</body>
+</html>
