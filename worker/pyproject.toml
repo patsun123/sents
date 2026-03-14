@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sse-worker"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "apscheduler>=3.10",
+  "asyncpg>=0.29",
+  "httpx>=0.27",
+  "praw>=7.8",
+  "pydantic-settings>=2.3",
+  "python-json-logger>=2.0",
+  "sentry-sdk>=2.0",
+  "sqlalchemy[asyncio]>=2.0",
+  "vaderSentiment>=3.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "alembic>=1.13",
+  "bandit>=1.7",
+  "mypy>=1.10",
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "pytest-cov>=5.0",
+  "pytest-httpx>=0.30",
+  "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=90"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "S", "B", "A", "C4", "PT"]
+ignore = ["S101"]  # allow assert in tests
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+# praw and prawcore ship without type stubs.
+module = ["praw", "praw.*", "prawcore", "prawcore.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# vaderSentiment ships without type stubs.
+module = ["vaderSentiment", "vaderSentiment.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# finbert is an optional heavy dependency (torch + transformers).
+module = ["worker.src.classifiers.finbert", "src.classifiers.finbert"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+  "tests/*",
+  "src/main.py",       # entry-point wiring — requires full infrastructure
+  "src/__main__.py",   # CLI entry point — tested via integration/smoke tests
+]
