@@ -31,11 +31,12 @@ artifacts:
     - checklists/
 
 # Path conventions for this mission
+# SSE is a monorepo: Python worker service lives under worker/
 paths:
-  workspace: "src/"
-  tests: "tests/"
-  deliverables: "contracts/"
-  documentation: "docs/"
+  workspace: "worker/src/"
+  tests: "worker/tests/"
+  deliverables: "kitty-specs/"
+  documentation: "worker/"
 
 # Validation rules
 validation:
