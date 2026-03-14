@@ -85,9 +85,8 @@ class TestCycleQueueConcurrency:
         barrier.set()
         await asyncio.gather(slow_fut, fast_fut)
 
-        # Both should have executed: slow first, then fast
-        assert 1 in executed
-        assert 2 in executed
+        # Strict order: slow task must complete before fast task starts
+        assert executed == [1, 2]
 
     @pytest.mark.asyncio
     async def test_drop_when_queue_full(self) -> None:
