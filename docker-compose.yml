@@ -1,0 +1,56 @@
+services:
+  worker:
+    build: ./worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sse:sse@postgres:5432/sse
+      REDIS_URL: redis://redis:6379/0
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
+      REDDIT_USERNAME: ${REDDIT_USERNAME:-}
+      REDDIT_PASSWORD: ${REDDIT_PASSWORD:-}
+      CLASSIFIER_BACKEND: ${CLASSIFIER_BACKEND:-vader}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      CYCLE_INTERVAL_MINUTES: ${CYCLE_INTERVAL_MINUTES:-15}
+      ALERT_THRESHOLD: ${ALERT_THRESHOLD:-3}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, time; f='.health'; assert os.path.exists(f) and time.time()-os.path.getmtime(f) < 1200"]
+      interval: 20m
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sse
+      POSTGRES_PASSWORD: sse
+      POSTGRES_DB: sse
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
