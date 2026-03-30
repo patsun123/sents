@@ -15,6 +15,7 @@ from typing import AsyncGenerator
 import asyncpg
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from app.core.limiter import limiter
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ async def _event_generator(
     summary="Global SSE stream — all active tickers",
     response_class=StreamingResponse,
 )
+@limiter.limit("10/minute")
 async def global_stream(request: Request) -> StreamingResponse:
     """SSE endpoint streaming price updates for all active tickers."""
     sse_manager = request.app.state.sse_manager
@@ -107,6 +109,7 @@ async def global_stream(request: Request) -> StreamingResponse:
     summary="Per-ticker SSE stream",
     response_class=StreamingResponse,
 )
+@limiter.limit("10/minute")
 async def ticker_stream(ticker: str, request: Request) -> StreamingResponse:
     """SSE endpoint streaming price updates for a single ticker."""
     ticker = ticker.upper()

@@ -4,6 +4,8 @@ import { queryKeys } from '@/lib/queryKeys'
 import { api } from '@/lib/api'
 import { useTickerSSE } from '@/hooks/useTickerSSE'
 import { TickerChart } from './TickerChart'
+import { ChartLegend } from './ChartLegend'
+import { DivergenceGauge } from './DivergenceGauge'
 import { TimeframeSelector } from './TimeframeSelector'
 import { ScenarioSelector } from './ScenarioSelector'
 import { ShiftControl } from './ShiftControl'
@@ -26,6 +28,13 @@ export function TickerDetail({ ticker, onClose }: Props) {
 
   useTickerSSE(ticker)
 
+  const { data: marketData } = useQuery({
+    queryKey: queryKeys.market.overview(),
+    queryFn: api.getMarketOverview,
+    staleTime: 30_000,
+  })
+  const tickerData = marketData?.tickers.find((t) => t.ticker === ticker)
+
   const { data: configsData } = useQuery({
     queryKey: queryKeys.pricing.configs(),
     queryFn: api.getPricingConfigs,
@@ -46,6 +55,13 @@ export function TickerDetail({ ticker, onClose }: Props) {
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-bold text-white tracking-wide">{ticker}</h2>
+          {tickerData && (
+            <DivergenceGauge
+              sentimentPrice={tickerData.sentiment_price}
+              realPrice={tickerData.real_price}
+              size="md"
+            />
+          )}
         </div>
         <button
           onClick={onClose}
@@ -79,6 +95,10 @@ export function TickerDetail({ ticker, onClose }: Props) {
           scenarioSlugs={scenarios}
           configs={configs}
         />
+        <ChartLegend items={[
+          { label: 'Sentiment Price', color: '#3b82f6', style: 'solid' },
+          { label: 'Real Price', color: '#94a3b8', style: 'dashed' },
+        ]} />
       </div>
     </div>
   )

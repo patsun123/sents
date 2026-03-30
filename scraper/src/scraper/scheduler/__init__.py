@@ -10,9 +10,11 @@ from typing import Optional
 
 import asyncpg
 
+from dataclasses import replace
+
 from scraper.config import ScraperSettings
-from scraper.reddit.client import RedditClient
-from scraper.storage.db import store_posts
+from scraper.reddit.client import RedditClient, RedditComment, _fingerprint, _mentions_ticker
+from scraper.storage.db import store_comments, store_posts
 from sse_common.channels import CHANNEL_SCRAPER_DONE
 
 logger = logging.getLogger(__name__)
@@ -49,18 +51,67 @@ async def run_scrape_cycle(
     # Store in DB
     inserted, duplicates = await store_posts(pool, posts)
 
+    # Fetch comments for top-10 posts by num_comments
+    comment_posts = sorted(
+        [p for p in posts if p.num_comments > 0],
+        key=lambda p: p.num_comments,
+        reverse=True,
+    )[:10]
+
+    total_comments_inserted = 0
+    if comment_posts:
+        async with RedditClient(
+            user_agent=settings.reddit_user_agent,
+            proxies=settings.proxy_list or None,
+            bot_usernames=settings.bot_username_set,
+            min_content_length=settings.min_content_length,
+        ) as client:
+            for post in comment_posts:
+                try:
+                    raw_comments = await client.fetch_comments(post.reddit_id, limit=50)
+                    # Check every active ticker for each comment, not just
+                    # the parent post's ticker.  A comment under an AAPL post
+                    # might mention TSLA — we want to capture that.
+                    ticker_comments: list[RedditComment] = []
+                    for c in raw_comments:
+                        for tkr in tickers:
+                            if _mentions_ticker(c.content, tkr):
+                                tc = replace(
+                                    c,
+                                    ticker_mentioned=tkr,
+                                    content_fingerprint=_fingerprint(
+                                        c.reddit_id, tkr, c.content
+                                    ),
+                                )
+                                ticker_comments.append(tc)
+                    if ticker_comments:
+                        c_inserted, _ = await store_comments(pool, ticker_comments)
+                        total_comments_inserted += c_inserted
+                    # 1-second delay between comment fetches to avoid rate limiting
+                    await asyncio.sleep(1.0)
+                except Exception:
+                    logger.warning(
+                        "Failed to fetch comments for post %s", post.reddit_id, exc_info=True
+                    )
+
+        if total_comments_inserted > 0:
+            logger.info(
+                "Inserted %d comments from %d posts", total_comments_inserted, len(comment_posts)
+            )
+
     duration_ms = int((datetime.now(timezone.utc) - started_at).total_seconds() * 1000)
     logger.info(
-        "Scrape cycle complete run_id=%s tickers=%d posts=%d inserted=%d duplicates=%d duration_ms=%d",
-        run_id, len(tickers), len(posts), inserted, duplicates, duration_ms,
+        "Scrape cycle complete run_id=%s tickers=%d posts=%d inserted=%d duplicates=%d comments=%d duration_ms=%d",
+        run_id, len(tickers), len(posts), inserted, duplicates, total_comments_inserted, duration_ms,
     )
 
-    # Publish completion event (only when new posts were inserted)
-    if redis_client is not None and inserted > 0:
+    # Publish completion event (only when new posts or comments were inserted)
+    if redis_client is not None and (inserted > 0 or total_comments_inserted > 0):
         payload = {
             "run_id": run_id,
             "tickers_scraped": tickers,
             "posts_count": inserted,
+            "comments_count": total_comments_inserted,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         try:
@@ -86,6 +137,7 @@ async def run_scheduler(
     settings: ScraperSettings,
     redis_client: Optional[object],
     shutdown_event: asyncio.Event,
+    health: Optional[object] = None,
 ) -> None:
     """Run scrape cycles at a fixed interval until shutdown."""
     logger.info("Scraper scheduler starting (interval=%ds)", settings.scrape_interval_seconds)
@@ -93,6 +145,8 @@ async def run_scheduler(
     while not shutdown_event.is_set():
         try:
             await run_scrape_cycle(pool, settings, redis_client)
+            if health is not None:
+                health.record_success()  # type: ignore[union-attr]
         except Exception:
             logger.error("Scrape cycle failed", exc_info=True)
 

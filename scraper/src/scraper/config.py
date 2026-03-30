@@ -31,7 +31,21 @@ class ScraperSettings(BaseSettings):
     scrape_interval_seconds: int = Field(default=300)
     posts_per_ticker: int = Field(default=25)
 
+    # Quality filtering
+    bot_usernames: str = Field(
+        default="automoderator,snapshillbot,remindmebot",
+        description="Comma-separated lowercase bot usernames to skip",
+    )
+    min_content_length: int = Field(
+        default=20,
+        description="Minimum character length for post/comment content",
+    )
+
     log_level: str = Field(default="INFO")
+
+    @property
+    def bot_username_set(self) -> set[str]:
+        return {u.strip().lower() for u in self.bot_usernames.split(",") if u.strip()}
 
     @property
     def proxy_list(self) -> list[str]:

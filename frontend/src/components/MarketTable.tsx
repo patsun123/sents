@@ -4,6 +4,8 @@ import { queryKeys } from '@/lib/queryKeys'
 import { api } from '@/lib/api'
 import { useMarketSSE } from '@/hooks/useMarketSSE'
 import { StalenessIndicator } from './StalenessIndicator'
+import { SparklineChart } from './SparklineChart'
+import { DivergenceGauge } from './DivergenceGauge'
 import type { TickerSummary } from '@/types/api'
 
 interface Props {
@@ -77,7 +79,8 @@ export function MarketTable({ onSelectTicker, selectedTicker }: Props) {
             <th className="text-left px-5 py-3">Ticker</th>
             <th className="text-right px-5 py-3">Sentiment $</th>
             <th className="text-right px-5 py-3">Real $</th>
-            <th className="text-right px-5 py-3">Delta</th>
+            <th className="text-right px-5 py-3">Trend</th>
+            <th className="text-right px-5 py-3">Divergence</th>
             <th className="text-right px-5 py-3">Mentions/24h</th>
             <th className="text-right px-5 py-3">Status</th>
           </tr>
@@ -106,7 +109,10 @@ export function MarketTable({ onSelectTicker, selectedTicker }: Props) {
                 <PriceCell value={ticker.real_price}  />
               </td>
               <td className="px-5 py-3.5 text-right">
-                <DeltaCell delta={ticker.sentiment_delta} />
+                <SparklineChart data={ticker.sparkline ?? []} />
+              </td>
+              <td className="px-5 py-3.5 text-right">
+                <DivergenceGauge sentimentPrice={ticker.sentiment_price} realPrice={ticker.real_price} size="sm" />
               </td>
               <td className="px-5 py-3.5 text-right font-mono text-slate-300">
                 {ticker.mention_count_24h.toLocaleString()}

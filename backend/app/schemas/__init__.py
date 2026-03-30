@@ -37,6 +37,7 @@ class TickerSummary(BaseModel):
     staleness: StalenessLevel = "unavailable"
     last_updated: Optional[datetime] = None
     mention_count_24h: int = 0
+    sparkline: list[float] = []
 
 
 class MarketOverviewResponse(BaseModel):

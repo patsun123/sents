@@ -8,8 +8,9 @@ export interface TickerSummary {
   real_price: number | null
   sentiment_delta: number
   staleness: StalenessLevel
-  last_updated: string // ISO 8601
+  last_updated: string | null // ISO 8601
   mention_count_24h: number
+  sparkline: number[]  // last 24 sentiment prices
 }
 
 // Pricing configuration (from pricing_configurations table)

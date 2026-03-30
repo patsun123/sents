@@ -14,10 +14,12 @@ from .constants import (
     STALENESS_WARNING_MINUTES,
     STARTER_TICKERS,
 )
+from .health import HealthServer
 from .logging_config import configure_logging
 
 __all__ = [
     "configure_logging",
+    "HealthServer",
     "CHANNEL_SCRAPER_DONE",
     "CHANNEL_PROCESSOR_DONE",
     "CHANNEL_PRICING_DONE",

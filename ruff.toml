@@ -1,0 +1,10 @@
+# Ruff linter/formatter configuration for the SSE project.
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]  # line length handled by formatter
+
+[format]
+line-length = 100

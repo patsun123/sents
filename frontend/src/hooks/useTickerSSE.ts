@@ -6,6 +6,9 @@ import { useSSE } from './useSSE'
 /**
  * Opens a per-ticker SSE connection and invalidates the market overview
  * and ticker history queries whenever a price_update event arrives.
+ *
+ * V1: SSE events trigger query invalidation -> full refetch -> setData().
+ * Future: parse event payload and use series.update() for zero-latency append.
  */
 export function useTickerSSE(ticker: string): void {
   const qc = useQueryClient()

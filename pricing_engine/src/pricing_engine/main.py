@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 import signal
+import sys
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -29,6 +30,7 @@ from sse_common.channels import CHANNEL_PROCESSOR_DONE as _SUBSCRIBE_CHANNEL
 
 logging.basicConfig(level="INFO", format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+_cycle_lock = asyncio.Lock()
 
 _TICKERS_QUERY = "SELECT symbol FROM tickers WHERE is_active = true"
 _SNAPSHOT_QUERY = """
@@ -47,7 +49,7 @@ _INSERT_PRICES = """
 """
 
 
-async def run_pricing_cycle(pool: asyncpg.Pool, redis_client: aioredis.Redis) -> None:
+async def run_pricing_cycle(pool: asyncpg.Pool, redis_client: aioredis.Redis | None) -> None:
     """One full pricing cycle: fetch → compute → store → publish."""
     async with pool.acquire() as conn:
         ticker_rows = await conn.fetch(_TICKERS_QUERY)
@@ -151,6 +153,7 @@ async def subscriber_loop(
     redis_client: aioredis.Redis,
     interval: int,
     shutdown: asyncio.Event,
+    health: object | None = None,
 ) -> None:
     """Listen for sentiment run_complete events and run pricing after each."""
     pubsub = None
@@ -166,8 +169,14 @@ async def subscriber_loop(
                 continue
             if msg and msg.get("type") == "message":
                 logger.info("Received sentiment:run_complete — triggering pricing cycle")
+                if _cycle_lock.locked():
+                    logger.debug("Pricing cycle already running, skipping")
+                    continue
                 try:
-                    await run_pricing_cycle(pool, redis_client)
+                    async with _cycle_lock:
+                        await run_pricing_cycle(pool, redis_client)
+                        if health:
+                            health.record_success()  # type: ignore[union-attr]
                 except Exception:
                     logger.error("Pricing cycle failed", exc_info=True)
     finally:
@@ -181,9 +190,10 @@ async def subscriber_loop(
 
 async def poll_loop(
     pool: asyncpg.Pool,
-    redis_client: aioredis.Redis,
+    redis_client: aioredis.Redis | None,
     interval: int,
     shutdown: asyncio.Event,
+    health: object | None = None,
 ) -> None:
     """Fallback timer-based pricing in case Redis pub/sub events are missed."""
     while not shutdown.is_set():
@@ -193,8 +203,14 @@ async def poll_loop(
             pass
         if shutdown.is_set():
             break
+        if _cycle_lock.locked():
+            logger.debug("Pricing cycle already running, skipping")
+            continue
         try:
-            await run_pricing_cycle(pool, redis_client)
+            async with _cycle_lock:
+                await run_pricing_cycle(pool, redis_client)
+                if health:
+                    health.record_success()  # type: ignore[union-attr]
         except Exception:
             logger.error("Poll-based pricing cycle failed", exc_info=True)
 
@@ -203,38 +219,65 @@ async def main() -> None:
     settings = get_settings()
     logging.getLogger().setLevel(settings.log_level.upper())
 
+    # Health server
+    from pricing_engine.health import HealthServer
+    health = HealthServer("pricing_engine", 8003)
+    health.start()
+    logger.info("Health server listening on :8003")
+
     pool = await asyncpg.create_pool(settings.postgres_url_pricing, min_size=2, max_size=5)
-    redis_pool = aioredis.ConnectionPool.from_url(
-        settings.redis_url, max_connections=settings.redis_max_connections
-    )
-    redis_client: aioredis.Redis = aioredis.Redis(connection_pool=redis_pool)
+
+    # Attempt Redis connection — degrade to poll-only if unavailable
+    redis_client: aioredis.Redis | None = None
+    redis_pool: aioredis.ConnectionPool | None = None
+    try:
+        redis_pool = aioredis.ConnectionPool.from_url(
+            settings.redis_url, max_connections=settings.redis_max_connections
+        )
+        redis_client = aioredis.Redis(connection_pool=redis_pool)
+        await redis_client.ping()
+        logger.info("Redis connected")
+    except Exception:
+        logger.warning("Redis unavailable — degrading to poll-only mode (no pub/sub, no publish)")
+        redis_client = None
+        if redis_pool:
+            await redis_pool.aclose()
+            redis_pool = None
 
     shutdown = asyncio.Event()
 
-    def _handle_signal() -> None:
-        logger.info("Shutdown signal received")
-        shutdown.set()
-
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, _handle_signal)
+    if sys.platform != "win32":
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, shutdown.set)
+    else:
+        def _handle_signal(signum: int, frame: object) -> None:  # noqa: ARG001
+            shutdown.set()
+        signal.signal(signal.SIGTERM, _handle_signal)
+        signal.signal(signal.SIGINT, _handle_signal)
 
     logger.info("Pricing engine starting (interval=%ds)", settings.poll_interval_seconds)
 
     # Run one cycle immediately on startup
     try:
         await run_pricing_cycle(pool, redis_client)
+        health.record_success()
     except Exception:
         logger.warning("Initial pricing cycle failed (no data yet?)", exc_info=True)
 
     try:
-        await asyncio.gather(
-            subscriber_loop(pool, redis_client, settings.poll_interval_seconds, shutdown),
-            poll_loop(pool, redis_client, settings.poll_interval_seconds, shutdown),
-        )
+        tasks = [poll_loop(pool, redis_client, settings.poll_interval_seconds, shutdown, health)]
+        if redis_client is not None:
+            tasks.append(
+                subscriber_loop(pool, redis_client, settings.poll_interval_seconds, shutdown, health)
+            )
+        else:
+            logger.info("Subscriber loop disabled — Redis not available")
+        await asyncio.gather(*tasks)
     finally:
         await pool.close()
-        await redis_client.aclose()
+        if redis_client:
+            await redis_client.aclose()
         logger.info("Pricing engine stopped")
 
 

@@ -1,0 +1,25 @@
+"""Financial slang dictionary for text preprocessing."""
+
+FINANCIAL_SLANG = {
+    "bullish af": "very bullish strongly positive",
+    "bearish af": "very bearish strongly negative",
+    "to the moon": "strongly positive rising",
+    "diamond hands": "holding strong positive conviction",
+    "paper hands": "selling weak negative conviction",
+    "tendies": "profits gains positive",
+    "apes": "retail investors",
+    "yolo": "high risk investment all in",
+    "fud": "fear uncertainty doubt negative",
+    "hodl": "hold strong positive",
+    "bag holder": "losing position negative",
+    "short squeeze": "rapid price increase positive",
+    "pump and dump": "manipulation negative",
+    "dd": "due diligence research analysis",
+    "wsb": "wallstreetbets",
+    "lfg": "very positive excited",
+    "rip": "negative declining",
+    "mooning": "rising strongly positive",
+    "tanking": "falling strongly negative",
+    "dip": "price decrease buy opportunity",
+    "btfd": "buy the dip positive",
+}

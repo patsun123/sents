@@ -197,16 +197,16 @@ CREATE INDEX idx_pricing_configs_active ON pricing_configurations (is_active);
 
 INSERT INTO pricing_configurations (slug, name, description, params) VALUES
     ('balanced',     'Balanced',     'Default configuration -- all weights at 1.0.',
-     '{"sensitivity":1.0,"max_delta_pct":0.10,"upvote_weight_multiplier":1.0,"volume_scaling_function":"log","volume_weight_multiplier":1.0,"min_mentions":3}'::jsonb),
+     '{"sensitivity":1.0,"max_delta_pct":0.10,"upvote_weight_multiplier":1.0,"volume_scaling_function":"log","volume_weight_multiplier":1.0,"min_mentions":3,"decay_halflife_hours":12,"upvote_weight_min":0.1,"upvote_weight_max":10.0}'::jsonb),
     ('upvote-heavy', 'Upvote-Heavy', 'Reddit karma drives 2x more of the signal.',
-     '{"sensitivity":1.0,"max_delta_pct":0.10,"upvote_weight_multiplier":2.0,"volume_scaling_function":"log","volume_weight_multiplier":1.0,"min_mentions":3}'::jsonb),
+     '{"sensitivity":1.0,"max_delta_pct":0.10,"upvote_weight_multiplier":2.0,"volume_scaling_function":"log","volume_weight_multiplier":1.0,"min_mentions":3,"decay_halflife_hours":12,"upvote_weight_min":0.1,"upvote_weight_max":10.0}'::jsonb),
     ('volume-heavy', 'Volume-Heavy', 'Mention count amplified 2x, linear scaling.',
-     '{"sensitivity":1.0,"max_delta_pct":0.10,"upvote_weight_multiplier":1.0,"volume_scaling_function":"linear","volume_weight_multiplier":2.0,"min_mentions":3}'::jsonb);
+     '{"sensitivity":1.0,"max_delta_pct":0.10,"upvote_weight_multiplier":1.0,"volume_scaling_function":"linear","volume_weight_multiplier":2.0,"min_mentions":3,"decay_halflife_hours":12,"upvote_weight_min":0.1,"upvote_weight_max":10.0}'::jsonb);
 
 -- =============================================================================
 -- Table grants (after tables exist)
 -- =============================================================================
-GRANT SELECT, INSERT ON reddit_raw TO sse_scraper;
+GRANT SELECT, INSERT, UPDATE ON reddit_raw TO sse_scraper;
 GRANT SELECT ON reddit_raw TO sse_processor, sse_api;
 GRANT SELECT, INSERT ON comment_sentiment TO sse_processor;
 GRANT SELECT ON comment_sentiment TO sse_api;

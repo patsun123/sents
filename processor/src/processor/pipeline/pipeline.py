@@ -9,6 +9,8 @@ from typing import Optional
 
 import asyncpg
 
+from processor.text.preprocessor import preprocess
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,6 +31,9 @@ async def get_unprocessed_posts(
               AND cs.backend = $1
         )
         AND r.is_duplicate = false
+        AND r.content NOT IN ('[deleted]', '[removed]')
+        AND r.author NOT IN ('[deleted]', '[removed]', 'AutoModerator')
+        AND LENGTH(COALESCE(r.title, '') || ' ' || COALESCE(r.content, '')) >= 20
         ORDER BY r.created_utc DESC
         LIMIT $2
         """,
@@ -73,20 +78,35 @@ async def aggregate_sentiment_snapshot(
     ticker: str,
     backend: str,
     window_hours: int = 1,
+    decay_halflife_hours: float = 12.0,
+    upvote_weight_min: float = 0.1,
+    upvote_weight_max: float = 10.0,
 ) -> Optional[asyncpg.Record]:
-    """Aggregate comment_sentiment scores for a ticker over the last window_hours."""
+    """Aggregate comment_sentiment scores for a ticker over the last window_hours.
+
+    Uses weighted aggregation:
+    - Upvote magnitude weight: GREATEST(min, LEAST(max, LN(1 + score)))
+    - Temporal decay: EXP(-0.693 / halflife_hours * age_hours)
+    The final weight is the product of both factors.
+    """
     window_end = datetime.now(timezone.utc)
     window_start = window_end - timedelta(hours=window_hours)
 
     row = await conn.fetchrow(
         """
         SELECT
-            COUNT(*) AS mention_count,
-            AVG(cs.compound_score) AS avg_compound,
-            AVG(r.score) AS avg_upvote_score,
-            SUM(r.score) AS total_upvotes
+            SUM(cs.compound_score * w.weight) / NULLIF(SUM(w.weight), 0)
+                AS avg_compound,
+            SUM(w.weight) AS weighted_mention_count,
+            AVG(r.score) AS avg_upvote_score
         FROM comment_sentiment cs
         JOIN reddit_raw r ON r.id = cs.reddit_comment_id
+        CROSS JOIN LATERAL (
+            SELECT
+                GREATEST($5, LEAST($6, LN(1 + GREATEST(r.score, 0)))) *
+                EXP(-0.693 / $7 * EXTRACT(EPOCH FROM (NOW() - r.created_utc)) / 3600)
+            AS weight
+        ) w
         WHERE r.ticker_mentioned = $1
           AND cs.backend = $2
           AND r.created_utc BETWEEN $3 AND $4
@@ -95,9 +115,12 @@ async def aggregate_sentiment_snapshot(
         backend,
         window_start,
         window_end,
+        upvote_weight_min,
+        upvote_weight_max,
+        decay_halflife_hours,
     )
 
-    if not row or not row["mention_count"] or row["mention_count"] == 0:
+    if not row or not row["weighted_mention_count"] or row["weighted_mention_count"] == 0:
         return None
 
     now = datetime.now(timezone.utc)
@@ -118,7 +141,7 @@ async def aggregate_sentiment_snapshot(
         window_end,
         backend,
         float(row["avg_compound"] or 0),
-        float(row["mention_count"]),
+        float(row["weighted_mention_count"]),
         float(row["avg_upvote_score"] or 0),
         now,
     )
@@ -150,7 +173,7 @@ async def run_pipeline(
                 continue
 
             logger.info("Processing %d posts with backend=%s", len(posts), backend)
-            texts = [f"{p['title']}\n{p['content'] or ''}".strip() for p in posts]
+            texts = [preprocess(f"{p['title'] or ''}\n{p['content'] or ''}".strip()) for p in posts]
 
             # Run sentiment analysis
             if backend == "vader":

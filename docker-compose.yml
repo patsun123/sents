@@ -59,12 +59,13 @@ services:
       --appendonly yes
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
       - sse_net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -87,9 +88,18 @@ services:
       POSTS_PER_TICKER: ${POSTS_PER_TICKER:-25}
     volumes:
       - ./config.example.yaml:/app/config.yaml:ro
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - sse_net
     <<: *depends-db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     deploy:
       resources:
@@ -114,9 +124,18 @@ services:
     volumes:
       - ./config.example.yaml:/app/config.yaml:ro
       - huggingface_cache:/app/.cache/huggingface
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - sse_net
     <<: *depends-db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     deploy:
       resources:
@@ -138,9 +157,18 @@ services:
       FINNHUB_API_KEY: ${FINNHUB_API_KEY}
       MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-finnhub}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - sse_net
     <<: *depends-db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     deploy:
       resources:
@@ -160,6 +188,9 @@ services:
       API_CORS_ORIGINS: ${API_CORS_ORIGINS}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DEBUG: ${DEBUG:-false}
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - sse_net
     <<: *depends-db
@@ -175,6 +206,11 @@ services:
     build: ./frontend
     depends_on:
       - api
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
     networks:
       - sse_net
     restart: unless-stopped
@@ -214,6 +250,28 @@ services:
       - sse_net
     logging: *default-logging
 
+  # ── Database Backup ──────────────────────────────────────────────────────
+  db-backup:
+    image: timescale/timescaledb:latest-pg16
+    entrypoint: /bin/bash
+    command: ["-c", "while true; do /backup.sh; sleep ${BACKUP_INTERVAL_SECONDS:-86400}; done"]
+    volumes:
+      - ./database/backup.sh:/backup.sh:ro
+      - db_backups:/backups
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+    networks:
+      - sse_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+
   # ── Uptime Kuma (internal availability monitoring) ───────────────────────
   uptime-kuma:
     image: louislam/uptime-kuma:1
@@ -236,6 +294,7 @@ volumes:
   certbot_certs:
   certbot_www:
   uptime_kuma_data:
+  db_backups:
 
 # ---------------------------------------------------------------------------
 # Networks

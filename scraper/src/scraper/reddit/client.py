@@ -27,6 +27,10 @@ _HEADERS = {
     "Accept": "application/json",
 }
 
+# Default bot usernames to filter
+_DEFAULT_BOT_USERNAMES: set[str] = {"automoderator", "snapshillbot", "remindmebot"}
+_DEFAULT_MIN_CONTENT_LENGTH = 20
+
 
 @dataclass
 class RedditPost:
@@ -42,6 +46,22 @@ class RedditPost:
     post_url: str
     created_utc: datetime
     content_fingerprint: str
+
+
+@dataclass
+class RedditComment:
+    """A single top-level Reddit comment."""
+    reddit_id: str              # comment's Reddit ID (e.g., "t1_abc123")
+    parent_post_id: str         # parent post's reddit_id
+    ticker_mentioned: str
+    author: str
+    content: str                # comment body text
+    score: int
+    upvote_ratio: float | None  # comments don't have this; set to None
+    subreddit: str
+    post_url: str               # parent post URL
+    created_utc: datetime
+    content_fingerprint: str    # SHA-256 of normalized content
 
 
 def _fingerprint(reddit_id: str, ticker: str, content: str) -> str:
@@ -94,11 +114,15 @@ class RedditClient:
         self,
         user_agent: str = "SSE-Scraper/1.0",
         proxies: Optional[list[str]] = None,
+        bot_usernames: Optional[set[str]] = None,
+        min_content_length: int = _DEFAULT_MIN_CONTENT_LENGTH,
     ) -> None:
         self._user_agent = user_agent
         self._proxies = proxies or []
         self._proxy_idx = 0
         self._client: Optional[httpx.AsyncClient] = None
+        self._bot_usernames = bot_usernames or _DEFAULT_BOT_USERNAMES
+        self._min_content_length = min_content_length
 
     def _next_proxy(self) -> Optional[str]:
         if not self._proxies:
@@ -106,6 +130,24 @@ class RedditClient:
         proxy = self._proxies[self._proxy_idx % len(self._proxies)]
         self._proxy_idx += 1
         return proxy
+
+    def _should_skip(self, item: dict) -> bool:
+        """Return True if the post/comment should be filtered out."""
+        author = item.get("author") or ""
+        # Deleted/removed posts
+        if author in ("[deleted]", "[removed]"):
+            return True
+        selftext = item.get("selftext") or item.get("body") or ""
+        if selftext in ("[deleted]", "[removed]"):
+            return True
+        # Bot accounts (case-insensitive)
+        if author.lower() in self._bot_usernames:
+            return True
+        # Minimum content length
+        text = ((item.get("title", "") or "") + " " + selftext).strip()
+        if len(text) < self._min_content_length:
+            return True
+        return False
 
     async def __aenter__(self) -> "RedditClient":
         proxy = self._next_proxy()
@@ -155,6 +197,9 @@ class RedditClient:
             children = await self.fetch_subreddit_new(subreddit, limit=posts_per_subreddit)
             for child in children:
                 d = child.get("data", {})
+                # Quality filter before processing
+                if self._should_skip(d):
+                    continue
                 text = (d.get("title", "") or "") + " " + (d.get("selftext", "") or "")
                 for ticker in tickers:
                     if not _mentions_ticker(text, ticker):
@@ -172,3 +217,83 @@ class RedditClient:
             len(SUBREDDITS), len(results), len(tickers),
         )
         return results
+
+    async def fetch_comments(
+        self, post_reddit_id: str, limit: int = 50
+    ) -> list[RedditComment]:
+        """Fetch top-level comments for a Reddit post.
+
+        Uses GET https://www.reddit.com/comments/{post_reddit_id}.json
+        Returns top-level comments only (no recursive threading in V1).
+        """
+        if self._client is None:
+            raise RuntimeError("RedditClient not initialized; use async context manager")
+
+        url = f"{_BASE_URL}/comments/{post_reddit_id}.json"
+        try:
+            resp = await self._client.get(url, params={"limit": limit})
+            resp.raise_for_status()
+            data = resp.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:
+                logger.warning("Rate limited fetching comments for %s", post_reddit_id)
+            else:
+                logger.warning(
+                    "HTTP %d fetching comments for %s", e.response.status_code, post_reddit_id
+                )
+            return []
+        except Exception:
+            logger.warning("Failed to fetch comments for %s", post_reddit_id, exc_info=True)
+            return []
+
+        # Reddit returns [post_listing, comment_listing]; comments are in index 1
+        if not isinstance(data, list) or len(data) < 2:
+            return []
+
+        # Extract parent post info from the first listing
+        post_children = data[0].get("data", {}).get("children", [])
+        parent_data = post_children[0].get("data", {}) if post_children else {}
+        subreddit = str(parent_data.get("subreddit", ""))
+        post_url = f"https://reddit.com{parent_data.get('permalink', '')}"
+
+        comment_children = data[1].get("data", {}).get("children", [])
+        comments: list[RedditComment] = []
+
+        for child in comment_children:
+            if child.get("kind") != "t1":
+                continue
+            cd = child.get("data", {})
+            # Apply the same quality filter
+            if self._should_skip(cd):
+                continue
+
+            comment_id = cd.get("id", "")
+            if not comment_id:
+                continue
+
+            body = (cd.get("body") or "")[:2000]
+            author = str(cd.get("author", "[deleted]"))[:100]
+            score = int(cd.get("score", 0))
+            created = cd.get("created_utc", 0)
+            content_fp = _fingerprint(comment_id, "", body)
+
+            comments.append(
+                RedditComment(
+                    reddit_id=f"t1_{comment_id}",
+                    parent_post_id=post_reddit_id,
+                    ticker_mentioned="",  # will be set per-ticker by caller
+                    author=author,
+                    content=body,
+                    score=score,
+                    upvote_ratio=None,
+                    subreddit=subreddit[:50],
+                    post_url=post_url,
+                    created_utc=datetime.fromtimestamp(created, tz=timezone.utc),
+                    content_fingerprint=content_fp,
+                )
+            )
+
+        logger.debug(
+            "Fetched %d comments for post %s", len(comments), post_reddit_id
+        )
+        return comments

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncpg
 from fastapi import APIRouter, Request
-
+from app.core.limiter import limiter
 from app.db.redis_client import cache_get_or_set, get_redis_client
 from app.schemas import PricingConfig, PricingConfigsResponse
 
@@ -11,6 +11,7 @@ router = APIRouter()
 
 
 @router.get("/configs", response_model=PricingConfigsResponse, summary="List pricing configurations")
+@limiter.limit("60/minute")
 async def list_pricing_configs(request: Request) -> PricingConfigsResponse:
     """Returns all active pricing configuration presets. Cached for 5 minutes."""
     redis_client = get_redis_client(request.app.state.redis_pool)

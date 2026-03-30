@@ -9,15 +9,11 @@ import sys
 import asyncpg
 
 from scraper.config import get_settings
+from scraper.health import HealthServer
 
 logger = logging.getLogger(__name__)
 
 _shutdown_event = asyncio.Event()
-
-
-def _handle_signal(sig: int, frame: object) -> None:  # noqa: ARG001
-    logger.info("Signal %d received — shutting down scraper", sig)
-    _shutdown_event.set()
 
 
 async def main() -> None:
@@ -27,10 +23,23 @@ async def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    signal.signal(signal.SIGTERM, _handle_signal)
-    signal.signal(signal.SIGINT, _handle_signal)
+    loop = asyncio.get_running_loop()
+    if sys.platform != "win32":
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, _shutdown_event.set)
+    else:
+        # Windows: use signal.signal as fallback
+        def _handle_signal(signum: int, frame: object) -> None:  # noqa: ARG001
+            _shutdown_event.set()
+        signal.signal(signal.SIGTERM, _handle_signal)
+        signal.signal(signal.SIGINT, _handle_signal)
 
     logger.info("Scraper service starting")
+
+    # Health endpoint
+    health = HealthServer("scraper", 8001)
+    health.start()
+    logger.info("Health server listening on :8001")
 
     # DB pool
     pool = await asyncpg.create_pool(
@@ -59,7 +68,7 @@ async def main() -> None:
     # Run scheduler
     from scraper.scheduler import run_scheduler
     try:
-        await run_scheduler(pool, settings, redis_client, _shutdown_event)
+        await run_scheduler(pool, settings, redis_client, _shutdown_event, health=health)
     finally:
         await pool.close()
         if redis_client is not None:

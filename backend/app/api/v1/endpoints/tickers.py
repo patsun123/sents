@@ -7,17 +7,64 @@ from typing import Optional
 
 import asyncpg
 from fastapi import APIRouter, HTTPException, Query, Request
-
+from app.core.limiter import limiter
 from app.schemas import HistoryResponse, PricePoint, ScenarioDataPoint
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 _SHIFT_LIMITS = {"1d": 23, "1w": 6, "1m": 29}
-# H-1: whitelist dict — bucket interval is NEVER taken from user input
-_TIMEFRAME_BUCKET = {"1d": "1 hour", "1w": "1 day", "1m": "1 week"}
 _INTERVAL_MAP = {"1d": "5 minutes", "1w": "1 hour", "1m": "4 hours"}
 _SHIFT_UNITS = {"1d": "hours", "1w": "days", "1m": "days"}
+
+# M-7: Read from the sentiment_prices_1h continuous aggregate instead of
+# scanning the raw sentiment_prices hypertable.  Each query is a static
+# string — no f-string interpolation of user input.
+#
+# Fix #12: The continuous aggregate has end_offset=1 hour, so the most recent
+# hour is always missing.  For the 1d query we UNION in raw data from the last
+# hour to fill the gap.  The 1w/1m queries aggregate at day/week granularity
+# where a 1-hour lag is negligible.
+_HISTORY_QUERIES = {
+    "1d": """
+        SELECT bucket, sentiment_price, real_price, sentiment_delta
+        FROM (
+            SELECT bucket, sentiment_price, real_price,
+                   avg_sentiment_delta AS sentiment_delta
+            FROM sentiment_prices_1h
+            WHERE ticker = $1 AND bucket >= now() - INTERVAL '1 day'
+            UNION ALL
+            SELECT time_bucket('1 hour', time) AS bucket,
+                   last(sentiment_price, time) AS sentiment_price,
+                   last(real_price_at_calc, time) AS real_price,
+                   avg(sentiment_delta) AS sentiment_delta
+            FROM sentiment_prices
+            WHERE ticker = $1
+              AND time >= (SELECT COALESCE(MAX(bucket), now() - INTERVAL '1 day')
+                           FROM sentiment_prices_1h WHERE ticker = $1)
+            GROUP BY 1
+        ) combined
+        ORDER BY bucket
+    """,
+    "1w": """
+        SELECT time_bucket('1 day', bucket) AS bucket,
+               last(sentiment_price, bucket) AS sentiment_price,
+               last(real_price, bucket) AS real_price,
+               avg(avg_sentiment_delta) AS sentiment_delta
+        FROM sentiment_prices_1h
+        WHERE ticker = $1 AND bucket >= now() - INTERVAL '7 days'
+        GROUP BY 1 ORDER BY 1
+    """,
+    "1m": """
+        SELECT time_bucket('1 week', bucket) AS bucket,
+               last(sentiment_price, bucket) AS sentiment_price,
+               last(real_price, bucket) AS real_price,
+               avg(avg_sentiment_delta) AS sentiment_delta
+        FROM sentiment_prices_1h
+        WHERE ticker = $1 AND bucket >= now() - INTERVAL '30 days'
+        GROUP BY 1 ORDER BY 1
+    """,
+}
 
 
 @router.get(
@@ -25,6 +72,7 @@ _SHIFT_UNITS = {"1d": "hours", "1w": "days", "1m": "days"}
     response_model=HistoryResponse,
     summary="Ticker price history with optional scenario overlay",
 )
+@limiter.limit("60/minute")
 async def ticker_history(
     ticker: str,
     request: Request,
@@ -35,12 +83,8 @@ async def ticker_history(
     ticker = ticker.upper()
     tf = timeframe.lower()
 
-    # H-1: tf is already validated by the Query regex above, but we do a dict
-    # lookup so the interval literal that reaches SQL is always from this
-    # whitelist, never from user-supplied text.
-    if tf not in _TIMEFRAME_BUCKET:
+    if tf not in _HISTORY_QUERIES:
         raise HTTPException(status_code=422, detail=f"Invalid timeframe '{tf}'")
-    bucket = _TIMEFRAME_BUCKET[tf]
 
     shift_max = _SHIFT_LIMITS[tf]
     shift_unit = _SHIFT_UNITS[tf]
@@ -64,29 +108,11 @@ async def ticker_history(
     # Time window based on timeframe
     window_map = {"1d": "1 day", "1w": "7 days", "1m": "30 days"}
     window = window_map[tf]
-    # H-1: use whitelisted bucket value (never the raw user string)
     display_interval = _INTERVAL_MAP[tf]
-    shift_interval = (
-        f"{shift} hours" if shift_unit == "hours" else f"{shift} days"
-    )
 
     async with pool.acquire() as conn:
-        # H-1: bucket is from _TIMEFRAME_BUCKET whitelist, not user input
-        rows = await conn.fetch(
-            f"""
-            SELECT
-                time_bucket('{bucket}', time) AS bucket,
-                last(sentiment_price, time) AS sentiment_price,
-                last(real_price_at_calc, time) AS real_price,
-                last(sentiment_delta, time) AS sentiment_delta
-            FROM sentiment_prices
-            WHERE ticker = $1
-              AND time >= now() - INTERVAL '{window}'
-            GROUP BY bucket
-            ORDER BY bucket
-            """,
-            ticker,
-        )
+        # M-7: read from continuous aggregate — fully static SQL per timeframe
+        rows = await conn.fetch(_HISTORY_QUERIES[tf], ticker)
 
     if shift > 0:
         series = [
@@ -130,6 +156,12 @@ async def ticker_history(
             )
 
         # M-2 + M-3: Single query per config slug.
+        #
+        # M-4 note: snap.weighted_mention_count is now a sum-of-weights from
+        # the weighted aggregation (upvote magnitude * temporal decay), not a
+        # raw post count. The formula below (ln(1 + weighted_mention_count))
+        # still applies correctly — higher aggregate weight means more/better
+        # mentions, which increases volume_weight as intended.
         #
         # M-2 fix: Instead of joining real_prices on an exact time_bucket
         # boundary (which never aligns with actual real_prices.time entries),
