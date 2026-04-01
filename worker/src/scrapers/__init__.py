@@ -11,7 +11,7 @@ _DEFAULT_USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-    "Mozilla/5.0 (compatible; SSEBot/1.0; +https://github.com/sse)",
+    "Mozilla/5.0 (compatible; SentiXBot/1.0; +https://github.com/patsun123/sents)",
 ]
 
 

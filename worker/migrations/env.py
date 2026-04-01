@@ -1,4 +1,4 @@
-"""Alembic migration environment for the SSE worker.
+"""Alembic migration environment for the SentiX worker.
 
 Uses an async SQLAlchemy engine (asyncpg).  The database URL is read from
 the ``DATABASE_URL`` environment variable; the ``alembic.ini`` value is used

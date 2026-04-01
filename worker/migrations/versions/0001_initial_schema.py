@@ -23,7 +23,7 @@ depends_on: str | tuple[str, ...] | None = None
 
 
 def upgrade() -> None:
-    """Create all SSE tables, indexes, and constraints."""
+    """Create all SentiX tables, indexes, and constraints."""
 
     # Enable pgcrypto for gen_random_uuid() compatibility (used in raw SQL).
     op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
@@ -156,7 +156,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop all SSE tables in reverse dependency order."""
+    """Drop all SentiX tables in reverse dependency order."""
     op.drop_table("scored_results")
     op.drop_table("sentiment_signals")
     op.drop_table("collection_runs")

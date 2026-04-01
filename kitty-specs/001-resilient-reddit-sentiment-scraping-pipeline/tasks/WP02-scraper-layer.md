@@ -205,7 +205,7 @@ class RedditScraper(Protocol):
 1. Create `worker/src/scrapers/praw_oauth.py`
 2. Class `PRAWOAuthScraper` implementing `RedditScraper`
 3. Constructor reads from environment: `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`, `REDDIT_PASSWORD`
-4. Initialize `praw.Reddit` with `user_agent="SSE Worker/1.0 by /u/{REDDIT_USERNAME}"`
+4. Initialize `praw.Reddit` with `user_agent="SentiX Worker/1.0 by /u/{REDDIT_USERNAME}"`
 5. Implement `fetch_comments()`:
    ```python
    subreddit_obj = self.reddit.subreddit(subreddit)
@@ -270,7 +270,7 @@ _DEFAULT_USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-    "Mozilla/5.0 (compatible; SSEBot/1.0; +https://github.com/sse)",
+    "Mozilla/5.0 (compatible; SentiXBot/1.0; +https://github.com/sentix)",
 ]
 
 def get_primary_scraper() -> RedditScraper:

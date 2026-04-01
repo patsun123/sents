@@ -59,7 +59,7 @@ requirement_refs:
 
 ```python
 """
-Alerting module: Sentry integration for SSE Worker.
+Alerting module: Sentry integration for SentiX Worker.
 
 If SENTRY_DSN is not set, all functions are no-ops.
 Never include Reddit usernames, comment bodies, or PII in any event.
@@ -156,7 +156,7 @@ def capture_error(exc: Exception, context: dict | None = None) -> None:
 
 ```python
 """
-Structured JSON logging configuration for SSE Worker.
+Structured JSON logging configuration for SentiX Worker.
 
 All log records are emitted as JSON. PII fields are blocked
 by a custom log filter at the root logger level.

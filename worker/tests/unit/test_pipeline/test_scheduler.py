@@ -101,4 +101,4 @@ class TestCreateScheduler:
 
         jobs = scheduler.get_jobs()
         job_name = jobs[0].name
-        assert "SSE" in job_name or "Sentiment" in job_name or "cycle" in job_name.lower()
+        assert "SentiX" in job_name or "Sentiment" in job_name or "cycle" in job_name.lower()

@@ -1,5 +1,5 @@
 """
-Alerting module: Sentry integration for SSE Worker.
+Alerting module: Sentry integration for SentiX Worker.
 
 If SENTRY_DSN is not set, all functions are no-ops.
 Never include Reddit usernames, comment bodies, or PII in any event.

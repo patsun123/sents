@@ -42,7 +42,7 @@
 - PRAW `subreddit.new(limit=100)` is the equivalent of the `.json` endpoint
 - Fallback trigger: 3 consecutive 429s or 403s from primary lane within a single cycle → switch to PRAW for that cycle
 
-**Risk**: Reddit's API Terms of Service require apps to identify themselves. SSE qualifies as a personal project bot — low legal risk at current scale.
+**Risk**: Reddit's API Terms of Service require apps to identify themselves. SentiX qualifies as a personal project bot — low legal risk at current scale.
 
 **Alternatives considered**:
 - Proxy rotation with residential proxies: cost (~$50–200/month) unjustified for a solo project at launch; revisit if Reddit aggressively blocks

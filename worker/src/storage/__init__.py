@@ -1,4 +1,4 @@
-"""Storage layer for the SSE worker.
+"""Storage layer for the SentiX worker.
 
 Provides SQLAlchemy async ORM models and store classes for all CRUD
 operations against the PostgreSQL database.

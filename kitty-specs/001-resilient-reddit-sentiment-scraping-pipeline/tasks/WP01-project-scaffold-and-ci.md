@@ -121,7 +121,7 @@ requirement_refs:
        build: ./worker
        restart: unless-stopped
        environment:
-         DATABASE_URL: postgresql+asyncpg://sse:sse@postgres:5432/sse
+         DATABASE_URL: postgresql+asyncpg://sentix:sentix@postgres:5432/sentix
          REDIS_URL: redis://redis:6379/0
          REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
          REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
@@ -147,13 +147,13 @@ requirement_refs:
        image: postgres:16-alpine
        restart: unless-stopped
        environment:
-         POSTGRES_USER: sse
-         POSTGRES_PASSWORD: sse
-         POSTGRES_DB: sse
+         POSTGRES_USER: sentix
+         POSTGRES_PASSWORD: sentix
+         POSTGRES_DB: sentix
        volumes:
          - postgres_data:/var/lib/postgresql/data
        healthcheck:
-         test: ["CMD-SHELL", "pg_isready -U sse"]
+         test: ["CMD-SHELL", "pg_isready -U sentix"]
          interval: 10s
          timeout: 5s
          retries: 5
@@ -195,7 +195,7 @@ requirement_refs:
    build-backend = "setuptools.backends.legacy:build"
 
    [project]
-   name = "sse-worker"
+   name = "sentix-worker"
    version = "0.1.0"
    requires-python = ">=3.12"
    dependencies = [
@@ -289,7 +289,7 @@ requirement_refs:
 2. Create `worker/tests/conftest.py`:
    ```python
    """
-   Shared pytest fixtures for the SSE worker test suite.
+   Shared pytest fixtures for the SentiX worker test suite.
    """
    import pytest
    import pytest_asyncio
@@ -328,9 +328,9 @@ requirement_refs:
          postgres:
            image: postgres:16-alpine
            env:
-             POSTGRES_USER: sse
-             POSTGRES_PASSWORD: sse
-             POSTGRES_DB: sse
+             POSTGRES_USER: sentix
+             POSTGRES_PASSWORD: sentix
+             POSTGRES_DB: sentix
            options: >-
              --health-cmd pg_isready
              --health-interval 10s
@@ -374,7 +374,7 @@ requirement_refs:
 
          - name: Test with coverage
            env:
-             DATABASE_URL: postgresql+asyncpg://sse:sse@localhost:5432/sse
+             DATABASE_URL: postgresql+asyncpg://sentix:sentix@localhost:5432/sentix
              REDIS_URL: redis://localhost:6379/0
            run: pytest
            working-directory: worker

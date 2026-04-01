@@ -86,7 +86,7 @@ def _build_test_runner(session: Any, subreddits: list[str]) -> Any:
     async def session_factory() -> Any:
         yield session
 
-    primary = JsonEndpointScraper(user_agents=["SSE-Isolation-Test/1.0"], request_delay_seconds=0.0)
+    primary = JsonEndpointScraper(user_agents=["SentiX-Isolation-Test/1.0"], request_delay_seconds=0.0)
     fallback = AsyncMock(spec=PRAWOAuthScraper)
 
     async def _no_comments(*_args: Any, **_kwargs: Any) -> Any:

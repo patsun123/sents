@@ -1,4 +1,4 @@
--- SSE Sentiment Pipeline: PostgreSQL Schema
+-- SentiX Sentiment Pipeline: PostgreSQL Schema
 -- Feature: 001-resilient-reddit-sentiment-scraping-pipeline
 -- Date: 2026-03-09
 --

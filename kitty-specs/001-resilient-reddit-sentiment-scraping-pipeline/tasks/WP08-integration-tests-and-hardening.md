@@ -70,7 +70,7 @@ requirement_refs:
 
 ```python
 """
-End-to-end integration test for the SSE sentiment pipeline.
+End-to-end integration test for the SentiX sentiment pipeline.
 
 Uses:
 - Real PostgreSQL (via Docker Compose service in CI)
@@ -329,9 +329,9 @@ async def test_all_sources_failed_marks_run_failed(db_session, httpx_mock):
 **Steps**:
 1. Create/update `worker/README.md` with:
    ```markdown
-   # SSE Worker
+   # SentiX Worker
 
-   Sentiment pipeline worker for the Sentiment Stock Exchange.
+   Sentiment pipeline worker for SentiX.
 
    ## Setup
    1. Copy `.env.example` to `.env` and fill in credentials
