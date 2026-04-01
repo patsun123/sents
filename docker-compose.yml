@@ -1,11 +1,27 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
   api:
     build: ./api
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://sse:sse@postgres:5432/sse
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sse}:${POSTGRES_PASSWORD:-sse}@postgres:5432/${POSTGRES_DB:-sse}
     depends_on:
       postgres:
         condition: service_healthy
@@ -14,7 +30,7 @@ services:
     build: ./worker
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://sse:sse@postgres:5432/sse
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sse}:${POSTGRES_PASSWORD:-sse}@postgres:5432/${POSTGRES_DB:-sse}
       REDIS_URL: redis://redis:6379/0
       REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
       REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
@@ -40,13 +56,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: sse
-      POSTGRES_PASSWORD: sse
-      POSTGRES_DB: sse
+      POSTGRES_USER: ${POSTGRES_USER:-sse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sse}
+      POSTGRES_DB: ${POSTGRES_DB:-sse}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sse"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-sse}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,3 +81,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:
