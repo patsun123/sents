@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Coroutine
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -47,7 +47,7 @@ def create_scheduler(
     scheduler.add_job(
         run_cycle_fn,
         trigger=IntervalTrigger(minutes=settings.cycle_interval_minutes),
-        next_run_time=datetime.now(timezone.utc),
+        next_run_time=datetime.now(UTC),
         id="pipeline_cycle",
         name="SSE Sentiment Collection Cycle",
         replace_existing=True,
