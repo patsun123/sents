@@ -1,5 +1,5 @@
 """
-Structured JSON logging configuration for SSE Worker.
+Structured JSON logging configuration for SentiX Worker.
 
 All log records are emitted as JSON. PII fields are blocked
 by a custom log filter at the root logger level.

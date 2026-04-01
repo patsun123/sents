@@ -9,7 +9,7 @@
 
 ## Overview
 
-The scraping pipeline is the existential foundation of SSE. Without reliable, continuous sentiment data flowing in from Reddit, the sentiment price engine has nothing to work with. This feature establishes a fault-tolerant, privacy-respecting pipeline that collects comments from configurable subreddits on a regular schedule, identifies and scores ticker mentions, and stores only structured sentiment results — never raw posts, never user data.
+The scraping pipeline is the existential foundation of SentiX. Without reliable, continuous sentiment data flowing in from Reddit, the sentiment price engine has nothing to work with. This feature establishes a fault-tolerant, privacy-respecting pipeline that collects comments from configurable subreddits on a regular schedule, identifies and scores ticker mentions, and stores only structured sentiment results — never raw posts, never user data.
 
 This pipeline runs unattended. The developer cannot monitor it 24/7, so resilience and self-recovery are non-negotiable requirements, not enhancements.
 
@@ -21,7 +21,7 @@ This pipeline runs unattended. The developer cannot monitor it 24/7, so resilien
 
 The pipeline runs on a fixed 15-minute schedule, collecting comments from all configured subreddits, extracting ticker mentions, scoring the sentiment of those mentions, and storing the results. This happens automatically, without human intervention, around the clock.
 
-**Why this priority**: Without this running reliably, SSE has no data. Everything else depends on it. If collection fails silently, sentiment prices go stale without anyone knowing.
+**Why this priority**: Without this running reliably, SentiX has no data. Everything else depends on it. If collection fails silently, sentiment prices go stale without anyone knowing.
 
 **Independent Test**: Can be fully tested by running the pipeline in isolation against a set of known subreddits and verifying that structured sentiment scores appear in storage within 15 minutes, with no raw comment data or user identifiers present anywhere in the system.
 

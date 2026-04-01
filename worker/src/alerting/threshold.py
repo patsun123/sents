@@ -1,5 +1,5 @@
 """
-Alert threshold tracker for SSE Worker.
+Alert threshold tracker for SentiX Worker.
 
 Tracks consecutive cycle failures and fires an alert when the threshold
 is reached.  Alert functions are injected at construction time so the

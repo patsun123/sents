@@ -1,1 +1,1 @@
-"""Shared test fixture data for SSE worker integration tests."""
+"""Shared test fixture data for SentiX worker integration tests."""

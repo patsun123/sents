@@ -1,4 +1,4 @@
-"""SSE Dashboard API — serves signal data and the frontend dashboard."""
+"""SentiX Dashboard API — serves signal data and the frontend dashboard."""
 from __future__ import annotations
 
 import os
@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://sse:sse@postgres:5432/sse")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://sentix:sentix@postgres:5432/sentix")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
@@ -33,7 +33,7 @@ _http_client: httpx.AsyncClient | None = None
 
 _YAHOO_HEADERS = {
     "User-Agent": (
-        "Mozilla/5.0 (compatible; SSE-Dashboard/1.0; "
+        "Mozilla/5.0 (compatible; SentiX-Dashboard/1.0; "
         "+https://github.com/patsun123/sents)"
     )
 }
@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await engine.dispose()
 
 
-app = FastAPI(title="SSE Dashboard", lifespan=lifespan)
+app = FastAPI(title="SentiX Dashboard", lifespan=lifespan)
 
 
 @app.get("/")

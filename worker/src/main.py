@@ -1,5 +1,5 @@
 """
-SSE Worker entry point.
+SentiX Worker entry point.
 
 Startup sequence:
   1. Load and validate settings
@@ -70,9 +70,9 @@ _DEFAULT_SUBREDDITS = [
 ]
 
 _DEFAULT_USER_AGENTS = [
-    "Mozilla/5.0 (compatible; SSEWorker/1.0; +https://github.com/sse-worker)",
-    "Mozilla/5.0 (X11; Linux x86_64) SSEWorker/1.0",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SSEWorker/1.0",
+    "Mozilla/5.0 (compatible; SentiXWorker/1.0; +https://github.com/patsun123/sents)",
+    "Mozilla/5.0 (X11; Linux x86_64) SentiXWorker/1.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SentiXWorker/1.0",
 ]
 
 

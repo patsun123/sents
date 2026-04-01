@@ -103,7 +103,7 @@ def _build_test_runner(session: Any) -> Any:
     async def session_factory() -> Any:
         yield session
 
-    primary = JsonEndpointScraper(user_agents=["SSE-PII-Test/1.0"], request_delay_seconds=0.0)
+    primary = JsonEndpointScraper(user_agents=["SentiX-PII-Test/1.0"], request_delay_seconds=0.0)
     fallback = AsyncMock(spec=PRAWOAuthScraper)
 
     async def _no_comments(*_args: Any, **_kwargs: Any) -> Any:

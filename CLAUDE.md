@@ -1,11 +1,11 @@
-# CLAUDE.md - Sentiment Stock Exchange (SSE)
+# CLAUDE.md - SentiX
 
 > Agent context for Claude Code. Updated by /spec-kitty.plan.
 > See .kittify/memory/constitution.md for full project standards.
 
 ## Project
 
-Sentiment Stock Exchange (SSE) - a web application showing real vs. sentiment-derived
+SentiX - a web application showing real vs. sentiment-derived
 stock prices based on Reddit comment analysis. Solo project.
 
 ## Active Feature: 001 - Resilient Reddit Sentiment Scraping Pipeline

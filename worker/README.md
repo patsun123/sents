@@ -1,6 +1,6 @@
-# SSE Worker
+# SentiX Worker
 
-Sentiment pipeline worker for the Sentiment Stock Exchange.
+Sentiment pipeline worker for SentiX.
 
 Scrapes Reddit comments every 15 minutes, extracts ticker mentions, classifies
 sentiment via VADER (or FinBERT), and stores raw signals to PostgreSQL.
@@ -27,7 +27,7 @@ No PII is ever stored at any stage.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DATABASE_URL` | Yes | `postgresql+asyncpg://sse:sse@postgres:5432/sse` | PostgreSQL connection string |
+| `DATABASE_URL` | Yes | `postgresql+asyncpg://sentix:sentix@postgres:5432/sentix` | PostgreSQL connection string |
 | `REDIS_URL` | Yes | `redis://redis:6379/0` | Redis connection string |
 | `REDDIT_CLIENT_ID` | No | `""` | PRAW OAuth client ID (fallback lane only) |
 | `REDDIT_CLIENT_SECRET` | No | `""` | PRAW OAuth client secret |

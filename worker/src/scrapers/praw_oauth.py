@@ -64,7 +64,7 @@ class PRAWOAuthScraper:
                 client_secret=self._client_secret,
                 username=self._username,
                 password=self._password,
-                user_agent=f"SSE Worker/1.0 by /u/{self._username}",
+                user_agent=f"SentiX Worker/1.0 by /u/{self._username}",
             )
         return self._reddit
 

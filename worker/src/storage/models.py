@@ -1,5 +1,5 @@
 """
-SQLAlchemy ORM models for SSE worker.
+SQLAlchemy ORM models for SentiX worker.
 
 PRIVACY GUARANTEE: No model contains a column for Reddit usernames,
 comment IDs, post IDs, or any user-attributable data.
@@ -29,7 +29,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
-    """Shared declarative base for all SSE ORM models."""
+    """Shared declarative base for all SentiX ORM models."""
 
 
 class DataSource(Base):

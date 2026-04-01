@@ -1,5 +1,5 @@
 """
-End-to-end integration test for the SSE sentiment pipeline.
+End-to-end integration test for the SentiX sentiment pipeline.
 
 Uses:
 - Real PostgreSQL (via Docker Compose service in CI or local instance)
@@ -91,7 +91,7 @@ def _build_runner(session: Any) -> Any:
         yield session
 
     primary_scraper = JsonEndpointScraper(
-        user_agents=["SSE-Test/1.0"],
+        user_agents=["SentiX-Test/1.0"],
         request_delay_seconds=0.0,
     )
 

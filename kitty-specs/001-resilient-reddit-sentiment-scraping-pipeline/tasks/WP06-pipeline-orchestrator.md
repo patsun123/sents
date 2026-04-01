@@ -70,7 +70,7 @@ requirement_refs:
 
 ```python
 """
-SSE Worker configuration.
+SentiX Worker configuration.
 
 All settings come from environment variables.
 No default should expose production credentials.
@@ -91,7 +91,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # Database
-    database_url: str = "postgresql+asyncpg://sse:sse@localhost:5432/sse"
+    database_url: str = "postgresql+asyncpg://sentix:sentix@localhost:5432/sentix"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -332,7 +332,7 @@ def create_scheduler(run_cycle_fn) -> AsyncIOScheduler:
         run_cycle_fn,
         trigger=IntervalTrigger(minutes=settings.cycle_interval_minutes),
         id="pipeline_cycle",
-        name="SSE Sentiment Collection Cycle",
+        name="SentiX Sentiment Collection Cycle",
         replace_existing=True,
         max_instances=1,  # APScheduler-level concurrency guard
     )
@@ -371,7 +371,7 @@ def create_scheduler(run_cycle_fn) -> AsyncIOScheduler:
 
 ```python
 """
-SSE Worker entry point.
+SentiX Worker entry point.
 
 Startup sequence:
   1. Load and validate settings

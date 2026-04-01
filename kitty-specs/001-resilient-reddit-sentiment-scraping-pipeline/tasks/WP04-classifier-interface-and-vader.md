@@ -44,7 +44,7 @@ requirement_refs:
 - **Contract**: `contracts/classifier-interface.md` — canonical Protocol definition
 - **Research**: R-003 — FinBERT availability (CPU inference, lazy import)
 - **WP04 parallel with WP02, WP03, WP05** — no shared code between them
-- **"The algorithm is the product"**: The classifier interface is the most important extensibility point in SSE
+- **"The algorithm is the product"**: The classifier interface is the most important extensibility point in SentiX
 
 **Implementation command**: `spec-kitty implement WP04 --base WP01`
 
@@ -133,7 +133,7 @@ class SentimentClassifier(Protocol):
 
 ### Subtask T018 - Implement VADERClassifier
 
-**Purpose**: The default, zero-setup sentiment classifier. VADER understands internet text, capitalization, and punctuation emphasis — adequate for initial SSE launch.
+**Purpose**: The default, zero-setup sentiment classifier. VADER understands internet text, capitalization, and punctuation emphasis — adequate for initial SentiX launch.
 
 **Steps**:
 1. Create `worker/src/classifiers/vader.py`:

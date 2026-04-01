@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures for the SSE worker test suite.
+Shared pytest fixtures for the SentiX worker test suite.
 
 Database fixtures use mocked SQLAlchemy async sessions for unit tests.
 Integration tests use a real PostgreSQL instance via the ``db_session``

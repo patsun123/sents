@@ -49,7 +49,7 @@ def create_scheduler(
         trigger=IntervalTrigger(minutes=settings.cycle_interval_minutes),
         next_run_time=datetime.now(timezone.utc),
         id="pipeline_cycle",
-        name="SSE Sentiment Collection Cycle",
+        name="SentiX Sentiment Collection Cycle",
         replace_existing=True,
         max_instances=1,  # APScheduler-level concurrency guard
     )

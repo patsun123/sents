@@ -1,5 +1,5 @@
 """
-SSE Worker configuration.
+SentiX Worker configuration.
 
 All settings come from environment variables.
 No default should expose production credentials.

@@ -65,7 +65,7 @@ requirement_refs:
 
 ```python
 """
-SQLAlchemy ORM models for SSE worker.
+SQLAlchemy ORM models for SentiX worker.
 
 PRIVACY GUARANTEE: No model contains a column for Reddit usernames,
 comment IDs, post IDs, or any user-attributable data.
@@ -447,7 +447,7 @@ import os
 
 @pytest_asyncio.fixture
 async def db_session():
-    url = os.getenv("DATABASE_URL", "postgresql+asyncpg://sse:sse@localhost:5432/sse_test")
+    url = os.getenv("DATABASE_URL", "postgresql+asyncpg://sentix:sentix@localhost:5432/sentix_test")
     engine = create_async_engine(url, echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -475,7 +475,7 @@ async def db_session():
 ## Test Strategy
 
 - Integration tests require PostgreSQL (available in GitHub Actions via service container)
-- Use a separate `sse_test` database to avoid polluting dev data
+- Use a separate `sentix_test` database to avoid polluting dev data
 - Schema created fresh per test session, dropped after
 - Run: `pytest tests/integration/test_storage.py -v`
 
