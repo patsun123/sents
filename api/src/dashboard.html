@@ -751,6 +751,145 @@
       display: none;
     }
 
+    /* ── Divergence alert bar ────────────────── */
+    .divergence-bar {
+      display: none; margin-bottom: 10px;
+    }
+    .divergence-bar.active { display: block; }
+    .divergence-bar .section-head {
+      background: rgba(245, 158, 11, 0.06);
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+    .divergence-bar .section-head span:first-child { color: var(--warn); }
+    .divergence-cards {
+      display: flex; gap: 1px; overflow-x: auto;
+      background: var(--border); border: 1px solid var(--border); border-top: none;
+    }
+    .divergence-card {
+      background: var(--surface); padding: 12px 16px; min-width: 200px;
+      cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+    }
+    .divergence-card:hover { background: var(--card); }
+    .div-ticker {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem; letter-spacing: 3px; color: var(--text); line-height: 1;
+    }
+    .div-arrows {
+      display: flex; align-items: center; gap: 8px;
+      margin: 6px 0; font-size: 0.72rem; font-weight: 600;
+    }
+    .div-arrows .sent { padding: 2px 6px; border-radius: 2px; }
+    .div-arrows .sent.pos { color: var(--pos); background: var(--pos-dim); }
+    .div-arrows .sent.neg { color: var(--neg); background: var(--neg-dim); }
+    .div-arrows .vs { color: var(--muted); font-size: 0.6rem; }
+    .div-arrows .price { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+    .div-arrows .price.pos { color: var(--pos); }
+    .div-arrows .price.neg { color: var(--neg); }
+    .div-confidence {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; letter-spacing: 1px;
+    }
+    .div-confidence .badge {
+      padding: 1px 5px; border-radius: 2px; font-weight: 600;
+    }
+    .div-confidence .badge.low  { color: var(--neg); background: var(--neg-dim); }
+    .div-confidence .badge.mid  { color: var(--warn); background: rgba(245,158,11,0.12); }
+    .div-confidence .badge.high { color: var(--pos); background: var(--pos-dim); }
+
+    /* ── Meme Radar ──────────────────────────── */
+    .radar-section { display: none; margin-bottom: 10px; }
+    .radar-section.active { display: block; }
+    .radar-section .section-head {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: none;
+    }
+    .radar-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--warn); display: inline-block; margin-right: 6px;
+      animation: blink 2s ease-in-out infinite;
+    }
+    .radar-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .radar-table tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+    .radar-table tr:last-child { border-bottom: none; }
+    .radar-table tr:hover { background: var(--card); }
+    .radar-table td { padding: 10px 14px; }
+    .radar-ticker {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem; letter-spacing: 3px; color: var(--text);
+    }
+    .radar-velocity {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; font-weight: 600; color: var(--warn);
+    }
+    .radar-spread {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; color: var(--muted);
+    }
+    .radar-mentions {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; color: var(--muted);
+    }
+    .radar-score-wrap { width: 80px; }
+    .radar-score-bar {
+      height: 6px; background: var(--card); border-radius: 3px; overflow: hidden;
+    }
+    .radar-score-fill {
+      height: 100%; background: var(--warn); border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+    .radar-score-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem; color: var(--muted); margin-top: 2px; text-align: right;
+    }
+
+    /* ── Community Lens ──────────────────────── */
+    .community-section { margin-bottom: 10px; }
+    .community-row {
+      display: grid;
+      grid-template-columns: 160px 1fr 60px 70px;
+      align-items: center; gap: 14px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .community-row:last-child { border-bottom: none; }
+    .community-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem; color: var(--text);
+    }
+    .community-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
+    .community-mentions {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem; letter-spacing: 1px;
+      color: var(--accent); text-align: right;
+    }
+    .community-ratio {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; text-align: right;
+    }
+    .community-ratio.pos { color: var(--pos); }
+    .community-ratio.neg { color: var(--neg); }
+    .community-ratio.neutral { color: var(--muted); }
+    .community-disagree {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem; letter-spacing: 1px;
+      color: var(--warn); background: rgba(245,158,11,0.1);
+      padding: 2px 8px; border-radius: 2px;
+    }
+
+    .detail-divergence-banner {
+      display: none; margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem; letter-spacing: 0.5px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: var(--warn); padding: 10px 16px;
+    }
+    .detail-divergence-banner.active { display: block; }
+
     /* ── Responsive ──────────────────────────── */
     @media (max-width: 1100px) {
       .ticker-grid { grid-template-columns: repeat(3, 1fr); }
@@ -835,6 +974,15 @@
   </div>
 </div>
 
+<!-- Divergence alert bar -->
+<div class="divergence-bar" id="divergenceBar">
+  <div class="section-head">
+    <span>Divergence Alerts</span>
+    <span class="badge" id="divBadge"></span>
+  </div>
+  <div class="divergence-cards" id="divCards"></div>
+</div>
+
 <!-- Ticker card grid -->
 <div class="ticker-grid-section">
   <div class="section-head">
@@ -846,6 +994,15 @@
       <div class="loading-msg">loading…</div>
     </div>
   </div>
+</div>
+
+<!-- Meme Stock Radar -->
+<div class="radar-section" id="radarSection">
+  <div class="section-head">
+    <span><span class="radar-dot"></span>Meme Radar</span>
+    <span class="badge" id="radarBadge"></span>
+  </div>
+  <table class="radar-table" id="radarBody"></table>
 </div>
 
 <!-- Bottom grid: subreddits + runs -->
@@ -912,6 +1069,8 @@
 
   <div class="detail-meta-row" id="detailMetaRow" style="display:none"></div>
 
+  <div class="detail-divergence-banner" id="detailDivBanner"></div>
+
   <div class="detail-chart-section">
     <div class="detail-chart-head">
       <div class="detail-chart-title">Price + Sentiment Overlay</div>
@@ -959,6 +1118,14 @@
       <div class="detail-stat-label">Active Subreddits</div>
       <div class="subs-list" id="detailSubsList"></div>
     </div>
+  </div>
+
+  <div class="community-section section" id="communitySection" style="display:none">
+    <div class="section-head">
+      <span>Community Lens</span>
+      <span class="badge" id="communityBadge"></span>
+    </div>
+    <div class="scroll-body" style="max-height:260px" id="communityBody"></div>
   </div>
 
   <div class="section">
@@ -1590,6 +1757,25 @@ async function loadDetailView(symbol) {
   var tickerSignals = cachedSignals.filter(function(s) { return s.ticker === symbol; });
   renderDetailSignals(tickerSignals, symbol);
 
+  // Load community lens
+  document.getElementById('communitySection').style.display = 'none';
+  fetch('/api/tickers/' + symbol + '/community')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) { if (data) renderCommunity(data); })
+    .catch(function() {});
+
+  // Show divergence banner if applicable
+  var divBanner = document.getElementById('detailDivBanner');
+  divBanner.classList.remove('active');
+  var div = cachedDivergences.find(function(d) { return d.ticker === symbol; });
+  if (div) {
+    var sentDir = div.bull_ratio > 0.5 ? 'bullish' : 'bearish';
+    var priceDir = div.price_change_pct >= 0 ? 'up' : 'down';
+    var sign = div.price_change_pct >= 0 ? '+' : '';
+    divBanner.textContent = 'Divergence detected (' + div.confidence + '% confidence): Reddit is ' + sentDir + ', price is ' + priceDir + ' ' + sign + div.price_change_pct.toFixed(1) + '%';
+    divBanner.classList.add('active');
+  }
+
   // Load chart with default time range
   await loadDetailChart(symbol, currentTimeRange);
 }
@@ -1817,21 +2003,226 @@ function buildDetailChart(priceData, sentimentBull, sentimentBear, isIntraday) {
 }
 
 // ================================================================
+// RENDER: MEME RADAR
+// ================================================================
+function renderRadar(data) {
+  var section = document.getElementById('radarSection');
+  var body = document.getElementById('radarBody');
+  var badge = document.getElementById('radarBadge');
+
+  if (!data.length) {
+    section.classList.remove('active');
+    return;
+  }
+
+  section.classList.add('active');
+  badge.textContent = data.length + ' detected';
+  body.textContent = '';
+
+  data.forEach(function(r) {
+    var tr = document.createElement('tr');
+    tr.addEventListener('click', function() { navigate('/stock/' + r.ticker); });
+
+    var tdTicker = document.createElement('td');
+    var tickerEl = document.createElement('span');
+    tickerEl.className = 'radar-ticker';
+    tickerEl.textContent = '$' + r.ticker;
+    tdTicker.appendChild(tickerEl);
+
+    var tdVel = document.createElement('td');
+    var velEl = document.createElement('span');
+    velEl.className = 'radar-velocity';
+    velEl.textContent = r.velocity_ratio + 'x';
+    var prevEl = document.createElement('div');
+    prevEl.className = 'radar-mentions';
+    prevEl.textContent = r.prev_count + ' \u2192 ' + r.mention_count;
+    tdVel.appendChild(velEl);
+    tdVel.appendChild(prevEl);
+
+    var tdSpread = document.createElement('td');
+    var spreadEl = document.createElement('span');
+    spreadEl.className = 'radar-spread';
+    spreadEl.textContent = r.subreddit_spread + ' subs';
+    var subsEl = document.createElement('div');
+    subsEl.className = 'radar-mentions';
+    subsEl.style.maxWidth = '200px';
+    subsEl.style.overflow = 'hidden';
+    subsEl.style.textOverflow = 'ellipsis';
+    subsEl.style.whiteSpace = 'nowrap';
+    subsEl.textContent = r.subreddits;
+    tdSpread.appendChild(spreadEl);
+    tdSpread.appendChild(subsEl);
+
+    var tdScore = document.createElement('td');
+    var scoreWrap = document.createElement('div');
+    scoreWrap.className = 'radar-score-wrap';
+    var bar = document.createElement('div');
+    bar.className = 'radar-score-bar';
+    var fill = document.createElement('div');
+    fill.className = 'radar-score-fill';
+    fill.style.width = Math.min(100, r.radar_score) + '%';
+    bar.appendChild(fill);
+    var label = document.createElement('div');
+    label.className = 'radar-score-label';
+    label.textContent = r.radar_score;
+    scoreWrap.appendChild(bar);
+    scoreWrap.appendChild(label);
+    tdScore.appendChild(scoreWrap);
+
+    tr.appendChild(tdTicker);
+    tr.appendChild(tdVel);
+    tr.appendChild(tdSpread);
+    tr.appendChild(tdScore);
+    body.appendChild(tr);
+  });
+}
+
+// ================================================================
+// RENDER: DIVERGENCE ALERTS
+// ================================================================
+var cachedDivergences = [];
+
+function renderDivergences(data) {
+  cachedDivergences = data;
+  var bar = document.getElementById('divergenceBar');
+  var cards = document.getElementById('divCards');
+  var badge = document.getElementById('divBadge');
+
+  if (!data.length) {
+    bar.classList.remove('active');
+    return;
+  }
+
+  bar.classList.add('active');
+  badge.textContent = data.length + ' active';
+  cards.textContent = '';
+
+  data.forEach(function(d) {
+    var card = document.createElement('div');
+    card.className = 'divergence-card';
+    card.addEventListener('click', function() { navigate('/stock/' + d.ticker); });
+
+    var ticker = document.createElement('div');
+    ticker.className = 'div-ticker';
+    ticker.textContent = '$' + d.ticker;
+
+    var arrows = document.createElement('div');
+    arrows.className = 'div-arrows';
+
+    var sentSpan = document.createElement('span');
+    sentSpan.className = 'sent ' + (d.bull_ratio > 0.5 ? 'pos' : 'neg');
+    sentSpan.textContent = d.bull_ratio > 0.5 ? '\u25b2 Bullish' : '\u25bc Bearish';
+
+    var vs = document.createElement('span');
+    vs.className = 'vs';
+    vs.textContent = 'vs';
+
+    var priceSpan = document.createElement('span');
+    priceSpan.className = 'price ' + (d.price_change_pct >= 0 ? 'pos' : 'neg');
+    var sign = d.price_change_pct >= 0 ? '+' : '';
+    priceSpan.textContent = sign + d.price_change_pct.toFixed(1) + '%';
+
+    arrows.appendChild(sentSpan);
+    arrows.appendChild(vs);
+    arrows.appendChild(priceSpan);
+
+    var conf = document.createElement('div');
+    conf.className = 'div-confidence';
+    var confBadge = document.createElement('span');
+    confBadge.className = 'badge ' + (d.confidence < 40 ? 'low' : d.confidence < 70 ? 'mid' : 'high');
+    confBadge.textContent = d.confidence + '% confidence';
+    conf.appendChild(confBadge);
+
+    card.appendChild(ticker);
+    card.appendChild(arrows);
+    card.appendChild(conf);
+    cards.appendChild(card);
+  });
+}
+
+// ================================================================
+// RENDER: COMMUNITY LENS
+// ================================================================
+function renderCommunity(data) {
+  var section = document.getElementById('communitySection');
+  var body = document.getElementById('communityBody');
+  var badge = document.getElementById('communityBadge');
+
+  if (!data || !data.communities || !data.communities.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = '';
+  var headerParts = data.communities.length + ' subreddits';
+  if (!data.consensus && data.communities.length >= 2) {
+    headerParts += ' · <span class="community-disagree">communities disagree</span>';
+  }
+  badge.innerHTML = headerParts;
+
+  body.textContent = '';
+  data.communities.forEach(function(c) {
+    var row = document.createElement('div');
+    row.className = 'community-row';
+
+    var name = document.createElement('span');
+    name.className = 'community-name';
+    name.textContent = 'r/' + c.subreddit;
+
+    var barWrap = document.createElement('div');
+    barWrap.className = 'community-bar-wrap';
+    var bar = document.createElement('div');
+    bar.className = 'split-bar';
+    var total = (c.positive + c.negative) || 1;
+    var posW = ((c.positive / total) * 100).toFixed(1);
+    var negW = ((c.negative / total) * 100).toFixed(1);
+    var bp = document.createElement('div');
+    bp.className = 'bar-pos';
+    bp.style.width = posW + '%';
+    var bn = document.createElement('div');
+    bn.className = 'bar-neg';
+    bn.style.width = negW + '%';
+    bar.appendChild(bp);
+    bar.appendChild(bn);
+    barWrap.appendChild(bar);
+
+    var mentions = document.createElement('div');
+    mentions.className = 'community-mentions';
+    mentions.textContent = c.mention_count;
+
+    var ratio = document.createElement('div');
+    var pct = Math.round(c.bull_ratio * 100);
+    ratio.className = 'community-ratio ' + (pct > 60 ? 'pos' : pct < 40 ? 'neg' : 'neutral');
+    ratio.textContent = pct + '% bull';
+
+    row.appendChild(name);
+    row.appendChild(barWrap);
+    row.appendChild(mentions);
+    row.appendChild(ratio);
+    body.appendChild(row);
+  });
+}
+
+// ================================================================
 // FETCH ALL
 // ================================================================
 async function fetchAll() {
   document.getElementById('lastUpdated').textContent = 'updating\u2026';
   try {
-    const [tickers, runs, signals, subreddits] = await Promise.all([
+    const [tickers, runs, signals, subreddits, radar, divergences] = await Promise.all([
       fetch('/api/tickers').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
       fetch('/api/runs').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
       fetch('/api/signals/recent').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
       fetch('/api/subreddits').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
+      fetch('/api/radar').then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; }),
+      fetch('/api/divergences').then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; }),
     ]);
     renderTickers(tickers);
     renderRuns(runs);
     renderSignals(signals);
     renderSubreddits(subreddits);
+    renderRadar(radar);
+    renderDivergences(divergences);
     document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB');
   } catch (err) {
     showErr(err);

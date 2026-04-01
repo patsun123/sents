@@ -1,6 +1,7 @@
 """SentiX Dashboard API — serves signal data and the frontend dashboard."""
 from __future__ import annotations
 
+import asyncio
 import os
 import time
 from contextlib import asynccontextmanager
@@ -497,6 +498,354 @@ async def get_ticker_info(symbol: str) -> JSONResponse:
 
     _INFO_CACHE[symbol] = (time.monotonic(), payload)
     return JSONResponse(payload)
+
+
+# ---------------------------------------------------------------------------
+# Meme Stock Radar
+# ---------------------------------------------------------------------------
+
+_VALID_RADAR_WINDOWS = {"1h", "2h", "4h", "8h", "12h", "24h"}
+_RADAR_WINDOW_SQL: dict[str, tuple[str, str]] = {
+    "1h":  ("1 hour",   "2 hours"),
+    "2h":  ("2 hours",  "4 hours"),
+    "4h":  ("4 hours",  "8 hours"),
+    "8h":  ("8 hours",  "16 hours"),
+    "12h": ("12 hours", "24 hours"),
+    "24h": ("24 hours", "48 hours"),
+}
+
+
+@app.get("/api/radar")
+async def get_radar(window: str = "4h") -> JSONResponse:
+    """Meme Stock Radar — detect mention velocity spikes and cross-subreddit spread.
+
+    Compares mention counts in the recent window against the preceding equal
+    window.  Tickers with a 3x+ velocity increase or 4+ subreddit spread are
+    flagged.  Results are merged into a composite radar_score.
+    """
+    if window not in _RADAR_WINDOW_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid window: {window}")
+
+    recent_interval, full_interval = _RADAR_WINDOW_SQL[window]
+
+    try:
+        async with session_factory() as session:
+            # Query 1: velocity spike
+            velocity_result = await session.execute(text(f"""
+                WITH recent AS (
+                    SELECT ticker_symbol, COUNT(*) AS recent_count
+                    FROM sentiment_signals
+                    WHERE collected_at >= NOW() - INTERVAL '{recent_interval}'
+                    GROUP BY ticker_symbol
+                ),
+                previous AS (
+                    SELECT ticker_symbol, COUNT(*) AS prev_count
+                    FROM sentiment_signals
+                    WHERE collected_at >= NOW() - INTERVAL '{full_interval}'
+                      AND collected_at < NOW() - INTERVAL '{recent_interval}'
+                    GROUP BY ticker_symbol
+                )
+                SELECT
+                    r.ticker_symbol,
+                    r.recent_count,
+                    COALESCE(p.prev_count, 0) AS prev_count,
+                    CASE WHEN COALESCE(p.prev_count, 0) > 0
+                         THEN ROUND(r.recent_count::numeric / p.prev_count, 1)
+                         ELSE r.recent_count::numeric
+                    END AS velocity_ratio
+                FROM recent r
+                LEFT JOIN previous p USING (ticker_symbol)
+                WHERE r.recent_count >= 5
+                ORDER BY velocity_ratio DESC
+                LIMIT 30
+            """))
+            velocity_rows = {
+                r["ticker_symbol"]: {
+                    "recent_count": int(r["recent_count"]),
+                    "prev_count": int(r["prev_count"]),
+                    "velocity_ratio": float(r["velocity_ratio"]),
+                }
+                for r in velocity_result.mappings().all()
+            }
+
+            # Query 2: cross-subreddit spread
+            spread_result = await session.execute(text(f"""
+                SELECT
+                    ticker_symbol,
+                    COUNT(DISTINCT source_subreddit) AS sub_count,
+                    COUNT(*) AS mention_count,
+                    string_agg(DISTINCT source_subreddit, ' · '
+                        ORDER BY source_subreddit) AS subreddits,
+                    COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive,
+                    COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative
+                FROM sentiment_signals
+                WHERE collected_at >= NOW() - INTERVAL '{recent_interval}'
+                GROUP BY ticker_symbol
+                HAVING COUNT(*) >= 5
+                ORDER BY COUNT(DISTINCT source_subreddit) DESC, COUNT(*) DESC
+                LIMIT 30
+            """))
+            spread_rows = {
+                r["ticker_symbol"]: {
+                    "sub_count": int(r["sub_count"]),
+                    "mention_count": int(r["mention_count"]),
+                    "subreddits": r["subreddits"] or "",
+                    "positive": int(r["positive"]),
+                    "negative": int(r["negative"]),
+                }
+                for r in spread_result.mappings().all()
+            }
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    # Merge and score
+    all_tickers = set(velocity_rows) | set(spread_rows)
+    radar_items = []
+    for ticker in all_tickers:
+        vel = velocity_rows.get(ticker, {})
+        spr = spread_rows.get(ticker, {})
+        velocity_ratio = vel.get("velocity_ratio", 1.0)
+        sub_count = spr.get("sub_count", 1)
+        mention_count = spr.get("mention_count", vel.get("recent_count", 0))
+        positive = spr.get("positive", 0)
+        negative = spr.get("negative", 0)
+
+        # Only include if velocity >= 3x OR spread >= 4 subreddits
+        if velocity_ratio < 3.0 and sub_count < 4:
+            continue
+
+        radar_score = min(100, velocity_ratio * 5 + sub_count * 10)
+        bull_ratio = round(positive / (positive + negative), 3) if (positive + negative) > 0 else 0.5
+
+        radar_items.append({
+            "ticker": ticker,
+            "mention_count": mention_count,
+            "velocity_ratio": velocity_ratio,
+            "prev_count": vel.get("prev_count", 0),
+            "subreddit_spread": sub_count,
+            "subreddits": spr.get("subreddits", ""),
+            "radar_score": round(radar_score, 1),
+            "bull_ratio": bull_ratio,
+        })
+
+    radar_items.sort(key=lambda x: x["radar_score"], reverse=True)
+    return JSONResponse(radar_items[:20])
+
+
+# ---------------------------------------------------------------------------
+# Community Lens
+# ---------------------------------------------------------------------------
+
+_VALID_COMMUNITY_LOOKBACKS = {"1h", "4h", "12h", "24h", "7d", "30d"}
+_COMMUNITY_LOOKBACK_SQL: dict[str, str] = {
+    "1h": "1 hour", "4h": "4 hours", "12h": "12 hours",
+    "24h": "24 hours", "7d": "7 days", "30d": "30 days",
+}
+
+
+@app.get("/api/tickers/{symbol}/community")
+async def get_ticker_community(
+    symbol: str,
+    lookback: str = "24h",
+) -> JSONResponse:
+    """Per-subreddit sentiment breakdown for a single ticker.
+
+    Shows how different Reddit communities feel about the same stock.
+    """
+    symbol = symbol.upper()
+    if lookback not in _COMMUNITY_LOOKBACK_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid lookback: {lookback}")
+
+    interval_expr = _COMMUNITY_LOOKBACK_SQL[lookback]
+
+    try:
+        async with session_factory() as session:
+            result = await session.execute(text(f"""
+                SELECT
+                    source_subreddit,
+                    COUNT(*) AS mention_count,
+                    COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive,
+                    COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative,
+                    SUM(sentiment_polarity * (upvote_weight + 1)) AS net_score,
+                    ROUND(
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1)::numeric
+                        / COUNT(*)::numeric, 3
+                    ) AS bull_ratio
+                FROM sentiment_signals
+                WHERE ticker_symbol = :symbol
+                  AND collected_at >= NOW() - INTERVAL '{interval_expr}'
+                GROUP BY source_subreddit
+                HAVING COUNT(*) >= 3
+                ORDER BY COUNT(*) DESC
+            """), {"symbol": symbol})
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    communities = [
+        {
+            "subreddit": r["source_subreddit"],
+            "mention_count": int(r["mention_count"]),
+            "positive": int(r["positive"]),
+            "negative": int(r["negative"]),
+            "net_score": int(r["net_score"] or 0),
+            "bull_ratio": float(r["bull_ratio"]),
+        }
+        for r in rows
+    ]
+
+    bull_ratios = [c["bull_ratio"] for c in communities]
+    if len(bull_ratios) >= 2:
+        spread = round(max(bull_ratios) - min(bull_ratios), 3)
+        all_bullish = all(br > 0.6 for br in bull_ratios)
+        all_bearish = all(br < 0.4 for br in bull_ratios)
+        consensus = all_bullish or all_bearish
+    else:
+        spread = 0.0
+        consensus = True
+
+    return JSONResponse({
+        "symbol": symbol,
+        "lookback": lookback,
+        "communities": communities,
+        "consensus": consensus,
+        "spread": spread,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Divergence Alerts
+# ---------------------------------------------------------------------------
+
+_DIVERGENCE_MIN_MENTIONS = 10
+_DIVERGENCE_PRICE_THRESHOLD = 0.05  # 5%
+_DIVERGENCE_BULL_HIGH = 0.7
+_DIVERGENCE_BULL_LOW = 0.3
+
+
+async def _fetch_price_change(symbol: str) -> float | None:
+    """Fetch recent price change % for a symbol from Yahoo Finance.
+
+    Returns percentage change (e.g. -0.05 for -5%) or None on failure.
+    Reuses the existing _http_client and _PRICE_CACHE.
+    """
+    assert _http_client is not None
+    cache_key = f"{symbol}:5d:1d"
+
+    cached = _PRICE_CACHE.get(cache_key)
+    if cached is not None:
+        fetched_at, payload = cached
+        if time.monotonic() - fetched_at < _PRICE_CACHE_TTL:
+            data = payload.get("data", [])
+            if len(data) >= 2:
+                prev_close = data[-2]["close"]
+                last_close = data[-1]["close"]
+                if prev_close and last_close:
+                    return (last_close - prev_close) / prev_close
+            return None
+
+    url = (
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+        "?range=5d&interval=1d"
+    )
+    try:
+        response = await _http_client.get(url)
+        response.raise_for_status()
+        raw = response.json()
+        result0 = raw["chart"]["result"][0]
+        closes = result0["indicators"]["quote"][0].get("close", [])
+        valid_closes = [c for c in closes if c is not None]
+        if len(valid_closes) >= 2:
+            return (valid_closes[-1] - valid_closes[-2]) / valid_closes[-2]
+    except Exception:
+        pass
+    return None
+
+
+@app.get("/api/divergences")
+async def get_divergences() -> JSONResponse:
+    """Detect sentiment-price divergences with confidence scores.
+
+    Flags tickers where Reddit sentiment strongly disagrees with recent
+    price movement.  Confidence reflects data depth and sentiment strength.
+    """
+    try:
+        async with session_factory() as session:
+            result = await session.execute(text("""
+                SELECT
+                    ticker_symbol,
+                    COUNT(*) AS mention_count,
+                    COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive,
+                    COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative,
+                    ROUND(
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1)::numeric
+                        / COUNT(*)::numeric, 3
+                    ) AS bull_ratio
+                FROM sentiment_signals
+                WHERE collected_at >= NOW() - INTERVAL '24 hours'
+                GROUP BY ticker_symbol
+                HAVING COUNT(*) >= :min_mentions
+                ORDER BY COUNT(*) DESC
+                LIMIT 50
+            """), {"min_mentions": _DIVERGENCE_MIN_MENTIONS})
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    # Fetch price changes for top 20 tickers concurrently
+    tickers_to_check = rows[:20]
+    price_changes = await asyncio.gather(
+        *[_fetch_price_change(r["ticker_symbol"]) for r in tickers_to_check],
+    )
+
+    divergences = []
+    for row, price_change in zip(tickers_to_check, price_changes):
+        if price_change is None:
+            continue
+
+        bull_ratio = float(row["bull_ratio"])
+        mention_count = int(row["mention_count"])
+
+        # Check for divergence
+        bullish_sent_bearish_price = (
+            bull_ratio > _DIVERGENCE_BULL_HIGH
+            and price_change < -_DIVERGENCE_PRICE_THRESHOLD
+        )
+        bearish_sent_bullish_price = (
+            bull_ratio < _DIVERGENCE_BULL_LOW
+            and price_change > _DIVERGENCE_PRICE_THRESHOLD
+        )
+
+        if not (bullish_sent_bearish_price or bearish_sent_bullish_price):
+            continue
+
+        # Confidence calculation
+        # data_depth: 10 mentions = 20%, 50 = 60%, 100+ = 80%
+        data_depth = min(80, max(20, (mention_count / 100) * 80))
+        # sentiment_strength: how extreme the bull_ratio is (0-20% bonus)
+        extremity = abs(bull_ratio - 0.5) * 2  # 0..1 scale
+        sentiment_strength = extremity * 20
+        confidence = min(95, round(data_depth + sentiment_strength))
+
+        divergence_type = (
+            "bullish_sentiment_bearish_price"
+            if bullish_sent_bearish_price
+            else "bearish_sentiment_bullish_price"
+        )
+
+        divergences.append({
+            "ticker": row["ticker_symbol"],
+            "bull_ratio": bull_ratio,
+            "mention_count": mention_count,
+            "positive": int(row["positive"]),
+            "negative": int(row["negative"]),
+            "price_change_pct": round(price_change * 100, 2),
+            "divergence_type": divergence_type,
+            "confidence": confidence,
+        })
+
+    divergences.sort(key=lambda x: x["confidence"], reverse=True)
+    return JSONResponse(divergences)
 
 
 @app.get("/api/tickers/{symbol}")
