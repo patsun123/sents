@@ -43,7 +43,31 @@ from .tickers.extractor import TickerExtractor
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_SUBREDDITS = ["wallstreetbets", "stocks", "investing"]
+_DEFAULT_SUBREDDITS = [
+    # Tier 1 — high volume, general stock discussion
+    "wallstreetbets",
+    "stocks",
+    "investing",
+    "StockMarket",
+    # Tier 2 — active trading communities
+    "options",
+    "Daytrading",
+    "swingtrading",
+    # Tier 3 — niche / speculative
+    "pennystocks",
+    "smallstreetbets",
+    "SPACs",
+    "ValueInvesting",
+    # Tier 4 — sector-specific
+    "dividends",
+    "Bogleheads",
+    "weedstocks",
+    "RobinHood",
+    "SecurityAnalysis",
+    # Squeeze / momentum
+    "Shortsqueeze",
+    "wallstreetbetsOGs",
+]
 
 _DEFAULT_USER_AGENTS = [
     "Mozilla/5.0 (compatible; SSEWorker/1.0; +https://github.com/sse-worker)",
@@ -83,26 +107,33 @@ async def _run_migrations(database_url: str) -> None:
 
 async def _seed_default_sources(session_factory: async_sessionmaker[AsyncSession]) -> None:
     """
-    Insert default subreddits if the data_sources table is empty.
+    Ensure all default subreddits exist in the data_sources table.
 
-    This is idempotent — if sources already exist, nothing happens.
+    Idempotent — skips subreddits that already exist, inserts new ones.
+    This allows expanding the default list without requiring a database wipe.
 
     Args:
         session_factory: Factory for async database sessions.
     """
-    from sqlalchemy import func, select  # noqa: PLC0415
+    from sqlalchemy import select  # noqa: PLC0415
 
     async with session_factory() as session:
-        count_result = await session.execute(select(func.count()).select_from(DataSource))
-        count = count_result.scalar_one()
+        result = await session.execute(
+            select(DataSource.subreddit_name)
+        )
+        existing = {row[0].lower() for row in result.all()}
 
-        if count == 0:
-            for subreddit_name in _DEFAULT_SUBREDDITS:
-                session.add(DataSource(subreddit_name=subreddit_name))
+        added = []
+        for name in _DEFAULT_SUBREDDITS:
+            if name.lower() not in existing:
+                session.add(DataSource(subreddit_name=name))
+                added.append(name)
+
+        if added:
             await session.commit()
-            logger.info("default_sources_seeded subreddits=%s", _DEFAULT_SUBREDDITS)
+            logger.info("sources_seeded added=%s total=%d", added, len(existing) + len(added))
         else:
-            logger.debug("sources_already_exist count=%d", count)
+            logger.debug("all_sources_present count=%d", len(existing))
 
 
 async def main() -> None:

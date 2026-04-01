@@ -119,6 +119,46 @@
     .refresh-btn:hover { color: var(--accent); border-color: var(--accent); }
     .refresh-btn:active { opacity: 0.6; }
 
+    .search-wrap {
+      position: relative;
+    }
+    .search-input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem; letter-spacing: 1px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 5px 10px 5px 26px;
+      width: 180px; outline: none;
+      transition: border-color 0.15s, width 0.2s;
+    }
+    .search-input::placeholder { color: var(--muted); opacity: 0.6; }
+    .search-input:focus { border-color: var(--accent); width: 240px; }
+    .search-icon {
+      position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+      font-size: 0.65rem; color: var(--muted); pointer-events: none;
+    }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: none; max-height: 260px; overflow-y: auto;
+      display: none;
+    }
+    .search-results.open { display: block; }
+    .search-result-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 10px; cursor: pointer;
+      transition: background 0.1s; border-bottom: 1px solid var(--border);
+    }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--card); }
+    .search-result-ticker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; font-weight: 600; color: var(--text);
+    }
+    .search-result-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem; color: var(--muted);
+    }
+
     /* ── Stats row ───────────────────────────── */
     .stats-row {
       display: grid;
@@ -745,6 +785,11 @@
     </div>
   </div>
   <div class="header-right">
+    <div class="search-wrap">
+      <span class="search-icon">&#x1F50D;</span>
+      <input class="search-input" id="tickerSearch" type="text" placeholder="Search ticker..." autocomplete="off" spellcheck="false">
+      <div class="search-results" id="searchResults"></div>
+    </div>
     <div class="live-indicator">
       <div class="live-dot"></div>
       <span id="lastUpdated">—</span>
@@ -1000,6 +1045,76 @@ function handleRoute() {
 }
 
 window.addEventListener('hashchange', handleRoute);
+
+// ================================================================
+// TICKER SEARCH
+// ================================================================
+(function() {
+  var input = document.getElementById('tickerSearch');
+  var dropdown = document.getElementById('searchResults');
+  var debounceTimer = null;
+
+  input.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    var q = input.value.trim();
+    if (!q) { dropdown.classList.remove('open'); return; }
+    debounceTimer = setTimeout(function() {
+      fetch('/api/tickers/search?q=' + encodeURIComponent(q))
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .then(function(results) {
+          dropdown.textContent = '';
+          if (!results.length) {
+            var empty = document.createElement('div');
+            empty.style.cssText = 'padding:10px;text-align:center;font-family:JetBrains Mono,monospace;font-size:0.65rem;color:var(--muted)';
+            empty.textContent = 'No tickers found';
+            dropdown.appendChild(empty);
+          } else {
+            results.forEach(function(r) {
+              var item = document.createElement('div');
+              item.className = 'search-result-item';
+              var ticker = document.createElement('span');
+              ticker.className = 'search-result-ticker';
+              ticker.textContent = '$' + r.ticker;
+              var meta = document.createElement('span');
+              meta.className = 'search-result-meta';
+              meta.textContent = r.total_mentions + ' mentions';
+              item.appendChild(ticker);
+              item.appendChild(meta);
+              item.addEventListener('click', function() {
+                navigate('/stock/' + r.ticker);
+                dropdown.classList.remove('open');
+                input.value = '';
+                input.blur();
+              });
+              dropdown.appendChild(item);
+            });
+          }
+          dropdown.classList.add('open');
+        })
+        .catch(function() {});
+    }, 200);
+  });
+
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      var q = input.value.trim().toUpperCase();
+      if (q) {
+        navigate('/stock/' + q);
+        dropdown.classList.remove('open');
+        input.value = '';
+        input.blur();
+      }
+    }
+    if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+      input.blur();
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.search-wrap')) dropdown.classList.remove('open');
+  });
+})();
 
 // ================================================================
 // SPARKLINES

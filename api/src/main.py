@@ -76,7 +76,7 @@ async def get_tickers() -> JSONResponse:
                 WHERE collected_at >= NOW() - INTERVAL '24 hours'
                 GROUP BY ticker_symbol
                 ORDER BY COUNT(*) DESC
-                LIMIT 30
+                LIMIT 100
             """))
             rows = result.mappings().all()
     except Exception as exc:
@@ -91,6 +91,56 @@ async def get_tickers() -> JSONResponse:
             "negative_count": int(r["negative_count"]),
             "last_seen": r["last_seen"].isoformat() if r["last_seen"] else None,
             "subreddits": r["subreddits"] or "",
+        }
+        for r in rows
+    ])
+
+
+@app.get("/api/tickers/search")
+async def search_tickers(q: str = "") -> JSONResponse:
+    """Search all tickers ever seen in the system.
+
+    Returns tickers matching the query (prefix match), ordered by total
+    mention count all-time. If no query, returns the top 50 most-mentioned.
+    """
+    q = q.strip().upper()
+    try:
+        async with session_factory() as session:
+            if q:
+                result = await session.execute(
+                    text("""
+                        SELECT
+                            ticker_symbol,
+                            COUNT(*) AS total_mentions,
+                            MAX(collected_at) AS last_seen
+                        FROM sentiment_signals
+                        WHERE ticker_symbol LIKE :prefix
+                        GROUP BY ticker_symbol
+                        ORDER BY COUNT(*) DESC
+                        LIMIT 30
+                    """),
+                    {"prefix": q + "%"},
+                )
+            else:
+                result = await session.execute(text("""
+                    SELECT
+                        ticker_symbol,
+                        COUNT(*) AS total_mentions,
+                        MAX(collected_at) AS last_seen
+                    FROM sentiment_signals
+                    GROUP BY ticker_symbol
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 50
+                """))
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse([
+        {
+            "ticker": r["ticker_symbol"],
+            "total_mentions": int(r["total_mentions"]),
+            "last_seen": r["last_seen"].isoformat() if r["last_seen"] else None,
         }
         for r in rows
     ])
