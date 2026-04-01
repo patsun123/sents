@@ -124,6 +124,7 @@ class CycleRunner:
             sources = await source_store.get_active_sources()
             signals_batch: list[dict[str, Any]] = []
             succeeded = 0
+            comments_processed = 0
             failed_sources: list[str] = []
 
             active_scraper = self._active_scraper
@@ -139,6 +140,7 @@ class CycleRunner:
                     async for comment in active_scraper.fetch_comments(
                         source.subreddit_name, since
                     ):
+                        comments_processed += 1
                         candidates = self._extractor.extract(comment.text)
                         valid_tickers = self._disambiguator.filter(candidates)
                         for ticker in valid_tickers:
@@ -202,6 +204,7 @@ class CycleRunner:
                 sources_attempted=len(sources),
                 sources_succeeded=succeeded,
                 signals_stored=stored,
+                comments_processed=comments_processed,
                 error_summary=error_summary,
             )
             await session.commit()
@@ -232,11 +235,12 @@ class CycleRunner:
 
             logger.info(
                 "cycle_complete status=%s sources_attempted=%d sources_succeeded=%d "
-                "signals_stored=%d elapsed_seconds=%.2f",
+                "signals_stored=%d comments_processed=%d elapsed_seconds=%.2f",
                 status,
                 len(sources),
                 succeeded,
                 stored,
+                comments_processed,
                 elapsed,
             )
 

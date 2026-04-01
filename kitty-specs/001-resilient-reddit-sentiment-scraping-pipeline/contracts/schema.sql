@@ -44,6 +44,7 @@ CREATE TABLE collection_runs (
     sources_attempted   INTEGER     NOT NULL DEFAULT 0,
     sources_succeeded   INTEGER     NOT NULL DEFAULT 0,
     signals_stored      INTEGER     NOT NULL DEFAULT 0,
+    comments_processed  INTEGER     NOT NULL DEFAULT 0,  -- aggregate counter only, no PII
     error_summary       TEXT        NULL      -- No PII; operational description only
 );
 

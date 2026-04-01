@@ -81,6 +81,7 @@ class CollectionRun(Base):
     sources_attempted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     sources_succeeded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     signals_stored: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    comments_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     signals: Mapped[list[SentimentSignal]] = relationship(

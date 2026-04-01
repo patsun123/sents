@@ -15,6 +15,7 @@ from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from datetime import datetime, timezone
 
 from ..config import Settings
 
@@ -46,6 +47,7 @@ def create_scheduler(
     scheduler.add_job(
         run_cycle_fn,
         trigger=IntervalTrigger(minutes=settings.cycle_interval_minutes),
+        next_run_time=datetime.now(timezone.utc),
         id="pipeline_cycle",
         name="SSE Sentiment Collection Cycle",
         replace_existing=True,

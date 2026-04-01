@@ -86,12 +86,14 @@ async def test_update_run_status_sets_fields() -> None:
         sources_attempted=3,
         sources_succeeded=3,
         signals_stored=150,
+        comments_processed=500,
     )
 
     assert run.status == "success"
     assert run.sources_attempted == 3
     assert run.sources_succeeded == 3
     assert run.signals_stored == 150
+    assert run.comments_processed == 500
     assert run.error_summary is None
     assert run.completed_at is not None
 

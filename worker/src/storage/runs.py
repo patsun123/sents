@@ -52,6 +52,7 @@ class RunStore:
         sources_attempted: int,
         sources_succeeded: int,
         signals_stored: int,
+        comments_processed: int = 0,
         error_summary: str | None = None,
     ) -> None:
         """Update a run's outcome fields on completion.
@@ -65,6 +66,8 @@ class RunStore:
             sources_attempted: Number of data sources the cycle attempted.
             sources_succeeded: Number of sources that returned data.
             signals_stored: Total signals persisted during the cycle.
+            comments_processed: Total comments scanned during the cycle.
+                Privacy-safe aggregate counter only.
             error_summary: Human-readable operational description.
                 Must not contain PII.
         """
@@ -73,6 +76,7 @@ class RunStore:
         run.sources_attempted = sources_attempted
         run.sources_succeeded = sources_succeeded
         run.signals_stored = signals_stored
+        run.comments_processed = comments_processed
         run.error_summary = error_summary
 
     async def get_last_successful_run(self) -> CollectionRun | None:
