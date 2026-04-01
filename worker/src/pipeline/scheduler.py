@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Coroutine
+from datetime import datetime, timezone
 from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from datetime import datetime, timezone
 
 from ..config import Settings
 
