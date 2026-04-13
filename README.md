@@ -77,7 +77,7 @@ It also stores collection run metadata such as cycle status, comments processed,
 sources attempted/succeeded, and error summaries.
 
 For the Epic-only slice, `ticker_symbol` is currently used as a synthetic entity
-key with the value `EPIC_GAMES_STORE`.
+key with the value `EGS_STORE`.
 
 Signals also carry `source_content_type` so posts and comments can be weighted
 differently during Epic-specific aggregation.

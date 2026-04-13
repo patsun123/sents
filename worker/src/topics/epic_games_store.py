@@ -12,20 +12,31 @@ import re
 
 from ..tickers.extractor import ExtractedTicker
 
-EPIC_GAMES_STORE_KEY = "EPIC_GAMES_STORE"
+EPIC_GAMES_STORE_KEY = "EGS_STORE"
 
 _STRONG_PATTERNS = [
     re.compile(r"\bepic games store\b", re.IGNORECASE),
     re.compile(r"\bepic store\b", re.IGNORECASE),
     re.compile(r"\bepic games launcher\b", re.IGNORECASE),
     re.compile(r"\bepic launcher\b", re.IGNORECASE),
+    re.compile(r"\bfree on epic\b", re.IGNORECASE),
+    re.compile(r"\bon epic\b", re.IGNORECASE),
+    re.compile(r"\bepic exclusive\b", re.IGNORECASE),
+    re.compile(r"\bepic exclusives\b", re.IGNORECASE),
     re.compile(r"\begs\b", re.IGNORECASE),
 ]
 _EPIC_TOKEN = re.compile(r"\bepic\b", re.IGNORECASE)
 _STORE_CONTEXT = re.compile(
     r"\b("
     r"store|launcher|free game|free games|freebie|freebies|"
-    r"exclusive|exclusives|coupon|sale|megasale|library|client"
+    r"exclusive|exclusives|coupon|sale|megasale|library|client|"
+    r"platform|app|account|giveaway|giveaways|ownership|owned"
+    r")\b",
+    re.IGNORECASE,
+)
+_EPIC_PREPOSITIONAL_CONTEXT = re.compile(
+    r"\b("
+    r"on epic|from epic|via epic|through epic|in epic"
     r")\b",
     re.IGNORECASE,
 )
@@ -47,6 +58,9 @@ class EpicGamesStoreExtractor:
             return []
 
         if any(pattern.search(text) for pattern in _STRONG_PATTERNS):
+            return [ExtractedTicker(symbol=EPIC_GAMES_STORE_KEY, explicit=True)]
+
+        if _EPIC_PREPOSITIONAL_CONTEXT.search(text):
             return [ExtractedTicker(symbol=EPIC_GAMES_STORE_KEY, explicit=True)]
 
         if _EPIC_TOKEN.search(text) and _STORE_CONTEXT.search(text):

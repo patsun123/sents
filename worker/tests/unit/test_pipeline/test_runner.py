@@ -397,10 +397,10 @@ class TestCycleRunnerSuccess:
 
         extractor = MagicMock()
         extractor.extract.return_value = [
-            ExtractedTicker(symbol="EPIC_GAMES_STORE", explicit=True)
+            ExtractedTicker(symbol="EGS_STORE", explicit=True)
         ]
         disambiguator = MagicMock()
-        disambiguator.filter.return_value = ["EPIC_GAMES_STORE"]
+        disambiguator.filter.return_value = ["EGS_STORE"]
         classifier = MagicMock()
         classifier.classify.return_value = ClassificationResult(
             polarity=-1, confidence=0.9, discarded=False

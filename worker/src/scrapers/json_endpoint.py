@@ -111,8 +111,13 @@ class JsonEndpointScraper:
                         return
 
                     item = child.get("data", {})
-                    # Accept posts (t3) via selftext and comments (t1) via body.
-                    body: str = item.get("body") or item.get("selftext") or ""
+                    item_kind = child.get("kind", "t1")
+                    if item_kind == "t3":
+                        title = (item.get("title") or "").strip()
+                        selftext = (item.get("selftext") or "").strip()
+                        body = " | ".join(part for part in (title, selftext) if part)
+                    else:
+                        body = item.get("body") or ""
                     if not body.strip():
                         continue
 
@@ -123,7 +128,6 @@ class JsonEndpointScraper:
                         # All remaining items are older; stop paginating.
                         return
 
-                    item_kind = child.get("kind", "t1")
                     content_type = "post" if item_kind == "t3" else "comment"
 
                     yield RawComment(

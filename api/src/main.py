@@ -376,7 +376,7 @@ _LOOKBACK_SQL: dict[str, tuple[str, str]] = {
     "6mo": ("180 days", "week"),
     "1y":  ("365 days", "week"),
 }
-_EPIC_ENTITY = "EPIC_GAMES_STORE"
+_EPIC_ENTITY = "EGS_STORE"
 _EPIC_COMMUNITY_WEIGHTS: dict[str, float] = {
     "EpicGamesPC": 1.25,
     "pcgaming": 1.0,

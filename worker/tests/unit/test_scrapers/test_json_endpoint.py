@@ -144,6 +144,22 @@ async def test_empty_body_items_skipped(httpx_mock: HTTPXMock) -> None:
     assert comments[0].content_type == "comment"
 
 
+@pytest.mark.asyncio
+async def test_post_title_is_included_for_link_posts(httpx_mock: HTTPXMock) -> None:
+    """Post titles should be included so title-only Epic mentions are matched."""
+    listing = _listing([
+        {"kind": "t3", "data": {"title": "Free on Epic this week", "selftext": "", "ups": 33, "created_utc": _RECENT_TS}},
+    ])
+    httpx_mock.add_response(json=listing)
+
+    scraper = _make_scraper()
+    comments = [c async for c in scraper.fetch_comments("test", _PAST_SINCE)]
+
+    assert len(comments) == 1
+    assert comments[0].text == "Free on Epic this week"
+    assert comments[0].content_type == "post"
+
+
 # ---------------------------------------------------------------------------
 # User-Agent header tests
 # ---------------------------------------------------------------------------
