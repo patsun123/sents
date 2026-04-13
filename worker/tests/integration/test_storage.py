@@ -6,7 +6,7 @@ automatically when the database is unavailable.
 
 To run locally::
 
-    DATABASE_URL=postgresql+asyncpg://sse:sse@localhost:5432/sse_test \\
+    DATABASE_URL=postgresql+asyncpg://sentix:sentix@localhost:5432/sentix_test \\
         pytest tests/integration/test_storage.py -v
 
 In CI the database is provided as a service container.
@@ -27,7 +27,7 @@ pytestmark = pytest.mark.asyncio
 
 
 def _pg_available() -> bool:
-    """Return True when DATABASE_URL is set or a local sse_test DB responds."""
+    """Return True when DATABASE_URL is set or a local sentix_test DB responds."""
     import os  # noqa: PLC0415
     import socket  # noqa: PLC0415
 

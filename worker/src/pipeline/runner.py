@@ -155,6 +155,7 @@ class CycleRunner:
                                         "upvote_weight": comment.upvotes,
                                         "collected_at": comment.created_utc,
                                         "source_subreddit": source.subreddit_name,
+                                        "source_content_type": comment.content_type,
                                     }
                                 )
                     succeeded += 1

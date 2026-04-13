@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # Database
-    database_url: str = "postgresql+asyncpg://sse:sse@localhost:5432/sse"
+    database_url: str = "postgresql+asyncpg://sentix:sentix@localhost:5432/sentix"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

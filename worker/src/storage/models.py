@@ -119,6 +119,9 @@ class SentimentSignal(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     source_subreddit: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_content_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="comment"
+    )
 
     run: Mapped[CollectionRun] = relationship(
         "CollectionRun", back_populates="signals"
@@ -129,10 +132,15 @@ class SentimentSignal(Base):
             "sentiment_polarity IN (-1, 1)", name="ck_signal_polarity"
         ),
         CheckConstraint("upvote_weight >= 0", name="ck_signal_upvotes"),
+        CheckConstraint(
+            "source_content_type IN ('post', 'comment')",
+            name="ck_signal_content_type",
+        ),
         Index("idx_signals_ticker_time", "ticker_symbol", "collected_at"),
         Index("idx_signals_run", "collection_run_id"),
         Index("idx_signals_collected_at", "collected_at"),
         Index("idx_signals_subreddit", "source_subreddit"),
+        Index("idx_signals_content_type", "source_content_type"),
     )
 
 

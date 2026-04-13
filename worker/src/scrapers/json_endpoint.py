@@ -123,10 +123,14 @@ class JsonEndpointScraper:
                         # All remaining items are older; stop paginating.
                         return
 
+                    item_kind = child.get("kind", "t1")
+                    content_type = "post" if item_kind == "t3" else "comment"
+
                     yield RawComment(
                         text=body,
                         upvotes=max(0, int(item.get("ups", 0))),
                         created_utc=created_utc,
+                        content_type=content_type,
                     )
                     count += 1
 

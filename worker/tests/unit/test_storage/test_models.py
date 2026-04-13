@@ -97,6 +97,7 @@ def test_sentiment_signal_columns() -> None:
         "upvote_weight",
         "collected_at",
         "source_subreddit",
+        "source_content_type",
     } <= cols
 
 
@@ -170,6 +171,10 @@ def test_sentiment_signal_upvotes_constraint_exists() -> None:
     assert "ck_signal_upvotes" in _constraint_names(SentimentSignal)
 
 
+def test_sentiment_signal_content_type_constraint_exists() -> None:
+    assert "ck_signal_content_type" in _constraint_names(SentimentSignal)
+
+
 def test_scored_result_confidence_constraint_exists() -> None:
     assert "ck_scored_confidence" in _constraint_names(ScoredResult)
 
@@ -189,6 +194,7 @@ def test_sentiment_signal_indexes_exist() -> None:
     assert "idx_signals_run" in idx
     assert "idx_signals_collected_at" in idx
     assert "idx_signals_subreddit" in idx
+    assert "idx_signals_content_type" in idx
 
 
 def test_collection_run_indexes_exist() -> None:

@@ -25,6 +25,7 @@ class RawComment:
     text: str  # Comment body — in-memory only, never persisted
     upvotes: int  # Upvote count at time of fetch (>= 0)
     created_utc: datetime  # UTC creation time
+    content_type: str = "comment"  # "post" or "comment"
 
 
 class ScraperError(Exception):

@@ -31,7 +31,7 @@ from src.storage.models import CollectionRun, DataSource
 
 def _make_settings(**overrides: Any) -> Settings:
     defaults: dict[str, Any] = {
-        "database_url": "postgresql+asyncpg://sse:sse@localhost/sse_test",
+        "database_url": "postgresql+asyncpg://sentix:sentix@localhost/sentix_test",
         "redis_url": "redis://localhost:6379/0",
         "cycle_interval_minutes": 15,
         "alert_threshold": 3,
