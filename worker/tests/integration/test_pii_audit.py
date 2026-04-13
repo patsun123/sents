@@ -92,7 +92,7 @@ def _build_test_runner(session: Any) -> Any:
     from src.tickers.extractor import TickerExtractor  # noqa: PLC0415
 
     settings = Settings(
-        database_url="postgresql+asyncpg://sse:sse@localhost:5432/sse_test",
+        database_url="postgresql+asyncpg://sentix:sentix@localhost:5432/sentix_test",
         redis_url="redis://localhost:6379/0",
         cycle_interval_minutes=15,
         alert_threshold=3,

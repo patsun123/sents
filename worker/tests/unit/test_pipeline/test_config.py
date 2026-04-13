@@ -12,10 +12,10 @@ class TestSettings:
     """Tests for Settings model."""
 
     def test_default_database_url(self) -> None:
-        """Default DATABASE_URL points to localhost sse database."""
+        """Default DATABASE_URL points to localhost sentix database."""
         settings = Settings()
         assert "localhost" in settings.database_url
-        assert "sse" in settings.database_url
+        assert "sentix" in settings.database_url
 
     def test_default_classifier_backend(self) -> None:
         """Default classifier is vader."""

@@ -38,35 +38,27 @@ from .pipeline.scheduler import create_scheduler
 from .scrapers.json_endpoint import JsonEndpointScraper
 from .scrapers.praw_oauth import PRAWOAuthScraper
 from .storage.models import DataSource
-from .tickers.disambiguator import TickerDisambiguator
-from .tickers.extractor import TickerExtractor
+from .topics import (
+    EpicGamesStoreDisambiguator,
+    EpicGamesStoreExtractor,
+)
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_SUBREDDITS = [
-    # Tier 1 — high volume, general stock discussion
-    "wallstreetbets",
-    "stocks",
-    "investing",
-    "StockMarket",
-    # Tier 2 — active trading communities
-    "options",
-    "Daytrading",
-    "swingtrading",
-    # Tier 3 — niche / speculative
-    "pennystocks",
-    "smallstreetbets",
-    "SPACs",
-    "ValueInvesting",
-    # Tier 4 — sector-specific
-    "dividends",
-    "Bogleheads",
-    "weedstocks",
-    "RobinHood",
-    "SecurityAnalysis",
-    # Squeeze / momentum
-    "Shortsqueeze",
-    "wallstreetbetsOGs",
+    # Core Epic Store discussion
+    "EpicGamesPC",
+    # Broad but still high-signal PC gaming discussion
+    "pcgaming",
+    "truegaming",
+    "patientgamers",
+    # Deal / free-game conversation where EGS promos are frequently discussed
+    "GameDeals",
+    "FreeGameFindings",
+    # Purchase and platform choice chatter
+    "ShouldIbuythisgame",
+    # Explicitly adversarial sentiment pocket
+    "fuckepic",
 ]
 
 _DEFAULT_USER_AGENTS = [
@@ -177,9 +169,9 @@ async def main() -> None:
     )
     fallback_scraper = PRAWOAuthScraper()
 
-    # Build extractor and disambiguator
-    extractor = TickerExtractor()
-    disambiguator = TickerDisambiguator()
+    # Build Epic Games Store relevance matcher
+    extractor = EpicGamesStoreExtractor()
+    disambiguator = EpicGamesStoreDisambiguator()
 
     # Build alert threshold tracker
     alert_tracker = AlertThresholdTracker(

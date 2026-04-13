@@ -77,6 +77,7 @@ async def test_fetch_returns_correct_rawcomments(httpx_mock: HTTPXMock) -> None:
     assert comments[0].text == "I think AAPL is going to the moon this week!"
     assert comments[0].upvotes == 42
     assert comments[0].created_utc.tzinfo is not None
+    assert comments[0].content_type == "post"
     assert comments[1].text == "TSLA earnings looking great, very bullish."
     assert comments[1].upvotes == 17
 
@@ -140,6 +141,7 @@ async def test_empty_body_items_skipped(httpx_mock: HTTPXMock) -> None:
 
     assert len(comments) == 1
     assert comments[0].text == "Valid comment"
+    assert comments[0].content_type == "comment"
 
 
 # ---------------------------------------------------------------------------

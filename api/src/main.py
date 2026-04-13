@@ -376,6 +376,39 @@ _LOOKBACK_SQL: dict[str, tuple[str, str]] = {
     "6mo": ("180 days", "week"),
     "1y":  ("365 days", "week"),
 }
+_EPIC_ENTITY = "EPIC_GAMES_STORE"
+_EPIC_COMMUNITY_WEIGHTS: dict[str, float] = {
+    "EpicGamesPC": 1.25,
+    "pcgaming": 1.0,
+    "truegaming": 1.0,
+    "patientgamers": 0.95,
+    "GameDeals": 1.15,
+    "FreeGameFindings": 1.1,
+    "ShouldIbuythisgame": 0.9,
+    "fuckepic": 0.75,
+}
+
+
+def _epic_subreddit_weight_sql(column: str = "source_subreddit") -> str:
+    cases = " ".join(
+        f"WHEN '{community}' THEN {weight}"
+        for community, weight in _EPIC_COMMUNITY_WEIGHTS.items()
+    )
+    return f"CASE {column} {cases} ELSE 0.85 END"
+
+
+def _epic_weighted_score_sql(
+    polarity_col: str = "sentiment_polarity",
+    upvotes_col: str = "upvote_weight",
+    subreddit_col: str = "source_subreddit",
+    content_type_col: str = "source_content_type",
+) -> str:
+    subreddit_weight = _epic_subreddit_weight_sql(subreddit_col)
+    return (
+        f"({polarity_col} * LN({upvotes_col} + 2) * "
+        f"(CASE {content_type_col} WHEN 'post' THEN 1.35 ELSE 1.0 END) * "
+        f"({subreddit_weight}))"
+    )
 
 
 @app.get("/api/tickers/{symbol}/sentiment-history")
@@ -430,6 +463,180 @@ async def get_ticker_sentiment_history(
             for r in rows
         ],
     })
+
+
+@app.get("/api/epic/overview")
+async def get_epic_overview() -> JSONResponse:
+    """24h summary for the Epic Games Store sentiment tracker."""
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    SELECT
+                        COUNT(*) AS mention_count,
+                        ROUND(SUM({_epic_weighted_score_sql()})::numeric, 2) AS weighted_score,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
+                        MAX(collected_at) AS last_seen,
+                        string_agg(DISTINCT source_subreddit, ' · '
+                            ORDER BY source_subreddit) AS communities
+                    FROM sentiment_signals
+                    WHERE ticker_symbol = :entity
+                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                """),
+                {"entity": _EPIC_ENTITY},
+            )
+            row = result.mappings().one()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        {
+            "entity": _EPIC_ENTITY,
+            "display_name": "Epic Games Store",
+            "mention_count": int(row["mention_count"] or 0),
+            "weighted_score": float(row["weighted_score"] or 0),
+            "positive_count": int(row["positive_count"] or 0),
+            "negative_count": int(row["negative_count"] or 0),
+            "last_seen": row["last_seen"].isoformat() if row["last_seen"] else None,
+            "communities": row["communities"] or "",
+        }
+    )
+
+
+@app.get("/api/epic/sentiment-history")
+async def get_epic_sentiment_history(lookback: str = "7d") -> JSONResponse:
+    """Time-bucketed sentiment history for the Epic Games Store."""
+    if lookback not in _LOOKBACK_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid lookback: {lookback}")
+
+    interval_expr, bucket_fn = _LOOKBACK_SQL[lookback]
+
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    SELECT
+                        date_trunc(:bucket, collected_at) AS bucket,
+                        COUNT(*) AS mention_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1)  AS positive,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative,
+                        ROUND(SUM({_epic_weighted_score_sql()})::numeric, 2) AS weighted_score
+                    FROM sentiment_signals
+                    WHERE ticker_symbol = :entity
+                      AND collected_at >= NOW() - INTERVAL '{interval_expr}'
+                    GROUP BY bucket
+                    ORDER BY bucket
+                """),
+                {"entity": _EPIC_ENTITY, "bucket": bucket_fn},
+            )
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        {
+            "entity": _EPIC_ENTITY,
+            "display_name": "Epic Games Store",
+            "lookback": lookback,
+            "data": [
+                {
+                    "timestamp": r["bucket"].isoformat(),
+                    "positive": int(r["positive"]),
+                    "negative": int(r["negative"]),
+                    "weighted_score": float(r["weighted_score"] or 0),
+                    "mention_count": int(r["mention_count"]),
+                }
+                for r in rows
+            ],
+        }
+    )
+
+
+@app.get("/api/epic/communities")
+async def get_epic_communities() -> JSONResponse:
+    """Per-community Epic Games Store sentiment breakdown for the last 24 hours."""
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    SELECT
+                        source_subreddit,
+                        COUNT(*) AS mention_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
+                        ROUND(SUM({_epic_weighted_score_sql(subreddit_col='source_subreddit')})::numeric, 2) AS weighted_score,
+                        COUNT(*) FILTER (WHERE source_content_type = 'post') AS post_count,
+                        COUNT(*) FILTER (WHERE source_content_type = 'comment') AS comment_count,
+                        MAX(collected_at) AS last_seen
+                    FROM sentiment_signals
+                    WHERE ticker_symbol = :entity
+                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                    GROUP BY source_subreddit
+                    ORDER BY mention_count DESC, source_subreddit
+                """),
+                {"entity": _EPIC_ENTITY},
+            )
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        [
+            {
+                "community": row["source_subreddit"],
+                "mention_count": int(row["mention_count"]),
+                "positive_count": int(row["positive_count"]),
+                "negative_count": int(row["negative_count"]),
+                "weighted_score": float(row["weighted_score"] or 0),
+                "post_count": int(row["post_count"]),
+                "comment_count": int(row["comment_count"]),
+                "last_seen": row["last_seen"].isoformat() if row["last_seen"] else None,
+            }
+            for row in rows
+        ]
+    )
+
+
+@app.get("/api/epic/recent-signals")
+async def get_epic_recent_signals() -> JSONResponse:
+    """Recent Epic Games Store sentiment signals."""
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    SELECT
+                        sentiment_polarity,
+                        upvote_weight,
+                        collected_at,
+                        source_subreddit,
+                        source_content_type,
+                        ROUND(({_epic_weighted_score_sql()})::numeric, 2) AS weighted_score
+                    FROM sentiment_signals
+                    WHERE ticker_symbol = :entity
+                    ORDER BY collected_at DESC
+                    LIMIT 60
+                """),
+                {"entity": _EPIC_ENTITY},
+            )
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        [
+            {
+                "entity": _EPIC_ENTITY,
+                "polarity": int(row["sentiment_polarity"]),
+                "upvotes": int(row["upvote_weight"]),
+                "content_type": row["source_content_type"],
+                "weighted_score": float(row["weighted_score"] or 0),
+                "collected_at": row["collected_at"].isoformat(),
+                "community": row["source_subreddit"],
+            }
+            for row in rows
+        ]
+    )
 
 
 @app.get("/api/tickers/{symbol}/info")

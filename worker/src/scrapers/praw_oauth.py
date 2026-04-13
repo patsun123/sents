@@ -142,6 +142,7 @@ class PRAWOAuthScraper:
                             text=comment.body,
                             upvotes=max(0, comment.ups),
                             created_utc=created_utc,
+                            content_type="comment",
                         )
                     )
                     if len(results) >= limit:

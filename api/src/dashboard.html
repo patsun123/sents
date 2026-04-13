@@ -3,2236 +3,995 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SentiX — Reddit Signal Dashboard</title>
+  <title>SentiX | Epic Games Store Sentiment</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;600&family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:       #07090f;
-      --surface:  #0c1120;
-      --card:     #101929;
-      --border:   #162035;
-      --text:     #dce8f3;
-      --muted:    #8aabc4;
-      --accent:   #0ea5e9;
-      --pos:      #10b981;
-      --neg:      #ef4444;
-      --warn:     #f59e0b;
-      --accent-dim: rgba(14, 165, 233, 0.08);
-      --pos-dim:  rgba(16, 185, 129, 0.10);
-      --neg-dim:  rgba(239, 68, 68, 0.10);
+      --bg: #f3efe6;
+      --paper: rgba(255, 252, 247, 0.9);
+      --panel: rgba(255, 248, 238, 0.88);
+      --panel-strong: rgba(255, 247, 235, 0.96);
+      --ink: #161410;
+      --muted: #6d665a;
+      --line: rgba(30, 25, 18, 0.12);
+      --line-strong: rgba(30, 25, 18, 0.2);
+      --accent: #d9682c;
+      --accent-soft: rgba(217, 104, 44, 0.12);
+      --positive: #147a52;
+      --positive-soft: rgba(20, 122, 82, 0.1);
+      --negative: #b4402e;
+      --negative-soft: rgba(180, 64, 46, 0.11);
+      --shadow: 0 24px 70px rgba(55, 37, 20, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
     }
 
+    * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Rubik', sans-serif;
-      font-size: 14px;
+      margin: 0;
       min-height: 100vh;
-      padding: 20px 24px 32px;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(217, 104, 44, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(20, 122, 82, 0.16), transparent 24%),
+        linear-gradient(180deg, #f8f2e8 0%, var(--bg) 52%, #efe7da 100%);
     }
 
-    /* ── Header ─────────────────────────────── */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 16px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border);
+    .shell {
+      width: min(1220px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
     }
 
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 14px;
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(135deg, rgba(255, 252, 247, 0.98), rgba(252, 243, 230, 0.92)),
+        var(--paper);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 20px;
     }
 
-    .brand-sentix {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 3rem;
-      letter-spacing: 6px;
-      color: var(--accent);
-      line-height: 1;
-    }
-
-    .brand-full {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      letter-spacing: 2.5px;
-      color: var(--muted);
-      text-transform: uppercase;
-      line-height: 1.8;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-    }
-
-    .live-indicator {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .live-dot {
-      width: 7px;
-      height: 7px;
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -60px;
+      top: -90px;
+      width: 240px;
+      height: 240px;
       border-radius: 50%;
-      background: var(--pos);
-      animation: blink 2.4s ease-in-out infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--pos); }
-      50%       { opacity: 0.25; box-shadow: none; }
-    }
-
-    .refresh-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
-      letter-spacing: 1.5px;
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      padding: 5px 10px;
-      cursor: pointer;
-      text-transform: uppercase;
-      transition: color 0.15s, border-color 0.15s;
-    }
-
-    .refresh-btn:hover { color: var(--accent); border-color: var(--accent); }
-    .refresh-btn:active { opacity: 0.6; }
-
-    .search-wrap {
-      position: relative;
-    }
-    .search-input {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem; letter-spacing: 1px;
-      background: var(--surface); border: 1px solid var(--border);
-      color: var(--text); padding: 5px 10px 5px 26px;
-      width: 180px; outline: none;
-      transition: border-color 0.15s, width 0.2s;
-    }
-    .search-input::placeholder { color: var(--muted); opacity: 0.6; }
-    .search-input:focus { border-color: var(--accent); width: 240px; }
-    .search-icon {
-      position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
-      font-size: 0.65rem; color: var(--muted); pointer-events: none;
-    }
-    .search-results {
-      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
-      background: var(--surface); border: 1px solid var(--border);
-      border-top: none; max-height: 260px; overflow-y: auto;
-      display: none;
-    }
-    .search-results.open { display: block; }
-    .search-result-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 7px 10px; cursor: pointer;
-      transition: background 0.1s; border-bottom: 1px solid var(--border);
-    }
-    .search-result-item:last-child { border-bottom: none; }
-    .search-result-item:hover { background: var(--card); }
-    .search-result-ticker {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem; font-weight: 600; color: var(--text);
-    }
-    .search-result-meta {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.55rem; color: var(--muted);
-    }
-
-    /* ── Stats row ───────────────────────────── */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 12px 14px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: var(--border);
-    }
-
-    .stat-card.accent-top::before { background: var(--accent); }
-    .stat-card.pos-top::before    { background: var(--pos); }
-
-    .stat-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 5px;
-    }
-
-    .stat-value {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.9rem;
-      letter-spacing: 2px;
-      line-height: 1;
-      color: var(--text);
-    }
-
-    .stat-value.accent { color: var(--accent); }
-    .stat-value.pos    { color: var(--pos); }
-    .stat-value.neg    { color: var(--neg); }
-
-    .stat-sub {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* ── Ticker card grid ───────────────────── */
-    .ticker-grid-section { margin-bottom: 10px; }
-
-    .ticker-grid-section .section-head {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-bottom: none;
-    }
-
-    .ticker-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-      background: var(--border);
-      border: 1px solid var(--border);
-    }
-
-    .stock-card {
-      background: var(--surface);
-      padding: 14px;
-      cursor: pointer;
-      transition: background 0.15s;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .stock-card:hover { background: var(--card); }
-    .stock-card:hover .card-symbol { color: var(--accent); }
-
-    .stock-card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 1px solid transparent;
+      background: radial-gradient(circle, rgba(217, 104, 44, 0.18), transparent 68%);
       pointer-events: none;
-      transition: border-color 0.15s;
     }
 
-    .stock-card:hover::after { border-color: rgba(14, 165, 233, 0.2); }
-
-    .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-
-    .card-symbol {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.5rem;
-      letter-spacing: 3px;
-      color: var(--text);
-      line-height: 1;
-      transition: color 0.15s;
-    }
-
-    .card-score {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 2px;
-      line-height: 1.4;
-    }
-
-    .card-score.pos { color: var(--pos); background: var(--pos-dim); }
-    .card-score.neg { color: var(--neg); background: var(--neg-dim); }
-
-    .sparkline-wrap { width: 100%; height: 50px; position: relative; }
-
-    .sparkline-loading {
-      width: 100%; height: 50px;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.55rem;
-      color: var(--border);
-      letter-spacing: 1px;
-    }
-
-    .sparkline-error {
-      width: 100%; height: 50px;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.52rem;
-      color: var(--muted);
-      opacity: 0.5;
-    }
-
-    .card-footer { display: flex; flex-direction: column; gap: 6px; }
-
-    .card-meta { display: flex; justify-content: space-between; align-items: center; }
-
-    .card-subs {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.52rem;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 70%;
-    }
-
-    .card-mentions {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .card-mentions span { color: var(--text); font-weight: 600; }
-
-    /* ── Bottom grid ─────────────────────────── */
-    .bottom-grid {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    /* ── Section shell ───────────────────────── */
-    .section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .section-head {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.62rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
+    .hero-top {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
       align-items: center;
-      flex-shrink: 0;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
     }
 
-    .section-head span.badge {
-      color: var(--accent);
-      font-size: 0.6rem;
-    }
-
-    .scroll-body {
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-      flex: 1;
-    }
-
-    /* ── Split bar (shared) ──────────────────── */
-    .split-bar {
-      height: 4px;
-      background: var(--card);
-      border-radius: 2px;
-      overflow: hidden;
-      display: flex;
-    }
-
-    .bar-pos { height: 100%; background: var(--pos); transition: width 0.6s ease; }
-    .bar-neg { height: 100%; background: var(--neg); transition: width 0.6s ease; }
-
-    /* ── Detail view ─────────────────────────── */
-    #detailView { display: none; }
-    #detailView.active { display: block; animation: fadeIn 0.2s ease; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    #dashboardView { display: block; }
-    #dashboardView.hidden { display: none; }
-
-    .detail-nav {
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 16px; padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    .back-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem; letter-spacing: 1.5px;
-      background: none; border: 1px solid var(--border);
-      color: var(--muted); padding: 5px 12px;
-      cursor: pointer; text-transform: uppercase;
-      transition: color 0.15s, border-color 0.15s;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .back-btn:hover { color: var(--accent); border-color: var(--accent); }
-    .detail-breadcrumb { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted); }
-    .detail-breadcrumb .sep { margin: 0 8px; opacity: 0.4; }
-    .detail-breadcrumb .current { color: var(--text); }
-
-    .detail-header { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 16px; }
-    .detail-symbol {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 4rem; letter-spacing: 6px; color: var(--text); line-height: 1;
-    }
-    .detail-price-block { display: flex; flex-direction: column; gap: 3px; padding-bottom: 4px; }
-    .detail-price {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1.5rem; font-weight: 600; color: var(--text); line-height: 1;
-    }
-    .detail-price-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
-    }
-    .detail-sentiment-block {
-      display: flex; flex-direction: column; gap: 3px;
-      padding-bottom: 4px; margin-left: auto;
-    }
-    .detail-score {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.2rem; letter-spacing: 2px; line-height: 1;
-    }
-    .detail-score.pos { color: var(--pos); }
-    .detail-score.neg { color: var(--neg); }
-    .detail-score-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem; letter-spacing: 1.5px; text-transform: uppercase;
-      color: var(--muted); text-align: right;
-    }
-
-    .detail-meta-row {
-      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    .meta-company {
-      font-family: 'Rubik', sans-serif;
-      font-size: 0.85rem; color: var(--muted); font-weight: 400;
-    }
-    .meta-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.55rem; letter-spacing: 1px; text-transform: uppercase;
-      color: var(--muted); background: var(--card);
-      border: 1px solid var(--border); padding: 2px 8px;
-    }
-    .meta-tag .val { color: var(--text); }
-    .meta-divider {
-      width: 1px; height: 14px; background: var(--border); flex-shrink: 0;
-    }
-
-    .detail-chart-section {
-      background: var(--surface); border: 1px solid var(--border); margin-bottom: 10px;
-    }
-    .detail-chart-head {
-      padding: 10px 16px; border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .detail-chart-title {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.60rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
-    }
-    .chart-legend { display: flex; align-items: center; gap: 16px; }
-    .legend-item {
-      display: flex; align-items: center; gap: 6px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem; color: var(--muted); letter-spacing: 1px;
-    }
-    .legend-dot { width: 8px; height: 3px; border-radius: 2px; }
-    .legend-dot.accent { background: var(--accent); }
-    .legend-dot.pos    { background: var(--pos); }
-    .legend-dot.neg    { background: var(--neg); }
-
-    .time-selectors {
-      display: flex; gap: 2px; margin-left: auto; margin-right: 16px;
-    }
-    .time-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.6rem; letter-spacing: 1px; font-weight: 500;
-      background: none; border: 1px solid var(--border);
-      color: var(--muted); padding: 3px 8px; cursor: pointer;
-      text-transform: uppercase; transition: all 0.15s;
-    }
-    .time-btn:hover { color: var(--accent); border-color: var(--accent); }
-    .time-btn.active {
-      color: var(--accent); border-color: var(--accent);
-      background: var(--accent-dim);
-    }
-
-    .detail-chart-wrap { height: 500px; position: relative; }
-    .detail-chart-container { width: 100%; height: 100%; }
-    .chart-tooltip {
-      position: absolute; top: 8px; left: 16px; z-index: 10;
-      pointer-events: none; display: none;
-    }
-    .chart-tooltip.visible { display: flex; gap: 16px; align-items: baseline; }
-    .tooltip-price {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1.1rem; font-weight: 600; color: var(--text);
-    }
-    .tooltip-change {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem; font-weight: 500;
-    }
-    .tooltip-change.pos { color: var(--pos); }
-    .tooltip-change.neg { color: var(--neg); }
-    .tooltip-date {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.62rem; color: var(--muted); letter-spacing: 1px;
-    }
-    .detail-chart-loading {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--surface);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem; color: var(--muted); letter-spacing: 2px;
-    }
-
-    .detail-stats-row {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 10px; margin-bottom: 10px;
-    }
-    .detail-stat-panel {
-      background: var(--surface); border: 1px solid var(--border); padding: 14px 16px;
-    }
-    .detail-stat-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem; letter-spacing: 1.5px; text-transform: uppercase;
-      color: var(--muted); margin-bottom: 8px;
-    }
-    .detail-stat-value {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem; letter-spacing: 2px; line-height: 1;
-      color: var(--text); margin-bottom: 4px;
-    }
-    .bull-bear-bar {
-      height: 6px; background: var(--card); border-radius: 3px;
-      overflow: hidden; display: flex; margin-top: 8px;
-    }
-    .subs-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-    .sub-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem; color: var(--accent);
-      background: var(--accent-dim); padding: 2px 6px; border-radius: 2px;
-    }
-
-    /* ── Runs ────────────────────────────────── */
-    .run-row {
-      display: grid;
-      grid-template-columns: 9px 1fr auto;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 14px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .run-row:last-child { border-bottom: none; }
-
-    .run-dot {
+    .eyebrow-dot {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      flex-shrink: 0;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(217, 104, 44, 0.14);
     }
 
-    .run-dot.success { background: var(--pos); }
-    .run-dot.partial { background: var(--warn); }
-    .run-dot.failed  { background: var(--neg); }
-
-    .run-info { min-width: 0; }
-
-    .run-time {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--text);
+    .title {
+      margin: 16px 0 8px;
+      font-size: clamp(2.3rem, 7vw, 4.6rem);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
     }
 
-    .run-meta {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem;
+    .subtitle {
+      max-width: 60ch;
+      margin: 0;
       color: var(--muted);
-      margin-top: 1px;
+      font-size: 1rem;
+      line-height: 1.55;
     }
 
-    .run-sig {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.25rem;
-      letter-spacing: 1px;
-      color: var(--accent);
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    .run-sig-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.52rem;
-      color: var(--muted);
-      text-align: right;
-    }
-
-    /* ── Subreddit section ───────────────────── */
-    .sub-row {
-      display: grid;
-      grid-template-columns: 160px 1fr 64px 80px;
-      align-items: center;
-      gap: 14px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.12s;
-    }
-
-    .sub-row:last-child { border-bottom: none; }
-    .sub-row:hover      { background: var(--card); }
-
-    .sub-name {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .sub-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
-
-    .sub-tickers {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.55rem;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .sub-count {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.15rem;
-      letter-spacing: 1px;
-      color: var(--accent);
-      text-align: right;
-    }
-
-    .sub-split {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem;
-      color: var(--muted);
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    .sub-split .pos { color: var(--pos); }
-    .sub-split .neg { color: var(--neg); }
-
-    /* ── Signal feed ─────────────────────────── */
-
-    .signal-row {
-      display: grid;
-      grid-template-columns: 74px 62px 22px 1fr 80px;
-      align-items: center;
-      gap: 12px;
-      padding: 7px 14px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.12s;
-    }
-
-    .signal-row:last-child { border-bottom: none; }
-    .signal-row:hover      { background: var(--card); }
-
-    .sig-time {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--muted);
-    }
-
-    .sig-ticker {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .sig-arrow {
-      width: 22px;
-      height: 22px;
+    .hero-actions {
       display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: 260px;
+    }
+
+    .control,
+    .button {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 12px 16px;
+      font: inherit;
+      font-size: 0.93rem;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .control:focus,
+    .button:focus {
+      outline: 2px solid rgba(217, 104, 44, 0.22);
+      outline-offset: 2px;
+    }
+
+    .button {
+      cursor: pointer;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), #ea8b3a);
+      color: white;
+      border-color: transparent;
+    }
+
+    .button:hover,
+    .control:hover {
+      transform: translateY(-1px);
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.48);
+      padding: 16px 18px;
+      min-height: 118px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric-value {
+      font-size: clamp(1.7rem, 4vw, 2.6rem);
+      line-height: 1;
+      letter-spacing: -0.05em;
+      margin-top: 18px;
+    }
+
+    .metric-sub {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+    }
+
+    .metric.positive .metric-value { color: var(--positive); }
+    .metric.negative .metric-value { color: var(--negative); }
+    .metric.accent .metric-value { color: var(--accent); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 20px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 18px 48px rgba(55, 37, 20, 0.08);
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 22px 22px 0;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 1.15rem;
+      line-height: 1.1;
+    }
+
+    .card-note {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .card-meta {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .card-body {
+      padding: 22px;
+    }
+
+    .chart-wrap {
+      display: grid;
+      gap: 16px;
+    }
+
+    .chart-surface {
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(180deg, rgba(217, 104, 44, 0.08), rgba(255,255,255,0.1)),
+        var(--panel-strong);
+      border: 1px solid var(--line);
+      padding: 18px;
+    }
+
+    .chart-svg {
+      width: 100%;
+      height: 280px;
+      display: block;
+    }
+
+    .chart-grid line {
+      stroke: rgba(22, 20, 16, 0.08);
+      stroke-width: 1;
+    }
+
+    .chart-area {
+      fill: rgba(217, 104, 44, 0.12);
+    }
+
+    .chart-line {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chart-point {
+      fill: white;
+      stroke: var(--accent);
+      stroke-width: 2;
+    }
+
+    .chart-empty {
+      display: none;
+      min-height: 280px;
       align-items: center;
       justify-content: center;
-      border-radius: 2px;
-      font-size: 0.65rem;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,0.38);
+      padding: 24px;
+    }
+
+    .chart-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mini-stat {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.46);
+    }
+
+    .mini-stat-label {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.74rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .mini-stat-value {
+      font-size: 1.35rem;
+      letter-spacing: -0.04em;
+    }
+
+    .community-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .community-row {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+    }
+
+    .community-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: baseline;
+    }
+
+    .community-name {
+      font-size: 1rem;
       font-weight: 700;
     }
 
-    .sig-arrow.up   { background: rgba(16, 185, 129, 0.12); color: var(--pos); }
-    .sig-arrow.down { background: rgba(239, 68, 68, 0.12);  color: var(--neg); }
-
-    .sig-sub {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.62rem;
+    .community-score {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
       color: var(--muted);
+    }
+
+    .community-bar {
+      position: relative;
+      height: 10px;
+      border-radius: 999px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .sig-upvotes {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--muted);
-      text-align: right;
-    }
-
-    /* ── Shared states ───────────────────────── */
-    .empty {
-      padding: 40px 14px;
-      text-align: center;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-    }
-
-    .empty::before {
-      content: '○';
-      display: block;
-      font-size: 1.5rem;
-      margin-bottom: 10px;
-      opacity: 0.3;
-    }
-
-    .loading-msg {
-      padding: 28px;
-      text-align: center;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-      animation: blink 1.6s ease-in-out infinite;
-    }
-
-    .error-bar {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
-      background: rgba(239, 68, 68, 0.08);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      color: var(--neg);
-      padding: 8px 14px;
+      background: rgba(22, 20, 16, 0.08);
       margin-bottom: 12px;
-      display: none;
     }
 
-    /* ── Divergence alert bar ────────────────── */
-    .divergence-bar {
-      display: none; margin-bottom: 10px;
-    }
-    .divergence-bar.active { display: block; }
-    .divergence-bar .section-head {
-      background: rgba(245, 158, 11, 0.06);
-      border-color: rgba(245, 158, 11, 0.2);
-    }
-    .divergence-bar .section-head span:first-child { color: var(--warn); }
-    .divergence-cards {
-      display: flex; gap: 1px; overflow-x: auto;
-      background: var(--border); border: 1px solid var(--border); border-top: none;
-    }
-    .divergence-card {
-      background: var(--surface); padding: 12px 16px; min-width: 200px;
-      cursor: pointer; transition: background 0.15s; flex-shrink: 0;
-    }
-    .divergence-card:hover { background: var(--card); }
-    .div-ticker {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.4rem; letter-spacing: 3px; color: var(--text); line-height: 1;
-    }
-    .div-arrows {
-      display: flex; align-items: center; gap: 8px;
-      margin: 6px 0; font-size: 0.72rem; font-weight: 600;
-    }
-    .div-arrows .sent { padding: 2px 6px; border-radius: 2px; }
-    .div-arrows .sent.pos { color: var(--pos); background: var(--pos-dim); }
-    .div-arrows .sent.neg { color: var(--neg); background: var(--neg-dim); }
-    .div-arrows .vs { color: var(--muted); font-size: 0.6rem; }
-    .div-arrows .price { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-    .div-arrows .price.pos { color: var(--pos); }
-    .div-arrows .price.neg { color: var(--neg); }
-    .div-confidence {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.58rem; letter-spacing: 1px;
-    }
-    .div-confidence .badge {
-      padding: 1px 5px; border-radius: 2px; font-weight: 600;
-    }
-    .div-confidence .badge.low  { color: var(--neg); background: var(--neg-dim); }
-    .div-confidence .badge.mid  { color: var(--warn); background: rgba(245,158,11,0.12); }
-    .div-confidence .badge.high { color: var(--pos); background: var(--pos-dim); }
-
-    /* ── Meme Radar ──────────────────────────── */
-    .radar-section { display: none; margin-bottom: 10px; }
-    .radar-section.active { display: block; }
-    .radar-section .section-head {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-bottom: none;
-    }
-    .radar-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--warn); display: inline-block; margin-right: 6px;
-      animation: blink 2s ease-in-out infinite;
-    }
-    .radar-table {
-      width: 100%; border-collapse: collapse;
-      background: var(--surface); border: 1px solid var(--border);
-    }
-    .radar-table tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
-    .radar-table tr:last-child { border-bottom: none; }
-    .radar-table tr:hover { background: var(--card); }
-    .radar-table td { padding: 10px 14px; }
-    .radar-ticker {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.3rem; letter-spacing: 3px; color: var(--text);
-    }
-    .radar-velocity {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem; font-weight: 600; color: var(--warn);
-    }
-    .radar-spread {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem; color: var(--muted);
-    }
-    .radar-mentions {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem; color: var(--muted);
-    }
-    .radar-score-wrap { width: 80px; }
-    .radar-score-bar {
-      height: 6px; background: var(--card); border-radius: 3px; overflow: hidden;
-    }
-    .radar-score-fill {
-      height: 100%; background: var(--warn); border-radius: 3px;
-      transition: width 0.6s ease;
-    }
-    .radar-score-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.55rem; color: var(--muted); margin-top: 2px; text-align: right;
+    .community-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), #ee9d3f);
+      width: 0%;
     }
 
-    /* ── Community Lens ──────────────────────── */
-    .community-section { margin-bottom: 10px; }
-    .community-row {
+    .community-meta {
       display: grid;
-      grid-template-columns: 160px 1fr 60px 70px;
-      align-items: center; gap: 14px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    .community-row:last-child { border-bottom: none; }
-    .community-name {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem; color: var(--text);
-    }
-    .community-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
-    .community-mentions {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.1rem; letter-spacing: 1px;
-      color: var(--accent); text-align: right;
-    }
-    .community-ratio {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem; text-align: right;
-    }
-    .community-ratio.pos { color: var(--pos); }
-    .community-ratio.neg { color: var(--neg); }
-    .community-ratio.neutral { color: var(--muted); }
-    .community-disagree {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.55rem; letter-spacing: 1px;
-      color: var(--warn); background: rgba(245,158,11,0.1);
-      padding: 2px 8px; border-radius: 2px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
     }
 
-    .detail-divergence-banner {
-      display: none; margin-bottom: 12px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem; letter-spacing: 0.5px;
-      background: rgba(245, 158, 11, 0.08);
-      border: 1px solid rgba(245, 158, 11, 0.25);
-      color: var(--warn); padding: 10px 16px;
+    .signal-list {
+      display: grid;
+      gap: 12px;
+      max-height: 760px;
+      overflow: auto;
+      padding-right: 4px;
     }
-    .detail-divergence-banner.active { display: block; }
 
-    /* ── Responsive ──────────────────────────── */
-    @media (max-width: 1100px) {
-      .ticker-grid { grid-template-columns: repeat(3, 1fr); }
-      .stats-row   { grid-template-columns: repeat(3, 1fr); }
+    .signal {
+      padding: 15px 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.54);
     }
-    @media (max-width: 860px) {
-      .ticker-grid      { grid-template-columns: repeat(2, 1fr); }
-      .stats-row        { grid-template-columns: repeat(2, 1fr); }
-      .bottom-grid      { grid-template-columns: 1fr; }
-      .signal-row       { grid-template-columns: 68px 55px 22px 1fr; }
-      .sig-upvotes      { display: none; }
-      .detail-stats-row { grid-template-columns: 1fr; }
-      .sub-row          { grid-template-columns: 140px 1fr 50px 70px; }
+
+    .signal-head,
+    .signal-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
     }
-    @media (max-width: 580px) {
-      .ticker-grid { grid-template-columns: 1fr; }
-      .stats-row   { grid-template-columns: 1fr 1fr; }
+
+    .signal-head { margin-bottom: 10px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .pill.positive {
+      color: var(--positive);
+      background: var(--positive-soft);
+    }
+
+    .pill.negative {
+      color: var(--negative);
+      background: var(--negative-soft);
+    }
+
+    .signal-weight {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.85rem;
+    }
+
+    .signal-meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .signal-type {
+      text-transform: capitalize;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .run-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .run-row {
+      display: grid;
+      grid-template-columns: 1.1fr 0.8fr 0.8fr;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.52);
+      font-size: 0.88rem;
+    }
+
+    .run-status {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .run-status.success { color: var(--positive); }
+    .run-status.partial { color: var(--accent); }
+    .run-status.failed { color: var(--negative); }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .loading,
+    .empty,
+    .error {
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--line-strong);
+      background: rgba(255,255,255,0.44);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .error {
+      color: var(--negative);
+      border-style: solid;
+      background: rgba(180, 64, 46, 0.08);
+    }
+
+    @media (max-width: 1040px) {
+      .hero-top,
+      .card-head {
+        flex-direction: column;
+      }
+
+      .hero-actions {
+        justify-content: flex-start;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        width: min(100vw - 20px, 1220px);
+        padding-top: 18px;
+      }
+
+      .hero,
+      .card-body,
+      .card-head {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .hero {
+        padding-top: 20px;
+        padding-bottom: 20px;
+      }
+
+      .hero-metrics,
+      .chart-stats,
+      .community-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .run-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .hero-metrics,
+      .chart-stats,
+      .community-meta {
+        grid-template-columns: 1fr;
+      }
+
+      .title {
+        max-width: none;
+      }
+
+      .control,
+      .button {
+        width: 100%;
+      }
+
+      .hero-actions {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-
-<div class="error-bar" id="errBar"></div>
-
-<!-- Header -->
-<div class="header">
-  <div class="brand">
-    <span class="brand-sentix" style="cursor:pointer" onclick="navigate('/')">SentiX</span>
-    <div>
-      <div class="brand-full">Reddit Signal Dashboard</div>
-    </div>
-  </div>
-  <div class="header-right">
-    <div class="search-wrap">
-      <span class="search-icon">&#x1F50D;</span>
-      <input class="search-input" id="tickerSearch" type="text" placeholder="Search ticker..." autocomplete="off" spellcheck="false">
-      <div class="search-results" id="searchResults"></div>
-    </div>
-    <div class="live-indicator">
-      <div class="live-dot"></div>
-      <span id="lastUpdated">—</span>
-    </div>
-    <span>24H · 30s refresh</span>
-    <button class="refresh-btn" onclick="fetchAll()">↺ Refresh</button>
-  </div>
-</div>
-
-<!-- DASHBOARD VIEW -->
-<div id="dashboardView">
-
-<!-- Stats row -->
-<div class="stats-row">
-  <div class="stat-card accent-top">
-    <div class="stat-label">Tickers (24H)</div>
-    <div class="stat-value accent" id="sTickers">—</div>
-    <div class="stat-sub">unique symbols</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Signals (24H)</div>
-    <div class="stat-value" id="sSignals">—</div>
-    <div class="stat-sub">total mentions</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Comments Scanned</div>
-    <div class="stat-value" id="sComments">—</div>
-    <div class="stat-sub" id="sCommentsSub">last cycle</div>
-  </div>
-  <div class="stat-card accent-top">
-    <div class="stat-label">Subreddits (24H)</div>
-    <div class="stat-value accent" id="sSubs">—</div>
-    <div class="stat-sub">active sources</div>
-  </div>
-  <div class="stat-card pos-top">
-    <div class="stat-label">Bull / Bear</div>
-    <div class="stat-value pos" id="sBullBear" style="font-size:1.4rem">— / —</div>
-    <div class="stat-sub">positive / negative signals</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Last Run</div>
-    <div class="stat-value" id="sLastRun" style="font-size:1rem;font-family:'JetBrains Mono',monospace">—</div>
-    <div class="stat-sub" id="sLastRunStatus">—</div>
-  </div>
-</div>
-
-<!-- Divergence alert bar -->
-<div class="divergence-bar" id="divergenceBar">
-  <div class="section-head">
-    <span>Divergence Alerts</span>
-    <span class="badge" id="divBadge"></span>
-  </div>
-  <div class="divergence-cards" id="divCards"></div>
-</div>
-
-<!-- Ticker card grid -->
-<div class="ticker-grid-section">
-  <div class="section-head">
-    <span>Ticker Sentiment · 24H</span>
-    <span class="badge" id="tickerBadge"></span>
-  </div>
-  <div id="tickerGridBody">
-    <div style="background:var(--surface);border:1px solid var(--border);border-top:none">
-      <div class="loading-msg">loading…</div>
-    </div>
-  </div>
-</div>
-
-<!-- Meme Stock Radar -->
-<div class="radar-section" id="radarSection">
-  <div class="section-head">
-    <span><span class="radar-dot"></span>Meme Radar</span>
-    <span class="badge" id="radarBadge"></span>
-  </div>
-  <table class="radar-table" id="radarBody"></table>
-</div>
-
-<!-- Bottom grid: subreddits + runs -->
-<div class="bottom-grid">
-
-  <div class="section">
-    <div class="section-head">
-      <span>Subreddit Breakdown · 24H</span>
-      <span class="badge" id="subBadge"></span>
-    </div>
-    <div id="subBody">
-      <div class="loading-msg">loading…</div>
-    </div>
-  </div>
-
-  <div class="section" style="max-height:480px">
-    <div class="section-head">
-      <span>Collection Runs</span>
-      <span class="badge" id="runsBadge"></span>
-    </div>
-    <div class="scroll-body" id="runsBody">
-      <div class="loading-msg">loading…</div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Signal feed -->
-<div class="section" style="margin-bottom:0">
-  <div class="section-head">
-    <span>Recent Signals</span>
-    <span class="badge">latest 60</span>
-  </div>
-  <div class="scroll-body" style="max-height:280px" id="signalBody">
-    <div class="loading-msg">loading…</div>
-  </div>
-</div>
-
-</div><!-- /#dashboardView -->
-
-<!-- DETAIL VIEW -->
-<div id="detailView">
-
-  <div class="detail-nav">
-    <button class="back-btn" onclick="navigate('/')">&#8592; Dashboard</button>
-    <div class="detail-breadcrumb">
-      <span>Dashboard</span>
-      <span class="sep">/</span>
-      <span class="current" id="detailBreadcrumb">—</span>
-    </div>
-  </div>
-
-  <div class="detail-header">
-    <div class="detail-symbol" id="detailSymbol">—</div>
-    <div class="detail-price-block">
-      <div class="detail-price" id="detailPrice">—</div>
-      <div class="detail-price-label">Last Close</div>
-    </div>
-    <div class="detail-sentiment-block">
-      <div class="detail-score" id="detailScore">—</div>
-      <div class="detail-score-label">Net Sentiment</div>
-    </div>
-  </div>
-
-  <div class="detail-meta-row" id="detailMetaRow" style="display:none"></div>
-
-  <div class="detail-divergence-banner" id="detailDivBanner"></div>
-
-  <div class="detail-chart-section">
-    <div class="detail-chart-head">
-      <div class="detail-chart-title">Price + Sentiment Overlay</div>
-      <div class="time-selectors" id="timeSelectors">
-        <button class="time-btn" data-range="1d" data-interval="5m" data-lookback="1d">1D</button>
-        <button class="time-btn" data-range="5d" data-interval="30m" data-lookback="1d">1W</button>
-        <button class="time-btn active" data-range="1mo" data-interval="1d" data-lookback="7d">1M</button>
-        <button class="time-btn" data-range="3mo" data-interval="1d" data-lookback="3mo">3M</button>
-        <button class="time-btn" data-range="6mo" data-interval="1d" data-lookback="6mo">6M</button>
-        <button class="time-btn" data-range="1y" data-interval="1d" data-lookback="1y">1Y</button>
-        <button class="time-btn" data-range="max" data-interval="1wk" data-lookback="1y">ALL</button>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="eyebrow">
+            <span class="eyebrow-dot"></span>
+            Sentix / Epic Games Store
+          </div>
+          <h1 class="title">Epic Store sentiment at a glance.</h1>
+          <p class="subtitle">
+            A cleaner view of how Reddit communities are talking about the Epic Games Store:
+            overall tone, trend over time, where the discussion is happening, and the latest weighted signals.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <select id="lookback" class="control" aria-label="History window">
+            <option value="1d">Last 24 hours</option>
+            <option value="7d" selected>Last 7 days</option>
+            <option value="1mo">Last 30 days</option>
+            <option value="3mo">Last 90 days</option>
+            <option value="6mo">Last 6 months</option>
+            <option value="1y">Last year</option>
+          </select>
+          <button id="refreshBtn" class="button" type="button">Refresh View</button>
+        </div>
       </div>
-      <div class="chart-legend">
-        <div class="legend-item"><div class="legend-dot accent"></div><span>Price</span></div>
-        <div class="legend-item"><div class="legend-dot pos"></div><span>Bullish</span></div>
-        <div class="legend-item"><div class="legend-dot neg"></div><span>Bearish</span></div>
+
+      <div class="hero-metrics">
+        <article class="metric accent">
+          <div class="metric-label">Weighted score</div>
+          <div id="weightedScore" class="metric-value">--</div>
+          <div class="metric-sub">24h blended sentiment intensity</div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">Matched mentions</div>
+          <div id="mentionCount" class="metric-value">--</div>
+          <div class="metric-sub">Relevant post/comment matches in 24h</div>
+        </article>
+        <article class="metric positive">
+          <div class="metric-label">Positive vs negative</div>
+          <div id="toneMix" class="metric-value">--</div>
+          <div class="metric-sub">Positive and negative matched signals</div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">Active communities</div>
+          <div id="communityCount" class="metric-value">--</div>
+          <div id="lastSeen" class="metric-sub">Last signal --</div>
+        </article>
+      </div>
+    </section>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Sentiment trend</h2>
+              <p class="card-note">Weighted score over time for the current lookback window.</p>
+            </div>
+            <div id="trendMeta" class="card-meta">Waiting for data</div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <div class="chart-surface">
+                <svg id="trendChart" class="chart-svg" viewBox="0 0 860 280" preserveAspectRatio="none" aria-hidden="true">
+                  <g class="chart-grid"></g>
+                  <path class="chart-area"></path>
+                  <path class="chart-line"></path>
+                  <g class="chart-points"></g>
+                </svg>
+                <div id="chartEmpty" class="chart-empty">No Epic sentiment history yet for this window.</div>
+              </div>
+              <div class="chart-stats">
+                <div class="mini-stat">
+                  <div class="mini-stat-label">Peak weighted score</div>
+                  <div id="peakScore" class="mini-stat-value">--</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-stat-label">Signals in window</div>
+                  <div id="windowMentions" class="mini-stat-value">--</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-stat-label">Average weighted score</div>
+                  <div id="avgScore" class="mini-stat-value">--</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Community breakdown</h2>
+              <p class="card-note">Where Epic sentiment is forming and how much each subreddit is contributing.</p>
+            </div>
+            <div class="card-meta">24 hour view</div>
+          </div>
+          <div class="card-body">
+            <div id="communities" class="community-list">
+              <div class="loading">Loading communities…</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Recent signals</h2>
+              <p class="card-note">Newest matched posts and comments with weighted impact.</p>
+            </div>
+            <div class="card-meta">Latest 60</div>
+          </div>
+          <div class="card-body">
+            <div id="signals" class="signal-list">
+              <div class="loading">Loading signals…</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Pipeline health</h2>
+              <p class="card-note">Recent collection runs so we can tell whether the tracker is alive and cleanly ingesting data.</p>
+            </div>
+            <div class="card-meta">Most recent runs</div>
+          </div>
+          <div class="card-body">
+            <div id="runs" class="run-list">
+              <div class="loading">Loading run history…</div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
-    <div class="detail-chart-wrap">
-      <div class="chart-tooltip" id="chartTooltip">
-        <span class="tooltip-price" id="tooltipPrice"></span>
-        <span class="tooltip-change" id="tooltipChange"></span>
-        <span class="tooltip-date" id="tooltipDate"></span>
-      </div>
-      <div class="detail-chart-container" id="detailChartEl"></div>
-      <div class="detail-chart-loading" id="detailChartLoading">Loading chart data…</div>
-    </div>
   </div>
 
-  <div class="detail-stats-row">
-    <div class="detail-stat-panel">
-      <div class="detail-stat-label">Mention Count · 24H</div>
-      <div class="detail-stat-value" id="detailMentions">—</div>
-      <div class="stat-sub">total signals collected</div>
-    </div>
-    <div class="detail-stat-panel">
-      <div class="detail-stat-label">Bull / Bear Split</div>
-      <div class="detail-stat-value" id="detailBullBear">— / —</div>
-      <div class="bull-bear-bar">
-        <div class="bar-pos" id="detailBullBar" style="width:50%"></div>
-        <div class="bar-neg" id="detailBearBar" style="width:50%"></div>
-      </div>
-    </div>
-    <div class="detail-stat-panel">
-      <div class="detail-stat-label">Active Subreddits</div>
-      <div class="subs-list" id="detailSubsList"></div>
-    </div>
-  </div>
+  <script>
+    const state = {
+      lookback: "7d"
+    };
 
-  <div class="community-section section" id="communitySection" style="display:none">
-    <div class="section-head">
-      <span>Community Lens</span>
-      <span class="badge" id="communityBadge"></span>
-    </div>
-    <div class="scroll-body" style="max-height:260px" id="communityBody"></div>
-  </div>
+    const els = {
+      lookback: document.getElementById("lookback"),
+      refreshBtn: document.getElementById("refreshBtn"),
+      weightedScore: document.getElementById("weightedScore"),
+      mentionCount: document.getElementById("mentionCount"),
+      toneMix: document.getElementById("toneMix"),
+      communityCount: document.getElementById("communityCount"),
+      lastSeen: document.getElementById("lastSeen"),
+      trendMeta: document.getElementById("trendMeta"),
+      peakScore: document.getElementById("peakScore"),
+      windowMentions: document.getElementById("windowMentions"),
+      avgScore: document.getElementById("avgScore"),
+      trendChart: document.getElementById("trendChart"),
+      chartEmpty: document.getElementById("chartEmpty"),
+      communities: document.getElementById("communities"),
+      signals: document.getElementById("signals"),
+      runs: document.getElementById("runs")
+    };
 
-  <div class="section">
-    <div class="section-head">
-      <span id="detailSignalsHead">Recent Signals</span>
-      <span class="badge" id="detailSignalsBadge"></span>
-    </div>
-    <div class="scroll-body" style="max-height:260px" id="detailSignalsBody">
-      <div class="loading-msg">loading…</div>
-    </div>
-  </div>
-
-</div><!-- /#detailView -->
-
-<script>
-// ================================================================
-// STATE
-// ================================================================
-const sparklineCharts = new Map();
-let detailChart = null;
-let cachedTickers = [];
-let cachedSignals = [];
-let currentDetailSymbol = null;
-let currentTimeRange = { range: '1mo', interval: '1d', lookback: '7d' };
-
-// ================================================================
-// HELPERS
-// ================================================================
-function fmt(iso) {
-  if (!iso) return '\u2014';
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-function ago(iso) {
-  if (!iso) return '\u2014';
-  const s = Math.floor((Date.now() - new Date(iso)) / 1000);
-  if (s < 60)   return s + 's ago';
-  if (s < 3600) return Math.floor(s / 60) + 'm ago';
-  return Math.floor(s / 3600) + 'h ago';
-}
-
-function showErr(msg) {
-  const el = document.getElementById('errBar');
-  el.textContent = 'API ERROR: ' + msg;
-  el.style.display = 'block';
-  setTimeout(function() { el.style.display = 'none'; }, 6000);
-}
-
-function fmtPrice(v) {
-  if (v == null) return '\u2014';
-  return '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-// ================================================================
-// ROUTING
-// ================================================================
-function navigate(path) {
-  window.location.hash = path === '/' ? '' : path;
-}
-
-function getRoute() {
-  const h = window.location.hash.replace('#', '');
-  if (!h || h === '/') return { view: 'dashboard' };
-  const m = h.match(/^\/stock\/([A-Z0-9.]+)$/i);
-  if (m) return { view: 'stock', symbol: m[1].toUpperCase() };
-  return { view: 'dashboard' };
-}
-
-function handleRoute() {
-  const route   = getRoute();
-  const dashEl   = document.getElementById('dashboardView');
-  const detailEl = document.getElementById('detailView');
-  if (route.view === 'stock') {
-    dashEl.classList.add('hidden');
-    detailEl.classList.add('active');
-    loadDetailView(route.symbol);
-  } else {
-    destroyDetailChart();
-    detailEl.classList.remove('active');
-    dashEl.classList.remove('hidden');
-  }
-}
-
-window.addEventListener('hashchange', handleRoute);
-
-// ================================================================
-// TICKER SEARCH
-// ================================================================
-(function() {
-  var input = document.getElementById('tickerSearch');
-  var dropdown = document.getElementById('searchResults');
-  var debounceTimer = null;
-
-  input.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    var q = input.value.trim();
-    if (!q) { dropdown.classList.remove('open'); return; }
-    debounceTimer = setTimeout(function() {
-      fetch('/api/tickers/search?q=' + encodeURIComponent(q))
-        .then(function(r) { return r.ok ? r.json() : []; })
-        .then(function(results) {
-          dropdown.textContent = '';
-          if (!results.length) {
-            var empty = document.createElement('div');
-            empty.style.cssText = 'padding:10px;text-align:center;font-family:JetBrains Mono,monospace;font-size:0.65rem;color:var(--muted)';
-            empty.textContent = 'No tickers found';
-            dropdown.appendChild(empty);
-          } else {
-            results.forEach(function(r) {
-              var item = document.createElement('div');
-              item.className = 'search-result-item';
-              var ticker = document.createElement('span');
-              ticker.className = 'search-result-ticker';
-              ticker.textContent = '$' + r.ticker;
-              var meta = document.createElement('span');
-              meta.className = 'search-result-meta';
-              meta.textContent = r.total_mentions + ' mentions';
-              item.appendChild(ticker);
-              item.appendChild(meta);
-              item.addEventListener('click', function() {
-                navigate('/stock/' + r.ticker);
-                dropdown.classList.remove('open');
-                input.value = '';
-                input.blur();
-              });
-              dropdown.appendChild(item);
-            });
-          }
-          dropdown.classList.add('open');
-        })
-        .catch(function() {});
-    }, 200);
-  });
-
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      var q = input.value.trim().toUpperCase();
-      if (q) {
-        navigate('/stock/' + q);
-        dropdown.classList.remove('open');
-        input.value = '';
-        input.blur();
-      }
+    function formatInt(value) {
+      return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value || 0);
     }
-    if (e.key === 'Escape') {
-      dropdown.classList.remove('open');
-      input.blur();
+
+    function formatDecimal(value) {
+      const numeric = Number(value || 0);
+      return numeric.toFixed(2);
     }
-  });
 
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.search-wrap')) dropdown.classList.remove('open');
-  });
-})();
+    function formatSigned(value) {
+      const numeric = Number(value || 0);
+      const prefix = numeric > 0 ? "+" : "";
+      return prefix + numeric.toFixed(2);
+    }
 
-// ================================================================
-// SPARKLINES
-// ================================================================
-function destroyAllSparklines() {
-  sparklineCharts.forEach(function(chart) { try { chart.remove(); } catch(e) {} });
-  sparklineCharts.clear();
-}
+    function formatDateTime(value) {
+      if (!value) return "--";
+      const date = new Date(value);
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      }).format(date);
+    }
 
-function destroyDetailChart() {
-  if (detailChart) {
-    try { detailChart.remove(); } catch(e) {}
-    detailChart = null;
-  }
-  var tooltip = document.getElementById('chartTooltip');
-  if (tooltip) tooltip.classList.remove('visible');
-}
+    function formatDateShort(value) {
+      if (!value) return "--";
+      const date = new Date(value);
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric"
+      }).format(date);
+    }
 
-function createSparkline(containerEl, data, isPositive) {
-  if (!window.LightweightCharts || !data.length) return null;
-  const color = isPositive ? '#10b981' : '#ef4444';
-  const chart = LightweightCharts.createChart(containerEl, {
-    width:  containerEl.clientWidth || 200,
-    height: 50,
-    layout: { background: { color: 'transparent' }, textColor: 'transparent' },
-    grid:   { vertLines: { visible: false }, horzLines: { visible: false } },
-    crosshair: { mode: LightweightCharts.CrosshairMode.Hidden },
-    rightPriceScale: { visible: false },
-    leftPriceScale:  { visible: false },
-    timeScale: { visible: false, borderVisible: false },
-    handleScroll: false,
-    handleScale:  false,
-  });
-  const series = chart.addAreaSeries({
-    lineColor:    color,
-    topColor:     color + '33',
-    bottomColor:  color + '00',
-    lineWidth: 1.5,
-    priceLineVisible: false,
-    lastValueVisible: false,
-    crosshairMarkerVisible: false,
-  });
-  series.setData(data);
-  chart.timeScale().fitContent();
-  return chart;
-}
+    function emptyState(message) {
+      return `<div class="empty">${message}</div>`;
+    }
 
-function setSparklineMsg(containerEl, msg, cls) {
-  containerEl.textContent = '';
-  const el = document.createElement('div');
-  el.className = cls || 'sparkline-error';
-  el.textContent = msg;
-  containerEl.appendChild(el);
-}
+    function errorState(message) {
+      return `<div class="error">${message}</div>`;
+    }
 
-async function loadSparkline(symbol, containerEl, isPositive) {
-  try {
-    const res = await fetch('/api/tickers/' + symbol + '/price');
-    if (!res.ok) { setSparklineMsg(containerEl, 'no price data'); return; }
-    const json = await res.json();
-    const raw = (json.data || []).slice(-30);
-    if (!raw.length) { setSparklineMsg(containerEl, 'no price data'); return; }
-    const data = raw.map(function(d) { return { time: d.timestamp.slice(0, 10), value: d.close }; });
-    containerEl.textContent = '';
-    const chartDiv = document.createElement('div');
-    chartDiv.style.width  = '100%';
-    chartDiv.style.height = '50px';
-    containerEl.appendChild(chartDiv);
-    const chart = createSparkline(chartDiv, data, isPositive);
-    if (chart) sparklineCharts.set(symbol, chart);
-  } catch(e) {
-    setSparklineMsg(containerEl, 'unavailable');
-  }
-}
-
-// ================================================================
-// RENDER: TICKERS
-// ================================================================
-function renderTickers(data) {
-  cachedTickers = data;
-  const container = document.getElementById('tickerGridBody');
-  document.getElementById('tickerBadge').textContent = data.length + ' tickers';
-
-  const totalMentions = data.reduce(function(n, t) { return n + t.mention_count; }, 0);
-  const totalBull     = data.reduce(function(n, t) { return n + t.positive_count; }, 0);
-  const totalBear     = data.reduce(function(n, t) { return n + t.negative_count; }, 0);
-  document.getElementById('sTickers').textContent = data.length;
-  document.getElementById('sSignals').textContent = totalMentions.toLocaleString();
-  document.getElementById('sBullBear').textContent = totalBull.toLocaleString() + ' / ' + totalBear.toLocaleString();
-
-  if (!data.length) {
-    container.textContent = '';
-    const wrap = document.createElement('div');
-    wrap.setAttribute('style', 'background:var(--surface);border:1px solid var(--border);border-top:none');
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = "No signals yet \u2014 first cycle hasn't run";
-    wrap.appendChild(empty);
-    container.appendChild(wrap);
-    return;
-  }
-
-  destroyAllSparklines();
-
-  const grid = document.createElement('div');
-  grid.className = 'ticker-grid';
-
-  data.forEach(function(t) {
-    const total = (t.positive_count + t.negative_count) || 1;
-    const posW  = ((t.positive_count / total) * 100).toFixed(1);
-    const negW  = ((t.negative_count / total) * 100).toFixed(1);
-    const score = t.net_score;
-    const isPos = score >= 0;
-    const str   = isPos ? '+' + score.toLocaleString() : score.toLocaleString();
-
-    const card = document.createElement('div');
-    card.className = 'stock-card';
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'card-header';
-    const sym = document.createElement('div');
-    sym.className = 'card-symbol';
-    sym.textContent = '$' + t.ticker;
-    const scoreEl = document.createElement('div');
-    scoreEl.className = 'card-score ' + (isPos ? 'pos' : 'neg');
-    scoreEl.textContent = str;
-    header.appendChild(sym);
-    header.appendChild(scoreEl);
-
-    // Sparkline placeholder
-    const sparkWrap = document.createElement('div');
-    sparkWrap.className = 'sparkline-wrap';
-    sparkWrap.id = 'spark-' + t.ticker;
-    const sparkLoading = document.createElement('div');
-    sparkLoading.className = 'sparkline-loading';
-    sparkLoading.textContent = '\u00b7 \u00b7 \u00b7';
-    sparkWrap.appendChild(sparkLoading);
-
-    // Footer: split bar + meta
-    const footer = document.createElement('div');
-    footer.className = 'card-footer';
-    const splitBar = document.createElement('div');
-    splitBar.className = 'split-bar';
-    const barPos = document.createElement('div');
-    barPos.className = 'bar-pos';
-    barPos.style.width = posW + '%';
-    const barNeg = document.createElement('div');
-    barNeg.className = 'bar-neg';
-    barNeg.style.width = negW + '%';
-    splitBar.appendChild(barPos);
-    splitBar.appendChild(barNeg);
-
-    const meta = document.createElement('div');
-    meta.className = 'card-meta';
-    const subs = document.createElement('div');
-    subs.className = 'card-subs';
-    subs.textContent = t.subreddits || '\u2014';
-    const mentions = document.createElement('div');
-    mentions.className = 'card-mentions';
-    const cnt = document.createElement('span');
-    cnt.textContent = t.mention_count.toLocaleString();
-    mentions.appendChild(cnt);
-    mentions.appendChild(document.createTextNode(' signals'));
-    meta.appendChild(subs);
-    meta.appendChild(mentions);
-
-    footer.appendChild(splitBar);
-    footer.appendChild(meta);
-
-    card.appendChild(header);
-    card.appendChild(sparkWrap);
-    card.appendChild(footer);
-
-    card.addEventListener('click', (function(ticker) {
-      return function() { navigate('/stock/' + ticker); };
-    })(t.ticker));
-
-    grid.appendChild(card);
-  });
-
-  container.textContent = '';
-  container.appendChild(grid);
-
-  // Load sparklines async
-  data.forEach(function(t) {
-    const wrap = document.getElementById('spark-' + t.ticker);
-    if (wrap) loadSparkline(t.ticker, wrap, t.net_score >= 0);
-  });
-}
-
-// ================================================================
-// RENDER: RUNS
-// ================================================================
-function renderRuns(data) {
-  const el = document.getElementById('runsBody');
-  document.getElementById('runsBadge').textContent = data.length;
-
-  if (!data.length) {
-    el.textContent = '';
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No runs recorded yet';
-    el.appendChild(empty);
-    return;
-  }
-
-  const latest = data[0];
-  document.getElementById('sLastRun').textContent = ago(latest.started_at);
-  document.getElementById('sLastRunStatus').textContent = latest.status + ' \u00b7 ' + latest.signals_stored + ' signals';
-  document.getElementById('sComments').textContent = (latest.comments_processed || 0).toLocaleString();
-  document.getElementById('sCommentsSub').textContent = 'last cycle \u00b7 ' + latest.sources_succeeded + '/' + latest.sources_attempted + ' src';
-
-  el.textContent = '';
-  data.forEach(function(r) {
-    const dur = r.completed_at
-      ? Math.round((new Date(r.completed_at) - new Date(r.started_at)) / 1000) + 's'
-      : 'running';
-    const comments  = r.comments_processed ? r.comments_processed.toLocaleString() + ' comments' : '';
-    const metaParts = [r.status, r.sources_succeeded + '/' + r.sources_attempted + ' src', dur];
-    if (comments) metaParts.push(comments);
-
-    const row = document.createElement('div');
-    row.className = 'run-row';
-    const dot = document.createElement('div');
-    dot.className = 'run-dot ' + r.status;
-    const info = document.createElement('div');
-    info.className = 'run-info';
-    const timeEl = document.createElement('div');
-    timeEl.className = 'run-time';
-    timeEl.textContent = fmt(r.started_at);
-    const metaEl = document.createElement('div');
-    metaEl.className = 'run-meta';
-    metaEl.textContent = metaParts.join(' \u00b7 ');
-    info.appendChild(timeEl);
-    info.appendChild(metaEl);
-    const sigWrap = document.createElement('div');
-    const sig = document.createElement('div');
-    sig.className = 'run-sig';
-    sig.textContent = r.signals_stored;
-    const sigLabel = document.createElement('div');
-    sigLabel.className = 'run-sig-label';
-    sigLabel.textContent = 'signals';
-    sigWrap.appendChild(sig);
-    sigWrap.appendChild(sigLabel);
-    row.appendChild(dot);
-    row.appendChild(info);
-    row.appendChild(sigWrap);
-    el.appendChild(row);
-  });
-}
-
-// ================================================================
-// RENDER: SUBREDDITS
-// ================================================================
-function renderSubreddits(data) {
-  const el = document.getElementById('subBody');
-  document.getElementById('subBadge').textContent = data.length + ' active';
-  document.getElementById('sSubs').textContent = data.length || '\u2014';
-
-  if (!data.length) {
-    el.textContent = '';
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No subreddit activity yet';
-    el.appendChild(empty);
-    return;
-  }
-
-  el.textContent = '';
-  data.forEach(function(s) {
-    const total = (s.positive_count + s.negative_count) || 1;
-    const posW  = ((s.positive_count / total) * 100).toFixed(1);
-    const negW  = ((s.negative_count / total) * 100).toFixed(1);
-
-    const row = document.createElement('div');
-    row.className = 'sub-row';
-
-    const name = document.createElement('span');
-    name.className = 'sub-name';
-    name.textContent = 'r/' + s.subreddit;
-
-    const barWrap = document.createElement('div');
-    barWrap.className = 'sub-bar-wrap';
-    const bar = document.createElement('div');
-    bar.className = 'split-bar';
-    const bp = document.createElement('div');
-    bp.className = 'bar-pos';
-    bp.style.width = posW + '%';
-    const bn = document.createElement('div');
-    bn.className = 'bar-neg';
-    bn.style.width = negW + '%';
-    bar.appendChild(bp);
-    bar.appendChild(bn);
-    const tickers = document.createElement('span');
-    tickers.className = 'sub-tickers';
-    tickers.textContent = s.top_tickers || '\u2014';
-    barWrap.appendChild(bar);
-    barWrap.appendChild(tickers);
-
-    const count = document.createElement('div');
-    count.className = 'sub-count';
-    count.textContent = s.signal_count.toLocaleString();
-
-    const split = document.createElement('div');
-    split.className = 'sub-split';
-    const posSpan = document.createElement('span');
-    posSpan.className = 'pos';
-    posSpan.textContent = '\u25b2' + s.positive_count;
-    const negSpan = document.createElement('span');
-    negSpan.className = 'neg';
-    negSpan.textContent = '\u25bc' + s.negative_count;
-    split.appendChild(posSpan);
-    split.appendChild(document.createTextNode(' / '));
-    split.appendChild(negSpan);
-
-    row.appendChild(name);
-    row.appendChild(barWrap);
-    row.appendChild(count);
-    row.appendChild(split);
-    el.appendChild(row);
-  });
-}
-
-// ================================================================
-// RENDER: SIGNALS
-// ================================================================
-function buildSignalRow(s) {
-  const row    = document.createElement('div');
-  row.className = 'signal-row';
-  const time   = document.createElement('span');
-  time.className = 'sig-time';
-  time.textContent = fmt(s.collected_at);
-  const ticker = document.createElement('span');
-  ticker.className = 'sig-ticker';
-  ticker.textContent = '$' + s.ticker;
-  const arrow  = document.createElement('span');
-  arrow.className = 'sig-arrow ' + (s.polarity === 1 ? 'up' : 'down');
-  arrow.textContent = s.polarity === 1 ? '\u25b2' : '\u25bc';
-  const sub    = document.createElement('span');
-  sub.className = 'sig-sub';
-  sub.textContent = 'r/' + s.subreddit;
-  const upv    = document.createElement('span');
-  upv.className = 'sig-upvotes';
-  upv.textContent = s.upvotes > 0 ? s.upvotes.toLocaleString() + ' \u2191' : '\u2014';
-  row.appendChild(time);
-  row.appendChild(ticker);
-  row.appendChild(arrow);
-  row.appendChild(sub);
-  row.appendChild(upv);
-  return row;
-}
-
-function renderSignals(data) {
-  cachedSignals = data;
-  const el = document.getElementById('signalBody');
-  if (!data.length) {
-    el.textContent = '';
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No signals yet';
-    el.appendChild(empty);
-    return;
-  }
-  el.textContent = '';
-  data.forEach(function(s) { el.appendChild(buildSignalRow(s)); });
-}
-
-// ================================================================
-// DETAIL VIEW
-// ================================================================
-async function loadDetailView(symbol) {
-  currentDetailSymbol = symbol;
-  currentTimeRange = { range: '1mo', interval: '1d', lookback: '7d' };
-  updateTimeBtnState();
-
-  document.getElementById('detailBreadcrumb').textContent = '$' + symbol;
-  document.getElementById('detailSymbol').textContent     = '$' + symbol;
-  document.getElementById('detailPrice').textContent      = '\u2014';
-  document.getElementById('detailScore').textContent      = '\u2014';
-  document.getElementById('detailMentions').textContent   = '\u2014';
-  document.getElementById('detailBullBear').textContent   = '\u2014 / \u2014';
-  document.getElementById('detailSignalsHead').textContent = 'Recent Signals \u00b7 $' + symbol;
-  document.getElementById('detailSignalsBadge').textContent = '';
-  document.getElementById('detailSubsList').textContent   = '';
-
-  destroyDetailChart();
-
-  // Reset metadata row
-  var metaRow = document.getElementById('detailMetaRow');
-  metaRow.style.display = 'none';
-  metaRow.textContent = '';
-
-  // Get ticker data from cache or fetch
-  var tickerData = cachedTickers.find(function(t) { return t.ticker === symbol; }) || null;
-  if (!tickerData) {
-    try {
-      var res = await fetch('/api/tickers/' + symbol);
-      if (res.ok) tickerData = await res.json();
-    } catch(e) {}
-  }
-
-  // Fetch stock metadata (non-blocking — renders when ready)
-  fetch('/api/tickers/' + symbol + '/info')
-    .then(function(r) { return r.ok ? r.json() : null; })
-    .then(function(info) {
-      if (!info) return;
-      document.getElementById('detailBreadcrumb').textContent = info.name;
-
-      var items = [];
-      if (info.name && info.name !== symbol) items.push({ type: 'name', val: info.name });
-      if (info.exchange && info.exchange !== '\u2014') items.push({ label: 'Exchange', val: info.exchange });
-      if (info.type && info.type !== '\u2014') items.push({ label: 'Type', val: info.type });
-      if (info.fifty_two_week_low != null && info.fifty_two_week_high != null)
-        items.push({ label: '52W', val: '$' + info.fifty_two_week_low.toFixed(2) + ' \u2014 $' + info.fifty_two_week_high.toFixed(2) });
-      if (info.day_low != null && info.day_high != null)
-        items.push({ label: 'Day', val: '$' + info.day_low.toFixed(2) + ' \u2014 $' + info.day_high.toFixed(2) });
-      if (info.volume_fmt) items.push({ label: 'Vol', val: info.volume_fmt });
-      if (info.previous_close != null) items.push({ label: 'Prev Close', val: '$' + info.previous_close.toFixed(2) });
-
-      metaRow.textContent = '';
-      items.forEach(function(item, i) {
-        if (item.type === 'name') {
-          var span = document.createElement('span');
-          span.className = 'meta-company';
-          span.textContent = item.val;
-          metaRow.appendChild(span);
-          var div = document.createElement('div');
-          div.className = 'meta-divider';
-          metaRow.appendChild(div);
-        } else {
-          var tag = document.createElement('span');
-          tag.className = 'meta-tag';
-          var labelNode = document.createTextNode(item.label + ' ');
-          var valSpan = document.createElement('span');
-          valSpan.className = 'val';
-          valSpan.textContent = item.val;
-          tag.appendChild(labelNode);
-          tag.appendChild(valSpan);
-          metaRow.appendChild(tag);
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        let message = "Request failed";
+        try {
+          const payload = await response.json();
+          message = payload.detail || message;
+        } catch (_) {
+          message = response.statusText || message;
         }
-      });
-      if (items.length) metaRow.style.display = 'flex';
-    })
-    .catch(function() {});
-
-  if (tickerData) {
-    var score = tickerData.net_score;
-    var isPos = score >= 0;
-    var str   = isPos ? '+' + score.toLocaleString() : score.toLocaleString();
-    var scoreEl = document.getElementById('detailScore');
-    scoreEl.textContent = str;
-    scoreEl.className   = 'detail-score ' + (isPos ? 'pos' : 'neg');
-    document.getElementById('detailMentions').textContent = tickerData.mention_count.toLocaleString();
-
-    var pos   = tickerData.positive_count || 0;
-    var neg   = tickerData.negative_count || 0;
-    var total = (pos + neg) || 1;
-    document.getElementById('detailBullBear').textContent = pos.toLocaleString() + ' / ' + neg.toLocaleString();
-    document.getElementById('detailBullBar').style.width = ((pos / total) * 100).toFixed(1) + '%';
-    document.getElementById('detailBearBar').style.width = ((neg / total) * 100).toFixed(1) + '%';
-
-    var subsList = document.getElementById('detailSubsList');
-    subsList.textContent = '';
-    (tickerData.subreddits || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(name) {
-      var tag = document.createElement('span');
-      tag.className = 'sub-tag';
-      tag.textContent = 'r/' + name;
-      subsList.appendChild(tag);
-    });
-  }
-
-  // Render signals from cache
-  var tickerSignals = cachedSignals.filter(function(s) { return s.ticker === symbol; });
-  renderDetailSignals(tickerSignals, symbol);
-
-  // Load community lens
-  document.getElementById('communitySection').style.display = 'none';
-  fetch('/api/tickers/' + symbol + '/community')
-    .then(function(r) { return r.ok ? r.json() : null; })
-    .then(function(data) { if (data) renderCommunity(data); })
-    .catch(function() {});
-
-  // Show divergence banner if applicable
-  var divBanner = document.getElementById('detailDivBanner');
-  divBanner.classList.remove('active');
-  var div = cachedDivergences.find(function(d) { return d.ticker === symbol; });
-  if (div) {
-    var sentDir = div.bull_ratio > 0.5 ? 'bullish' : 'bearish';
-    var priceDir = div.price_change_pct >= 0 ? 'up' : 'down';
-    var sign = div.price_change_pct >= 0 ? '+' : '';
-    divBanner.textContent = 'Divergence detected (' + div.confidence + '% confidence): Reddit is ' + sentDir + ', price is ' + priceDir + ' ' + sign + div.price_change_pct.toFixed(1) + '%';
-    divBanner.classList.add('active');
-  }
-
-  // Load chart with default time range
-  await loadDetailChart(symbol, currentTimeRange);
-}
-
-function updateTimeBtnState() {
-  var btns = document.querySelectorAll('#timeSelectors .time-btn');
-  btns.forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.range === currentTimeRange.range);
-  });
-}
-
-async function loadDetailChart(symbol, tr) {
-  var chartLoading = document.getElementById('detailChartLoading');
-  chartLoading.style.display = 'flex';
-  destroyDetailChart();
-
-  var priceUrl = '/api/tickers/' + symbol + '/price?range=' + tr.range + '&interval=' + tr.interval;
-  var sentUrl  = '/api/tickers/' + symbol + '/sentiment-history?lookback=' + tr.lookback;
-
-  var results = await Promise.allSettled([
-    fetch(priceUrl).then(function(r) { return r.ok ? r.json() : Promise.reject(); }),
-    fetch(sentUrl).then(function(r) { return r.ok ? r.json() : Promise.reject(); }),
-  ]);
-
-  chartLoading.style.display = 'none';
-
-  // Determine if intraday (timestamps include 'T')
-  var isIntraday = false;
-  // Lightweight-charts renders Unix timestamps as UTC — offset to local time
-  var tzOffsetSec = new Date().getTimezoneOffset() * 60;
-  var priceData = [];
-  if (results[0].status === 'fulfilled') {
-    var raw = results[0].value.data || [];
-    isIntraday = raw.length > 0 && raw[0].timestamp.indexOf('T') !== -1;
-    priceData = raw.map(function(d) {
-      if (isIntraday) {
-        return { time: Math.floor(new Date(d.timestamp + 'Z').getTime() / 1000) - tzOffsetSec, value: d.close };
+        throw new Error(message);
       }
-      return { time: d.timestamp.slice(0, 10), value: d.close };
-    }).filter(function(d) { return d.value != null; });
-    if (raw.length) {
-      document.getElementById('detailPrice').textContent = fmtPrice(raw[raw.length - 1].close);
-    }
-  }
-
-  var sentimentBull = [], sentimentBear = [];
-  if (results[1].status === 'fulfilled') {
-    // Aggregate into matching buckets — daily for daily charts, keep as-is otherwise
-    var bullByKey = {}, bearByKey = {};
-    (results[1].value.data || []).forEach(function(d) {
-      var t = isIntraday ? d.timestamp : d.timestamp.slice(0, 10);
-      if (d.positive > 0) bullByKey[t] = (bullByKey[t] || 0) + d.positive;
-      if (d.negative > 0) bearByKey[t] = (bearByKey[t] || 0) + d.negative;
-    });
-    Object.keys(bullByKey).sort().forEach(function(t) {
-      var tv = isIntraday ? Math.floor(new Date(t).getTime() / 1000) - tzOffsetSec : t;
-      sentimentBull.push({ time: tv, value: bullByKey[t] });
-    });
-    Object.keys(bearByKey).sort().forEach(function(t) {
-      var tv = isIntraday ? Math.floor(new Date(t).getTime() / 1000) - tzOffsetSec : t;
-      sentimentBear.push({ time: tv, value: -bearByKey[t] });
-    });
-  }
-
-  if (priceData.length || sentimentBull.length) {
-    buildDetailChart(priceData, sentimentBull, sentimentBear, isIntraday);
-  } else {
-    var chartEl = document.getElementById('detailChartEl');
-    chartEl.textContent = '';
-    var msg = document.createElement('div');
-    msg.className = 'sparkline-error';
-    msg.setAttribute('style', 'height:100%;font-size:0.75rem');
-    msg.textContent = 'No chart data available for this ticker';
-    chartEl.appendChild(msg);
-  }
-}
-
-// Time selector click handler
-document.getElementById('timeSelectors').addEventListener('click', function(e) {
-  var btn = e.target.closest('.time-btn');
-  if (!btn || !currentDetailSymbol) return;
-  currentTimeRange = {
-    range: btn.dataset.range,
-    interval: btn.dataset.interval,
-    lookback: btn.dataset.lookback,
-  };
-  updateTimeBtnState();
-  loadDetailChart(currentDetailSymbol, currentTimeRange);
-});
-
-function renderDetailSignals(signals, symbol) {
-  const el    = document.getElementById('detailSignalsBody');
-  const badge = document.getElementById('detailSignalsBadge');
-  if (!signals.length) {
-    badge.textContent = '0';
-    el.textContent = '';
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'No recent signals for $' + symbol;
-    el.appendChild(empty);
-    return;
-  }
-  badge.textContent = signals.length;
-  el.textContent = '';
-  signals.forEach(function(s) { el.appendChild(buildSignalRow(s)); });
-}
-
-function buildDetailChart(priceData, sentimentBull, sentimentBear, isIntraday) {
-  var container = document.getElementById('detailChartEl');
-  container.textContent = '';
-  if (!window.LightweightCharts) return;
-
-  detailChart = LightweightCharts.createChart(container, {
-    width:  container.clientWidth || 800,
-    height: 500,
-    layout: { background: { color: '#0c1120' }, textColor: '#8aabc4' },
-    grid: {
-      vertLines: { color: '#162035', style: LightweightCharts.LineStyle.Dotted },
-      horzLines: { color: '#162035', style: LightweightCharts.LineStyle.Dotted },
-    },
-    crosshair: {
-      mode: LightweightCharts.CrosshairMode.Normal,
-      vertLine: { color: '#8aabc4', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#0c1120' },
-      horzLine: { color: '#8aabc4', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#0c1120' },
-    },
-    rightPriceScale: { visible: true, borderColor: '#162035', textColor: '#8aabc4' },
-    leftPriceScale:  { visible: false },
-    timeScale: {
-      borderColor: '#162035',
-      timeVisible: isIntraday,
-      secondsVisible: false,
-    },
-  });
-
-  if (priceData.length) {
-    var priceSeries = detailChart.addAreaSeries({
-      lineColor:        '#0ea5e9',
-      topColor:         'rgba(14, 165, 233, 0.45)',
-      bottomColor:      'rgba(14, 165, 233, 0.04)',
-      lineWidth:        2,
-      priceLineVisible: true,
-      priceLineColor:   'rgba(14, 165, 233, 0.25)',
-      priceLineStyle:   LightweightCharts.LineStyle.Dashed,
-      lastValueVisible: true,
-      crosshairMarkerVisible: true,
-      crosshairMarkerRadius: 4,
-      crosshairMarkerBackgroundColor: '#0ea5e9',
-      crosshairMarkerBorderColor: '#0c1120',
-      crosshairMarkerBorderWidth: 2,
-    });
-    priceSeries.setData(priceData);
-  }
-
-  // Fit price data first so the chart is usable even if sentiment overlay fails
-  detailChart.timeScale().fitContent();
-
-  try {
-    if (sentimentBull.length) {
-      var bullSeries = detailChart.addHistogramSeries({
-        color:            '#10b981',
-        priceScaleId:     'sentiment',
-        priceFormat:      { type: 'volume' },
-        lastValueVisible: false,
-        priceLineVisible: false,
-      });
-      bullSeries.setData(sentimentBull.map(function(d) { return Object.assign({}, d, { color: '#10b981cc' }); }));
-      detailChart.priceScale('sentiment').applyOptions({ scaleMargins: { top: 0.75, bottom: 0 }, visible: false });
+      return response.json();
     }
 
-    if (sentimentBear.length) {
-      var bearSeries = detailChart.addHistogramSeries({
-        color:            '#ef4444',
-        priceScaleId:     'sentiment',
-        priceFormat:      { type: 'volume' },
-        lastValueVisible: false,
-        priceLineVisible: false,
-      });
-      bearSeries.setData(sentimentBear.map(function(d) { return Object.assign({}, d, { color: '#ef4444cc' }); }));
+    function renderOverview(overview, communities) {
+      els.weightedScore.textContent = formatSigned(overview.weighted_score);
+      els.mentionCount.textContent = formatInt(overview.mention_count);
+      els.toneMix.textContent = `${formatInt(overview.positive_count)} / ${formatInt(overview.negative_count)}`;
+      els.communityCount.textContent = String(communities.length);
+      els.lastSeen.textContent = overview.last_seen ? `Last signal ${formatDateTime(overview.last_seen)}` : "Last signal --";
+
+      const score = Number(overview.weighted_score || 0);
+      els.weightedScore.style.color = score >= 0 ? "var(--positive)" : "var(--negative)";
     }
-  } catch(e) { /* sentiment overlay is optional — don't break the chart */ }
 
-  // Crosshair tooltip — shows price, change, and date on hover
-  if (priceSeries && priceData.length) {
-    var firstPrice = priceData[0].value;
-    var tooltip = document.getElementById('chartTooltip');
-    var tooltipPriceEl = document.getElementById('tooltipPrice');
-    var tooltipChangeEl = document.getElementById('tooltipChange');
-    var tooltipDateEl = document.getElementById('tooltipDate');
+    function renderTrend(history) {
+      const rows = Array.isArray(history.data) ? history.data : [];
+      const area = els.trendChart.querySelector(".chart-area");
+      const line = els.trendChart.querySelector(".chart-line");
+      const grid = els.trendChart.querySelector(".chart-grid");
+      const points = els.trendChart.querySelector(".chart-points");
 
-    detailChart.subscribeCrosshairMove(function(param) {
-      if (!param.time || !param.seriesData || !param.seriesData.get(priceSeries)) {
-        tooltip.classList.remove('visible');
+      if (!rows.length) {
+        area.setAttribute("d", "");
+        line.setAttribute("d", "");
+        grid.innerHTML = "";
+        points.innerHTML = "";
+        els.trendChart.style.display = "none";
+        els.chartEmpty.style.display = "flex";
+        els.trendMeta.textContent = "No history yet";
+        els.peakScore.textContent = "--";
+        els.windowMentions.textContent = "0";
+        els.avgScore.textContent = "--";
         return;
       }
-      var data = param.seriesData.get(priceSeries);
-      var price = data.value != null ? data.value : data.close;
-      if (price == null) { tooltip.classList.remove('visible'); return; }
 
-      var change = price - firstPrice;
-      var changePct = ((change / firstPrice) * 100).toFixed(2);
-      var sign = change >= 0 ? '+' : '';
+      els.trendChart.style.display = "block";
+      els.chartEmpty.style.display = "none";
 
-      tooltipPriceEl.textContent = fmtPrice(price);
-      tooltipChangeEl.textContent = sign + change.toFixed(2) + ' (' + sign + changePct + '%)';
-      tooltipChangeEl.className = 'tooltip-change ' + (change >= 0 ? 'pos' : 'neg');
+      const width = 860;
+      const height = 280;
+      const padX = 22;
+      const padY = 22;
+      const values = rows.map((row) => Number(row.weighted_score || 0));
+      const mentionTotal = rows.reduce((sum, row) => sum + Number(row.mention_count || 0), 0);
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const high = Math.max(max, 0);
+      const low = Math.min(min, 0);
+      const span = Math.max(high - low, 1);
 
-      // Format date based on time type
-      if (typeof param.time === 'number') {
-        var d = new Date(param.time * 1000);
-        tooltipDateEl.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
-          d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      } else {
-        tooltipDateEl.textContent = param.time;
+      grid.innerHTML = Array.from({ length: 5 }).map((_, index) => {
+        const y = padY + ((height - padY * 2) / 4) * index;
+        return `<line x1="${padX}" y1="${y}" x2="${width - padX}" y2="${y}"></line>`;
+      }).join("");
+
+      const coords = rows.map((row, index) => {
+        const x = rows.length === 1
+          ? width / 2
+          : padX + ((width - padX * 2) / (rows.length - 1)) * index;
+        const y = height - padY - ((Number(row.weighted_score || 0) - low) / span) * (height - padY * 2);
+        return { x, y, label: row.timestamp, value: Number(row.weighted_score || 0) };
+      });
+
+      const baseline = height - padY - ((0 - low) / span) * (height - padY * 2);
+      const linePath = coords.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+      const areaPath = `${linePath} L ${coords[coords.length - 1].x} ${baseline} L ${coords[0].x} ${baseline} Z`;
+
+      line.setAttribute("d", linePath);
+      area.setAttribute("d", areaPath);
+      points.innerHTML = coords.map((point) =>
+        `<circle class="chart-point" cx="${point.x}" cy="${point.y}" r="4"></circle>`
+      ).join("");
+
+      const peak = Math.max(...values);
+      const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+      els.trendMeta.textContent = `${history.lookback.toUpperCase()} window • ${rows.length} buckets`;
+      els.peakScore.textContent = formatSigned(peak);
+      els.windowMentions.textContent = formatInt(mentionTotal);
+      els.avgScore.textContent = formatSigned(avg);
+    }
+
+    function renderCommunities(items) {
+      if (!items.length) {
+        els.communities.innerHTML = emptyState("No matching Epic community signals yet.");
+        return;
       }
-      tooltip.classList.add('visible');
+
+      const maxMentions = Math.max(...items.map((item) => Number(item.mention_count || 0)), 1);
+      els.communities.innerHTML = items.map((item) => {
+        const fill = Math.max(8, (Number(item.mention_count || 0) / maxMentions) * 100);
+        return `
+          <article class="community-row">
+            <div class="community-head">
+              <div class="community-name">r/${item.community}</div>
+              <div class="community-score">weighted ${formatSigned(item.weighted_score)}</div>
+            </div>
+            <div class="community-bar">
+              <div class="community-fill" style="width:${fill}%"></div>
+            </div>
+            <div class="community-meta">
+              <div>${formatInt(item.mention_count)} mentions</div>
+              <div>${formatInt(item.post_count)} posts</div>
+              <div>${formatInt(item.comment_count)} comments</div>
+              <div>${formatDateTime(item.last_seen)}</div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderSignals(items) {
+      if (!items.length) {
+        els.signals.innerHTML = emptyState("No recent Epic signals yet.");
+        return;
+      }
+
+      els.signals.innerHTML = items.map((item) => {
+        const positive = Number(item.polarity) > 0;
+        return `
+          <article class="signal">
+            <div class="signal-head">
+              <span class="pill ${positive ? "positive" : "negative"}">
+                ${positive ? "Positive" : "Negative"}
+              </span>
+              <span class="signal-weight">${formatSigned(item.weighted_score)}</span>
+            </div>
+            <div class="signal-meta">
+              <span>r/${item.community}</span>
+              <span class="signal-type">${item.content_type}</span>
+            </div>
+            <div class="signal-meta" style="margin-top:8px;">
+              <span>${formatInt(item.upvotes)} upvotes</span>
+              <span>${formatDateTime(item.collected_at)}</span>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderRuns(items) {
+      if (!items.length) {
+        els.runs.innerHTML = emptyState("No run history yet.");
+        return;
+      }
+
+      els.runs.innerHTML = items.slice(0, 6).map((item) => `
+        <article class="run-row">
+          <div>
+            <div class="run-status ${item.status}">${item.status}</div>
+            <div class="muted">${formatDateTime(item.started_at)}</div>
+          </div>
+          <div>
+            <div>${formatInt(item.signals_stored)} signals</div>
+            <div class="muted">${formatInt(item.comments_processed || 0)} scanned</div>
+          </div>
+          <div>
+            <div>${formatInt(item.sources_succeeded)} / ${formatInt(item.sources_attempted)} sources</div>
+            <div class="muted">${item.error_summary || "No errors"}</div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    async function refreshDashboard() {
+      els.refreshBtn.disabled = true;
+      els.refreshBtn.textContent = "Refreshing…";
+
+      try {
+        const [overview, history, communities, signals, runs] = await Promise.all([
+          fetchJson("/api/epic/overview"),
+          fetchJson(`/api/epic/sentiment-history?lookback=${encodeURIComponent(state.lookback)}`),
+          fetchJson("/api/epic/communities"),
+          fetchJson("/api/epic/recent-signals"),
+          fetchJson("/api/runs")
+        ]);
+
+        renderOverview(overview, communities);
+        renderTrend(history);
+        renderCommunities(communities);
+        renderSignals(signals);
+        renderRuns(runs);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        els.communities.innerHTML = errorState(message);
+        els.signals.innerHTML = errorState(message);
+        els.runs.innerHTML = errorState(message);
+        els.chartEmpty.style.display = "flex";
+        els.chartEmpty.textContent = message;
+        els.trendChart.style.display = "none";
+      } finally {
+        els.refreshBtn.disabled = false;
+        els.refreshBtn.textContent = "Refresh View";
+      }
+    }
+
+    els.lookback.addEventListener("change", (event) => {
+      state.lookback = event.target.value;
+      refreshDashboard();
     });
-  }
 
-  var ro = new ResizeObserver(function(entries) {
-    entries.forEach(function(entry) {
-      if (detailChart) detailChart.applyOptions({ width: entry.contentRect.width });
-    });
-  });
-  ro.observe(container);
-}
+    els.refreshBtn.addEventListener("click", refreshDashboard);
 
-// ================================================================
-// RENDER: MEME RADAR
-// ================================================================
-function renderRadar(data) {
-  var section = document.getElementById('radarSection');
-  var body = document.getElementById('radarBody');
-  var badge = document.getElementById('radarBadge');
-
-  if (!data.length) {
-    section.classList.remove('active');
-    return;
-  }
-
-  section.classList.add('active');
-  badge.textContent = data.length + ' detected';
-  body.textContent = '';
-
-  data.forEach(function(r) {
-    var tr = document.createElement('tr');
-    tr.addEventListener('click', function() { navigate('/stock/' + r.ticker); });
-
-    var tdTicker = document.createElement('td');
-    var tickerEl = document.createElement('span');
-    tickerEl.className = 'radar-ticker';
-    tickerEl.textContent = '$' + r.ticker;
-    tdTicker.appendChild(tickerEl);
-
-    var tdVel = document.createElement('td');
-    var velEl = document.createElement('span');
-    velEl.className = 'radar-velocity';
-    velEl.textContent = r.velocity_ratio + 'x';
-    var prevEl = document.createElement('div');
-    prevEl.className = 'radar-mentions';
-    prevEl.textContent = r.prev_count + ' \u2192 ' + r.mention_count;
-    tdVel.appendChild(velEl);
-    tdVel.appendChild(prevEl);
-
-    var tdSpread = document.createElement('td');
-    var spreadEl = document.createElement('span');
-    spreadEl.className = 'radar-spread';
-    spreadEl.textContent = r.subreddit_spread + ' subs';
-    var subsEl = document.createElement('div');
-    subsEl.className = 'radar-mentions';
-    subsEl.style.maxWidth = '200px';
-    subsEl.style.overflow = 'hidden';
-    subsEl.style.textOverflow = 'ellipsis';
-    subsEl.style.whiteSpace = 'nowrap';
-    subsEl.textContent = r.subreddits;
-    tdSpread.appendChild(spreadEl);
-    tdSpread.appendChild(subsEl);
-
-    var tdScore = document.createElement('td');
-    var scoreWrap = document.createElement('div');
-    scoreWrap.className = 'radar-score-wrap';
-    var bar = document.createElement('div');
-    bar.className = 'radar-score-bar';
-    var fill = document.createElement('div');
-    fill.className = 'radar-score-fill';
-    fill.style.width = Math.min(100, r.radar_score) + '%';
-    bar.appendChild(fill);
-    var label = document.createElement('div');
-    label.className = 'radar-score-label';
-    label.textContent = r.radar_score;
-    scoreWrap.appendChild(bar);
-    scoreWrap.appendChild(label);
-    tdScore.appendChild(scoreWrap);
-
-    tr.appendChild(tdTicker);
-    tr.appendChild(tdVel);
-    tr.appendChild(tdSpread);
-    tr.appendChild(tdScore);
-    body.appendChild(tr);
-  });
-}
-
-// ================================================================
-// RENDER: DIVERGENCE ALERTS
-// ================================================================
-var cachedDivergences = [];
-
-function renderDivergences(data) {
-  cachedDivergences = data;
-  var bar = document.getElementById('divergenceBar');
-  var cards = document.getElementById('divCards');
-  var badge = document.getElementById('divBadge');
-
-  if (!data.length) {
-    bar.classList.remove('active');
-    return;
-  }
-
-  bar.classList.add('active');
-  badge.textContent = data.length + ' active';
-  cards.textContent = '';
-
-  data.forEach(function(d) {
-    var card = document.createElement('div');
-    card.className = 'divergence-card';
-    card.addEventListener('click', function() { navigate('/stock/' + d.ticker); });
-
-    var ticker = document.createElement('div');
-    ticker.className = 'div-ticker';
-    ticker.textContent = '$' + d.ticker;
-
-    var arrows = document.createElement('div');
-    arrows.className = 'div-arrows';
-
-    var sentSpan = document.createElement('span');
-    sentSpan.className = 'sent ' + (d.bull_ratio > 0.5 ? 'pos' : 'neg');
-    sentSpan.textContent = d.bull_ratio > 0.5 ? '\u25b2 Bullish' : '\u25bc Bearish';
-
-    var vs = document.createElement('span');
-    vs.className = 'vs';
-    vs.textContent = 'vs';
-
-    var priceSpan = document.createElement('span');
-    priceSpan.className = 'price ' + (d.price_change_pct >= 0 ? 'pos' : 'neg');
-    var sign = d.price_change_pct >= 0 ? '+' : '';
-    priceSpan.textContent = sign + d.price_change_pct.toFixed(1) + '%';
-
-    arrows.appendChild(sentSpan);
-    arrows.appendChild(vs);
-    arrows.appendChild(priceSpan);
-
-    var conf = document.createElement('div');
-    conf.className = 'div-confidence';
-    var confBadge = document.createElement('span');
-    confBadge.className = 'badge ' + (d.confidence < 40 ? 'low' : d.confidence < 70 ? 'mid' : 'high');
-    confBadge.textContent = d.confidence + '% confidence';
-    conf.appendChild(confBadge);
-
-    card.appendChild(ticker);
-    card.appendChild(arrows);
-    card.appendChild(conf);
-    cards.appendChild(card);
-  });
-}
-
-// ================================================================
-// RENDER: COMMUNITY LENS
-// ================================================================
-function renderCommunity(data) {
-  var section = document.getElementById('communitySection');
-  var body = document.getElementById('communityBody');
-  var badge = document.getElementById('communityBadge');
-
-  if (!data || !data.communities || !data.communities.length) {
-    section.style.display = 'none';
-    return;
-  }
-
-  section.style.display = '';
-  var headerParts = data.communities.length + ' subreddits';
-  if (!data.consensus && data.communities.length >= 2) {
-    headerParts += ' · <span class="community-disagree">communities disagree</span>';
-  }
-  badge.innerHTML = headerParts;
-
-  body.textContent = '';
-  data.communities.forEach(function(c) {
-    var row = document.createElement('div');
-    row.className = 'community-row';
-
-    var name = document.createElement('span');
-    name.className = 'community-name';
-    name.textContent = 'r/' + c.subreddit;
-
-    var barWrap = document.createElement('div');
-    barWrap.className = 'community-bar-wrap';
-    var bar = document.createElement('div');
-    bar.className = 'split-bar';
-    var total = (c.positive + c.negative) || 1;
-    var posW = ((c.positive / total) * 100).toFixed(1);
-    var negW = ((c.negative / total) * 100).toFixed(1);
-    var bp = document.createElement('div');
-    bp.className = 'bar-pos';
-    bp.style.width = posW + '%';
-    var bn = document.createElement('div');
-    bn.className = 'bar-neg';
-    bn.style.width = negW + '%';
-    bar.appendChild(bp);
-    bar.appendChild(bn);
-    barWrap.appendChild(bar);
-
-    var mentions = document.createElement('div');
-    mentions.className = 'community-mentions';
-    mentions.textContent = c.mention_count;
-
-    var ratio = document.createElement('div');
-    var pct = Math.round(c.bull_ratio * 100);
-    ratio.className = 'community-ratio ' + (pct > 60 ? 'pos' : pct < 40 ? 'neg' : 'neutral');
-    ratio.textContent = pct + '% bull';
-
-    row.appendChild(name);
-    row.appendChild(barWrap);
-    row.appendChild(mentions);
-    row.appendChild(ratio);
-    body.appendChild(row);
-  });
-}
-
-// ================================================================
-// FETCH ALL
-// ================================================================
-async function fetchAll() {
-  document.getElementById('lastUpdated').textContent = 'updating\u2026';
-  try {
-    const [tickers, runs, signals, subreddits, radar, divergences] = await Promise.all([
-      fetch('/api/tickers').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
-      fetch('/api/runs').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
-      fetch('/api/signals/recent').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
-      fetch('/api/subreddits').then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { return Promise.reject(e.detail); }); }),
-      fetch('/api/radar').then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; }),
-      fetch('/api/divergences').then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; }),
-    ]);
-    renderTickers(tickers);
-    renderRuns(runs);
-    renderSignals(signals);
-    renderSubreddits(subreddits);
-    renderRadar(radar);
-    renderDivergences(divergences);
-    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB');
-  } catch (err) {
-    showErr(err);
-    document.getElementById('lastUpdated').textContent = 'error';
-  }
-}
-
-fetchAll();
-setInterval(fetchAll, 30000);
-handleRoute();
-</script>
+    refreshDashboard();
+  </script>
 </body>
 </html>

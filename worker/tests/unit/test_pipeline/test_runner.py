@@ -41,7 +41,7 @@ from src.tickers.extractor import ExtractedTicker
 def _make_settings(**overrides: Any) -> Settings:
     """Create a Settings instance with safe test defaults."""
     return Settings(
-        database_url="postgresql+asyncpg://sse:sse@localhost/sse_test",
+        database_url="postgresql+asyncpg://sentix:sentix@localhost/sentix_test",
         redis_url="redis://localhost:6379/0",
         cycle_interval_minutes=15,
         alert_threshold=3,
@@ -369,6 +369,69 @@ class TestCycleRunnerSuccess:
         call_args = signal_store.bulk_insert_signals.call_args
         signals_passed = call_args[0][0]
         assert signals_passed == []
+
+    @pytest.mark.asyncio
+    async def test_stored_signal_includes_content_type(self) -> None:
+        """Stored signals carry post/comment metadata for downstream scoring."""
+        run = _make_run()
+        run_store = AsyncMock()
+        run_store.create_run.return_value = run
+        run_store.get_last_successful_run.return_value = None
+        run_store.update_run_status.return_value = None
+
+        source_store = AsyncMock()
+        source_store.get_active_sources.return_value = [_make_source("EpicGamesPC")]
+
+        signal_store = AsyncMock()
+        signal_store.bulk_insert_signals.return_value = 1
+
+        post = RawComment(
+            text="Epic Games Store exclusives are still annoying.",
+            upvotes=12,
+            created_utc=datetime.now(tz=UTC),
+            content_type="post",
+        )
+        primary_scraper = MagicMock()
+        primary_scraper.is_available.return_value = True
+        primary_scraper.fetch_comments.return_value = _async_gen(post)
+
+        extractor = MagicMock()
+        extractor.extract.return_value = [
+            ExtractedTicker(symbol="EPIC_GAMES_STORE", explicit=True)
+        ]
+        disambiguator = MagicMock()
+        disambiguator.filter.return_value = ["EPIC_GAMES_STORE"]
+        classifier = MagicMock()
+        classifier.classify.return_value = ClassificationResult(
+            polarity=-1, confidence=0.9, discarded=False
+        )
+
+        @asynccontextmanager
+        async def sf():
+            session = AsyncMock()
+            session.flush.return_value = None
+            session.commit.return_value = None
+            with (
+                patch("src.pipeline.runner.RunStore", return_value=run_store),
+                patch("src.pipeline.runner.SignalStore", return_value=signal_store),
+                patch("src.pipeline.runner.SourceStore", return_value=source_store),
+            ):
+                yield session
+
+        runner = CycleRunner(
+            settings=_make_settings(),
+            session_factory=sf,
+            classifier=classifier,
+            primary_scraper=primary_scraper,
+            fallback_scraper=MagicMock(),
+            extractor=extractor,
+            disambiguator=disambiguator,
+        )
+
+        await runner.run_cycle()
+
+        inserted = signal_store.bulk_insert_signals.await_args.args[0]
+        assert inserted[0]["source_content_type"] == "post"
 
     @pytest.mark.asyncio
     async def test_signal_dict_does_not_contain_comment_text(self) -> None:

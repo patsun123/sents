@@ -117,6 +117,7 @@ async def test_fetch_returns_rawcomments(monkeypatch: pytest.MonkeyPatch) -> Non
     assert comments[0].text == "AAPL to the moon!"
     assert comments[0].upvotes == 30
     assert comments[0].created_utc.tzinfo == UTC
+    assert comments[0].content_type == "comment"
 
 
 @pytest.mark.asyncio

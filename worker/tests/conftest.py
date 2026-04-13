@@ -3,7 +3,7 @@ Shared pytest fixtures for the SentiX worker test suite.
 
 Database fixtures use mocked SQLAlchemy async sessions for unit tests.
 Integration tests use a real PostgreSQL instance via the ``db_session``
-fixture (requires ``DATABASE_URL`` env var or a local ``sse_test`` database).
+fixture (requires ``DATABASE_URL`` env var or a local ``sentix_test`` database).
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ async def db_session() -> AsyncSession:  # type: ignore[return]
 
     Requires a running PostgreSQL instance.  The URL defaults to::
 
-        postgresql+asyncpg://sse:sse@localhost:5432/sse_test
+        postgresql+asyncpg://sentix:sentix@localhost:5432/sentix_test
 
     Override by setting the ``DATABASE_URL`` environment variable.
     """
@@ -55,7 +55,7 @@ async def db_session() -> AsyncSession:  # type: ignore[return]
     from src.storage.models import Base  # noqa: PLC0415
 
     url = os.getenv(
-        "DATABASE_URL", "postgresql+asyncpg://sse:sse@localhost:5432/sse_test"
+        "DATABASE_URL", "postgresql+asyncpg://sentix:sentix@localhost:5432/sentix_test"
     )
     engine = create_async_engine(url, echo=False)
 
