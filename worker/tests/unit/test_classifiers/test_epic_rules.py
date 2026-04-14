@@ -11,6 +11,7 @@ Covers:
 from __future__ import annotations
 
 from src.classifiers.epic_rules import EpicRulesClassifier
+from src.topics import EPIC_GAMES_STORE_KEY, STEAM_STORE_KEY
 
 
 def test_positive_epic_preference() -> None:
@@ -62,3 +63,27 @@ def test_ambiguous_text_is_discarded() -> None:
 def test_is_ready() -> None:
     """Rule classifier is always ready."""
     assert EpicRulesClassifier().is_ready() is True
+
+
+def test_target_aware_steam_positive_on_comparative_text() -> None:
+    """Steam should score positive when text says Steam is better than Epic."""
+    classifier = EpicRulesClassifier()
+    result = classifier.classify_for_target(
+        STEAM_STORE_KEY,
+        "Epic can't even compare to Steam.",
+    )
+    assert result.polarity == 1
+    assert result.discarded is False
+
+
+def test_target_aware_epic_negative_and_steam_positive_can_diverge() -> None:
+    """The same text should produce opposite polarity per storefront target."""
+    classifier = EpicRulesClassifier()
+    text = "Personally, I go to Steam because the Steam client UI is better."
+    epic_result = classifier.classify_for_target(EPIC_GAMES_STORE_KEY, text)
+    steam_result = classifier.classify_for_target(STEAM_STORE_KEY, text)
+
+    assert epic_result.polarity == -1
+    assert epic_result.discarded is False
+    assert steam_result.polarity == 1
+    assert steam_result.discarded is False

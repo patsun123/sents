@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SentiX | Epic Games Store Sentiment</title>
+  <title>__PAGE_HEAD_TITLE__</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -131,7 +131,48 @@
     }
 
     .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
       margin-bottom: 28px;
+    }
+
+    .hero-nav {
+      display: inline-flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(10, 24, 46, 0.72);
+      box-shadow: var(--bevel);
+      align-self: flex-start;
+    }
+
+    .hero-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 86px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 700;
+      transition: background 140ms ease, color 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+
+    .hero-link:hover {
+      color: var(--ink);
+      border-color: var(--line);
+      transform: translateY(-1px);
+    }
+
+    .hero-link.active {
+      color: #07111f;
+      background: linear-gradient(135deg, #8ecfff, #5d9fff);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.32);
     }
 
     .eyebrow {
@@ -899,6 +940,10 @@
         max-width: none;
       }
 
+      .hero-top {
+        flex-direction: column;
+      }
+
       .control,
       .button {
         width: 100%;
@@ -911,8 +956,12 @@
     <section class="hero">
       <div class="hero-top">
         <div>
-          <h1 class="title">Epic Games Store Sentiment</h1>
+          <h1 id="pageTitle" class="title">__PAGE_HERO_TITLE__</h1>
         </div>
+        <nav class="hero-nav" aria-label="Storefront pages">
+          <a id="epicNavLink" class="hero-link" href="/epic">Epic</a>
+          <a id="steamNavLink" class="hero-link" href="/steam">Steam</a>
+        </nav>
       </div>
 
       <div class="hero-metrics">
@@ -950,7 +999,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">Sentiment trend</h2>
-              <p class="card-note">Market-style navigation for weighted sentiment, with drag, zoom, and quick range switching.</p>
+              <p id="trendNote" class="card-note">Market-style navigation for weighted sentiment, with drag, zoom, and quick range switching.</p>
             </div>
             <div id="trendMeta" class="card-meta">Waiting for data</div>
           </div>
@@ -980,7 +1029,7 @@
                 </div>
                 <div class="quote-strip" aria-label="Chart quote strip">
                   <div class="quote-cell primary">
-                    <div class="quote-label">Epic sentiment</div>
+                    <div id="quotePrimaryLabel" class="quote-label">Storefront sentiment</div>
                     <div id="quoteLastValue" class="quote-value">--</div>
                     <div id="quoteLastTime" class="quote-subvalue">Last print --</div>
                   </div>
@@ -1017,7 +1066,7 @@
                   </div>
                   <div id="volumeChart" class="chart-host volume" aria-label="Signal volume chart"></div>
                 </div>
-                <div id="chartEmpty" class="chart-empty">No Epic sentiment history yet for this window.</div>
+                <div id="chartEmpty" class="chart-empty">No storefront sentiment history yet for this window.</div>
               </div>
               <div class="chart-stats">
                 <div class="mini-stat">
@@ -1042,10 +1091,10 @@
         <div class="stack">
           <section class="card">
             <div class="card-head">
-              <div>
-                <h2 class="card-title">Community breakdown</h2>
-                <p class="card-note">Where Epic sentiment is forming and how much each subreddit is contributing.</p>
-              </div>
+            <div>
+              <h2 class="card-title">Community breakdown</h2>
+              <p id="communityNote" class="card-note">Where storefront sentiment is forming and how much each subreddit is contributing.</p>
+            </div>
               <div class="card-meta">24 hour view</div>
             </div>
             <div class="card-body">
@@ -1059,10 +1108,10 @@
         <div class="stack">
           <section class="card">
             <div class="card-head">
-              <div>
-                <h2 class="card-title">Recent signals</h2>
-                <p class="card-note">Newest matched posts and comments with weighted impact.</p>
-              </div>
+            <div>
+              <h2 class="card-title">Recent signals</h2>
+              <p id="signalsNote" class="card-note">Newest matched posts and comments with weighted impact.</p>
+            </div>
               <div class="card-meta">Latest 60</div>
             </div>
             <div class="card-body">
@@ -1097,10 +1146,10 @@
         <div class="stack">
           <section class="card">
             <div class="card-head">
-              <div>
-                <h2 class="card-title">Scoring formula</h2>
-                <p class="card-note">How Epic sentiment scores are currently derived from raw post and comment signals.</p>
-              </div>
+            <div>
+              <h2 class="card-title">Scoring formula</h2>
+              <p id="formulaNote" class="card-note">How storefront sentiment scores are currently derived from raw post and comment signals.</p>
+            </div>
               <div class="card-meta">Current model</div>
             </div>
             <div class="card-body">
@@ -1118,7 +1167,7 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
                   <div class="formula-item">`polarity` is `+1` for positive and `-1` for negative sentiment.</div>
                   <div class="formula-item">`LN(upvotes + 2)` keeps engagement useful without letting viral outliers dominate.</div>
                   <div class="formula-item">Posts get a stronger headline-level bonus. Comments get only a mild reply-count bump, capped at about `1.15x`.</div>
-                  <div class="formula-item">Community weights currently favor Epic/deal-focused communities and discount adversarial ones like `fuckepic`.</div>
+                  <div id="communityWeightNote" class="formula-item">Community weights currently favor focused communities and discount adversarial pockets.</div>
                 </div>
               </div>
             </div>
@@ -1129,12 +1178,16 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
   </div>
 
   <script>
+    const dashboardConfig = __DASHBOARD_CONFIG__;
     const state = {
       lookback: "7d"
     };
 
     const els = {
       lookback: null,
+      pageTitle: document.getElementById("pageTitle"),
+      epicNavLink: document.getElementById("epicNavLink"),
+      steamNavLink: document.getElementById("steamNavLink"),
       refreshBtn: document.getElementById("resetZoomBtn"),
       weightedScore: document.getElementById("weightedScore"),
       mentionCount: document.getElementById("mentionCount"),
@@ -1160,9 +1213,15 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
       quoteLastTime: document.getElementById("quoteLastTime"),
       quoteChange: document.getElementById("quoteChange"),
       quoteChangePct: document.getElementById("quoteChangePct"),
+      quotePrimaryLabel: document.getElementById("quotePrimaryLabel"),
       quoteHigh: document.getElementById("quoteHigh"),
       quoteLow: document.getElementById("quoteLow"),
       quoteVolume: document.getElementById("quoteVolume"),
+      trendNote: document.getElementById("trendNote"),
+      communityNote: document.getElementById("communityNote"),
+      signalsNote: document.getElementById("signalsNote"),
+      formulaNote: document.getElementById("formulaNote"),
+      communityWeightNote: document.getElementById("communityWeightNote"),
       communities: document.getElementById("communities"),
       signals: document.getElementById("signals"),
       runs: document.getElementById("runs")
@@ -1185,6 +1244,20 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
       },
       addEventListener() {}
     };
+
+    function applyDashboardConfig() {
+      document.title = `SentiX | ${dashboardConfig.displayName} Sentiment`;
+      els.pageTitle.textContent = `${dashboardConfig.displayName} Sentiment`;
+      els.quotePrimaryLabel.textContent = `${dashboardConfig.shortName} sentiment`;
+      els.trendNote.textContent = dashboardConfig.summaryCopy;
+      els.communityNote.textContent = dashboardConfig.communityNote;
+      els.signalsNote.textContent = dashboardConfig.signalsNote;
+      els.formulaNote.textContent = dashboardConfig.formulaNote;
+      els.chartEmpty.textContent = dashboardConfig.emptyHistory;
+      els.communityWeightNote.textContent = dashboardConfig.communityWeightNote;
+      els.epicNavLink.classList.toggle("active", dashboardConfig.slug === "epic");
+      els.steamNavLink.classList.toggle("active", dashboardConfig.slug === "steam");
+    }
 
     function formatInt(value) {
       return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value || 0);
@@ -1548,7 +1621,7 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
 
     function renderCommunities(items) {
       if (!items.length) {
-        els.communities.innerHTML = emptyState("No matching Epic community signals yet.");
+        els.communities.innerHTML = emptyState(dashboardConfig.emptyCommunities);
         return;
       }
 
@@ -1577,7 +1650,7 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
 
     function renderSignals(items) {
       if (!items.length) {
-        els.signals.innerHTML = emptyState("No recent Epic signals yet.");
+        els.signals.innerHTML = emptyState(dashboardConfig.emptySignals);
         return;
       }
 
@@ -1594,9 +1667,9 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
             </div>
             <div class="signal-meta">
               <span>${item.community
-                .split(" · ")
+                .split(" | ")
                 .map((community) => `r/${community}`)
-                .join(" · ")}</span>
+                .join(" | ")}</span>
               <span class="signal-type">${formatInt(item.signal_count)} signals</span>
             </div>
             <div class="signal-meta" style="margin-top:8px;">
@@ -1648,10 +1721,10 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
 
       try {
         const [overview, history, communities, signals, runs] = await Promise.all([
-          fetchJson("/api/epic/overview"),
-          fetchJson(`/api/epic/sentiment-history?lookback=${encodeURIComponent(state.lookback)}`),
-          fetchJson("/api/epic/communities"),
-          fetchJson("/api/epic/recent-signals"),
+          fetchJson(`${dashboardConfig.apiBase}/overview`),
+          fetchJson(`${dashboardConfig.apiBase}/sentiment-history?lookback=${encodeURIComponent(state.lookback)}`),
+          fetchJson(`${dashboardConfig.apiBase}/communities`),
+          fetchJson(`${dashboardConfig.apiBase}/recent-signals`),
           fetchJson("/api/runs")
         ]);
 
@@ -1709,6 +1782,7 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
 
     els.refreshBtn.addEventListener("click", refreshDashboard);
 
+    applyDashboardConfig();
     setActiveTab("market");
     setActiveRange(state.lookback);
     refreshDashboard();

@@ -39,8 +39,8 @@ from .scrapers.json_endpoint import JsonEndpointScraper
 from .scrapers.praw_oauth import PRAWOAuthScraper
 from .storage.models import DataSource
 from .topics import (
-    EpicGamesStoreDisambiguator,
-    EpicGamesStoreExtractor,
+    StorefrontDisambiguator,
+    StorefrontExtractor,
 )
 
 logger = logging.getLogger(__name__)
@@ -183,9 +183,9 @@ async def main() -> None:
     )
     fallback_scraper = PRAWOAuthScraper()
 
-    # Build Epic Games Store relevance matcher
-    extractor = EpicGamesStoreExtractor()
-    disambiguator = EpicGamesStoreDisambiguator()
+    # Build storefront relevance matcher
+    extractor = StorefrontExtractor()
+    disambiguator = StorefrontDisambiguator()
 
     # Build alert threshold tracker
     alert_tracker = AlertThresholdTracker(

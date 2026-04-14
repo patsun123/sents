@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import time
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -21,7 +23,7 @@ session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
 
-_DASHBOARD_HTML = (Path(__file__).parent / "dashboard.html").read_text()
+_DASHBOARD_TEMPLATE = (Path(__file__).parent / "dashboard.html").read_text()
 
 # In-memory TTL caches: key -> (fetched_at, payload)
 _PRICE_CACHE: dict[str, tuple[float, Any]] = {}
@@ -53,10 +55,136 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="SentiX Dashboard", lifespan=lifespan)
 
+@dataclass(frozen=True)
+class StorefrontConfig:
+    slug: str
+    entity_key: str
+    display_name: str
+    short_name: str
+    api_base: str
+    summary_copy: str
+    community_note: str
+    signals_note: str
+    formula_note: str
+    empty_history: str
+    empty_communities: str
+    empty_signals: str
+    community_weight_note: str
+    community_weights: dict[str, float]
+
+
+_STOREFRONTS: dict[str, StorefrontConfig] = {
+    "epic": StorefrontConfig(
+        slug="epic",
+        entity_key="EGS_STORE",
+        display_name="Epic Games Store",
+        short_name="Epic",
+        api_base="/api/epic",
+        summary_copy="Weighted sentiment built from Reddit posts and comments about the Epic Games Store.",
+        community_note="Where Epic sentiment is forming and how much each subreddit is contributing.",
+        signals_note="Thread-grouped Epic store signals so posts and comment clusters stay together.",
+        formula_note="How Epic sentiment scores are currently derived from raw post and comment signals.",
+        empty_history="No Epic sentiment history yet for this window.",
+        empty_communities="No matching Epic community signals yet.",
+        empty_signals="No recent Epic signals yet.",
+        community_weight_note="Community weights currently favor Epic/deal-focused communities and discount adversarial ones like `fuckepic`.",
+        community_weights={
+            "EpicGamesPC": 1.25,
+            "pcgaming": 1.0,
+            "pcmasterrace": 1.0,
+            "Steam": 0.9,
+            "GamingLeaksAndRumours": 1.0,
+            "truegaming": 1.0,
+            "patientgamers": 0.95,
+            "GameDeals": 1.15,
+            "FreeGameFindings": 1.1,
+            "ShouldIbuythisgame": 0.9,
+            "fuckepic": 0.75,
+        },
+    ),
+    "steam": StorefrontConfig(
+        slug="steam",
+        entity_key="STEAM_STOR",
+        display_name="Steam Store",
+        short_name="Steam",
+        api_base="/api/steam",
+        summary_copy="Weighted sentiment built from Reddit posts and comments about the Steam store and client.",
+        community_note="Where Steam store sentiment is forming and how much each subreddit is contributing.",
+        signals_note="Thread-grouped Steam store signals so comparative discussions stay attached to the source thread.",
+        formula_note="How Steam sentiment scores are currently derived from raw post and comment signals.",
+        empty_history="No Steam sentiment history yet for this window.",
+        empty_communities="No matching Steam community signals yet.",
+        empty_signals="No recent Steam signals yet.",
+        community_weight_note="Community weights currently favor Steam-focused and broader PC gaming communities while keeping explicitly adversarial pockets lower.",
+        community_weights={
+            "Steam": 1.25,
+            "pcgaming": 1.05,
+            "pcmasterrace": 1.05,
+            "GamingLeaksAndRumours": 1.0,
+            "truegaming": 1.0,
+            "patientgamers": 1.0,
+            "GameDeals": 1.1,
+            "FreeGameFindings": 0.9,
+            "ShouldIbuythisgame": 0.95,
+            "EpicGamesPC": 0.85,
+            "fuckepic": 0.9,
+        },
+    ),
+}
+
+
+def _get_storefront(slug: str) -> StorefrontConfig:
+    storefront = _STOREFRONTS.get(slug.lower())
+    if storefront is None:
+        raise HTTPException(status_code=404, detail=f"Unknown storefront: {slug}")
+    return storefront
+
+
+def _render_dashboard_html(storefront: StorefrontConfig) -> str:
+    config = {
+        "slug": storefront.slug,
+        "entityKey": storefront.entity_key,
+        "displayName": storefront.display_name,
+        "shortName": storefront.short_name,
+        "apiBase": storefront.api_base,
+        "summaryCopy": storefront.summary_copy,
+        "communityNote": storefront.community_note,
+        "signalsNote": storefront.signals_note,
+        "formulaNote": storefront.formula_note,
+        "emptyHistory": storefront.empty_history,
+        "emptyCommunities": storefront.empty_communities,
+        "emptySignals": storefront.empty_signals,
+        "communityWeightNote": storefront.community_weight_note,
+    }
+    return (
+        _DASHBOARD_TEMPLATE.replace(
+            "__PAGE_HEAD_TITLE__",
+            f"SentiX | {storefront.display_name} Sentiment",
+        )
+        .replace(
+            "__PAGE_HERO_TITLE__",
+            f"{storefront.display_name} Sentiment",
+        )
+        .replace(
+        "__DASHBOARD_CONFIG__",
+        json.dumps(config),
+        )
+    )
+
 
 @app.get("/")
 async def index() -> HTMLResponse:
-    return HTMLResponse(_DASHBOARD_HTML)
+    return HTMLResponse(_render_dashboard_html(_STOREFRONTS["epic"]))
+
+
+@app.get("/epic")
+async def epic_dashboard() -> HTMLResponse:
+    return HTMLResponse(_render_dashboard_html(_STOREFRONTS["epic"]))
+
+
+@app.get("/steam")
+async def steam_dashboard() -> HTMLResponse:
+    return HTMLResponse(_render_dashboard_html(_STOREFRONTS["steam"]))
 
 
 @app.get("/api/tickers")
@@ -71,7 +199,7 @@ async def get_tickers() -> JSONResponse:
                     COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
                     COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
                     MAX(collected_at) AS last_seen,
-                    string_agg(DISTINCT source_subreddit, ' · '
+                    string_agg(DISTINCT source_subreddit, ' | '
                         ORDER BY source_subreddit) AS subreddits
                 FROM sentiment_signals
                 WHERE collected_at >= NOW() - INTERVAL '24 hours'
@@ -377,35 +505,27 @@ _LOOKBACK_SQL: dict[str, tuple[str, str]] = {
     "6mo": ("180 days", "week"),
     "1y":  ("365 days", "week"),
 }
-_EPIC_ENTITY = "EGS_STORE"
-_EPIC_COMMUNITY_WEIGHTS: dict[str, float] = {
-    "EpicGamesPC": 1.25,
-    "pcgaming": 1.0,
-    "truegaming": 1.0,
-    "patientgamers": 0.95,
-    "GameDeals": 1.15,
-    "FreeGameFindings": 1.1,
-    "ShouldIbuythisgame": 0.9,
-    "fuckepic": 0.75,
-}
 
-
-def _epic_subreddit_weight_sql(column: str = "source_subreddit") -> str:
+def _storefront_subreddit_weight_sql(
+    storefront: StorefrontConfig,
+    column: str = "source_subreddit",
+) -> str:
     cases = " ".join(
         f"WHEN '{community}' THEN {weight}"
-        for community, weight in _EPIC_COMMUNITY_WEIGHTS.items()
+        for community, weight in storefront.community_weights.items()
     )
     return f"CASE {column} {cases} ELSE 0.85 END"
 
 
-def _epic_weighted_score_sql(
+def _storefront_weighted_score_sql(
+    storefront: StorefrontConfig,
     polarity_col: str = "sentiment_polarity",
     upvotes_col: str = "upvote_weight",
     reply_count_col: str = "reply_count",
     subreddit_col: str = "source_subreddit",
     content_type_col: str = "source_content_type",
 ) -> str:
-    subreddit_weight = _epic_subreddit_weight_sql(subreddit_col)
+    subreddit_weight = _storefront_subreddit_weight_sql(storefront, subreddit_col)
     # Posts keep the stronger headline-level bonus. Comments get only a mild,
     # capped engagement lift from replies so long discussions matter slightly
     # more without letting massive threads dominate the aggregate.
@@ -416,6 +536,52 @@ def _epic_weighted_score_sql(
         f"ELSE (1.0 + LEAST(LN({reply_count_col} + 1), 1.5) * 0.1) "
         f"END) * "
         f"({subreddit_weight}))"
+    )
+
+
+_EPIC_ENTITY = _STOREFRONTS["epic"].entity_key
+_STEAM_ENTITY = _STOREFRONTS["steam"].entity_key
+
+
+def _epic_subreddit_weight_sql(column: str = "source_subreddit") -> str:
+    return _storefront_subreddit_weight_sql(_STOREFRONTS["epic"], column)
+
+
+def _steam_subreddit_weight_sql(column: str = "source_subreddit") -> str:
+    return _storefront_subreddit_weight_sql(_STOREFRONTS["steam"], column)
+
+
+def _epic_weighted_score_sql(
+    polarity_col: str = "sentiment_polarity",
+    upvotes_col: str = "upvote_weight",
+    reply_count_col: str = "reply_count",
+    subreddit_col: str = "source_subreddit",
+    content_type_col: str = "source_content_type",
+) -> str:
+    return _storefront_weighted_score_sql(
+        _STOREFRONTS["epic"],
+        polarity_col,
+        upvotes_col,
+        reply_count_col,
+        subreddit_col,
+        content_type_col,
+    )
+
+
+def _steam_weighted_score_sql(
+    polarity_col: str = "sentiment_polarity",
+    upvotes_col: str = "upvote_weight",
+    reply_count_col: str = "reply_count",
+    subreddit_col: str = "source_subreddit",
+    content_type_col: str = "source_content_type",
+) -> str:
+    return _storefront_weighted_score_sql(
+        _STOREFRONTS["steam"],
+        polarity_col,
+        upvotes_col,
+        reply_count_col,
+        subreddit_col,
+        content_type_col,
     )
 
 
@@ -486,7 +652,7 @@ async def get_epic_overview() -> JSONResponse:
                         COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
                         COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
                         MAX(collected_at) AS last_seen,
-                        string_agg(DISTINCT source_subreddit, ' · '
+                        string_agg(DISTINCT source_subreddit, ' | '
                             ORDER BY source_subreddit) AS communities
                     FROM sentiment_signals
                     WHERE ticker_symbol = :entity
@@ -646,7 +812,7 @@ async def get_epic_recent_signals() -> JSONResponse:
                             MAX(NULLIF(source_thread_url, '')) AS thread_url,
                             MAX(collected_at) AS latest_collected_at,
                             MIN(collected_at) AS first_collected_at,
-                            string_agg(DISTINCT source_subreddit, ' · ' ORDER BY source_subreddit) AS communities,
+                            string_agg(DISTINCT source_subreddit, ' | ' ORDER BY source_subreddit) AS communities,
                             COUNT(*) AS signal_count,
                             COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
                             COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
@@ -685,6 +851,236 @@ async def get_epic_recent_signals() -> JSONResponse:
         [
             {
                 "entity": _EPIC_ENTITY,
+                "weighted_score": float(row["weighted_score"] or 0),
+                "signal_count": int(row["signal_count"] or 0),
+                "positive_count": int(row["positive_count"] or 0),
+                "negative_count": int(row["negative_count"] or 0),
+                "post_count": int(row["post_count"] or 0),
+                "comment_count": int(row["comment_count"] or 0),
+                "upvotes": int(row["max_upvotes"] or 0),
+                "reply_count": int(row["max_reply_count"] or 0),
+                "collected_at": row["latest_collected_at"].isoformat(),
+                "first_collected_at": row["first_collected_at"].isoformat(),
+                "community": row["communities"] or "",
+                "thread_url": row["thread_url"] or None,
+            }
+            for row in rows
+        ]
+    )
+
+
+@app.get("/api/steam/overview")
+async def get_steam_overview() -> JSONResponse:
+    """24h summary for the Steam Store sentiment tracker."""
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    SELECT
+                        COUNT(*) AS mention_count,
+                        ROUND(SUM({_steam_weighted_score_sql()})::numeric, 2) AS weighted_score,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
+                        MAX(collected_at) AS last_seen,
+                        string_agg(DISTINCT source_subreddit, ' | '
+                            ORDER BY source_subreddit) AS communities
+                    FROM sentiment_signals
+                    WHERE ticker_symbol = :entity
+                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                """),
+                {"entity": _STEAM_ENTITY},
+            )
+            row = result.mappings().one()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        {
+            "entity": _STEAM_ENTITY,
+            "display_name": "Steam Store",
+            "mention_count": int(row["mention_count"] or 0),
+            "weighted_score": float(row["weighted_score"] or 0),
+            "positive_count": int(row["positive_count"] or 0),
+            "negative_count": int(row["negative_count"] or 0),
+            "last_seen": row["last_seen"].isoformat() if row["last_seen"] else None,
+            "communities": row["communities"] or "",
+        }
+    )
+
+
+@app.get("/api/steam/sentiment-history")
+async def get_steam_sentiment_history(lookback: str = "7d") -> JSONResponse:
+    """Time-bucketed sentiment history for the Steam Store."""
+    if lookback not in _LOOKBACK_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid lookback: {lookback}")
+
+    interval_expr, bucket_fn = _LOOKBACK_SQL[lookback]
+
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    SELECT
+                        date_trunc(:bucket, collected_at) AS bucket,
+                        COUNT(*) AS mention_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1)  AS positive,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative,
+                        ROUND(SUM({_steam_weighted_score_sql()})::numeric, 2) AS weighted_score
+                    FROM sentiment_signals
+                    WHERE ticker_symbol = :entity
+                      AND collected_at >= NOW() - INTERVAL '{interval_expr}'
+                    GROUP BY bucket
+                    ORDER BY bucket
+                """),
+                {"entity": _STEAM_ENTITY, "bucket": bucket_fn},
+            )
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        {
+            "entity": _STEAM_ENTITY,
+            "display_name": "Steam Store",
+            "lookback": lookback,
+            "data": [
+                {
+                    "timestamp": r["bucket"].isoformat(),
+                    "positive": int(r["positive"]),
+                    "negative": int(r["negative"]),
+                    "weighted_score": float(r["weighted_score"] or 0),
+                    "mention_count": int(r["mention_count"]),
+                }
+                for r in rows
+            ],
+        }
+    )
+
+
+@app.get("/api/steam/communities")
+async def get_steam_communities() -> JSONResponse:
+    """Per-community Steam Store sentiment breakdown for the last 24 hours."""
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    SELECT
+                        source_subreddit,
+                        COUNT(*) AS mention_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
+                        COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
+                        ROUND(SUM({_steam_weighted_score_sql(subreddit_col='source_subreddit')})::numeric, 2) AS weighted_score,
+                        COUNT(*) FILTER (WHERE source_content_type = 'post') AS post_count,
+                        COUNT(*) FILTER (WHERE source_content_type = 'comment') AS comment_count,
+                        MAX(collected_at) AS last_seen
+                    FROM sentiment_signals
+                    WHERE ticker_symbol = :entity
+                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                    GROUP BY source_subreddit
+                    ORDER BY mention_count DESC, source_subreddit
+                """),
+                {"entity": _STEAM_ENTITY},
+            )
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        [
+            {
+                "community": row["source_subreddit"],
+                "mention_count": int(row["mention_count"]),
+                "positive_count": int(row["positive_count"]),
+                "negative_count": int(row["negative_count"]),
+                "weighted_score": float(row["weighted_score"] or 0),
+                "post_count": int(row["post_count"]),
+                "comment_count": int(row["comment_count"]),
+                "last_seen": row["last_seen"].isoformat() if row["last_seen"] else None,
+            }
+            for row in rows
+        ]
+    )
+
+
+@app.get("/api/steam/recent-signals")
+async def get_steam_recent_signals() -> JSONResponse:
+    """Recent Steam Store sentiment grouped by thread."""
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                text(f"""
+                    WITH recent AS (
+                        SELECT
+                            sentiment_polarity,
+                            upvote_weight,
+                            reply_count,
+                            collected_at,
+                            source_subreddit,
+                            source_thread_url,
+                            source_content_type,
+                            ({_steam_weighted_score_sql()}) AS weighted_score
+                        FROM sentiment_signals
+                        WHERE ticker_symbol = :entity
+                        ORDER BY collected_at DESC
+                        LIMIT 200
+                    ),
+                    grouped AS (
+                        SELECT
+                            COALESCE(
+                                NULLIF(source_thread_url, ''),
+                                CONCAT(
+                                    'ungrouped:',
+                                    source_subreddit,
+                                    ':',
+                                    EXTRACT(EPOCH FROM collected_at)::bigint,
+                                    ':',
+                                    source_content_type,
+                                    ':',
+                                    upvote_weight
+                                )
+                            ) AS thread_group,
+                            MAX(NULLIF(source_thread_url, '')) AS thread_url,
+                            MAX(collected_at) AS latest_collected_at,
+                            MIN(collected_at) AS first_collected_at,
+                            string_agg(DISTINCT source_subreddit, ' | ' ORDER BY source_subreddit) AS communities,
+                            COUNT(*) AS signal_count,
+                            COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
+                            COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
+                            COUNT(*) FILTER (WHERE source_content_type = 'post') AS post_count,
+                            COUNT(*) FILTER (WHERE source_content_type = 'comment') AS comment_count,
+                            MAX(upvote_weight) AS max_upvotes,
+                            MAX(reply_count) AS max_reply_count,
+                            ROUND(SUM(weighted_score)::numeric, 2) AS weighted_score
+                        FROM recent
+                        GROUP BY thread_group
+                    )
+                    SELECT
+                        thread_url,
+                        latest_collected_at,
+                        first_collected_at,
+                        communities,
+                        signal_count,
+                        positive_count,
+                        negative_count,
+                        post_count,
+                        comment_count,
+                        max_upvotes,
+                        max_reply_count,
+                        weighted_score
+                    FROM grouped
+                    ORDER BY latest_collected_at DESC
+                    LIMIT 20
+                """),
+                {"entity": _STEAM_ENTITY},
+            )
+            rows = result.mappings().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return JSONResponse(
+        [
+            {
+                "entity": _STEAM_ENTITY,
                 "weighted_score": float(row["weighted_score"] or 0),
                 "signal_count": int(row["signal_count"] or 0),
                 "positive_count": int(row["positive_count"] or 0),
@@ -845,7 +1241,7 @@ async def get_radar(window: str = "4h") -> JSONResponse:
                     ticker_symbol,
                     COUNT(DISTINCT source_subreddit) AS sub_count,
                     COUNT(*) AS mention_count,
-                    string_agg(DISTINCT source_subreddit, ' · '
+                    string_agg(DISTINCT source_subreddit, ' | '
                         ORDER BY source_subreddit) AS subreddits,
                     COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive,
                     COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative
@@ -1134,7 +1530,7 @@ async def get_ticker(symbol: str) -> JSONResponse:
                         COUNT(*) FILTER (WHERE sentiment_polarity =  1) AS positive_count,
                         COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
                         MAX(collected_at) AS last_seen,
-                        string_agg(DISTINCT source_subreddit, ' · '
+                        string_agg(DISTINCT source_subreddit, ' | '
                             ORDER BY source_subreddit) AS subreddits
                     FROM sentiment_signals
                     WHERE ticker_symbol = :symbol
