@@ -25,7 +25,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from tests.fixtures.reddit_responses import MOCK_STOCKS_RESPONSE
+from tests.fixtures.reddit_responses import (
+    MOCK_STOCKS_RESPONSE,
+    MOCK_THREAD_RESPONSE,
+    MOCK_THREAD_RESPONSE_SECONDARY,
+)
 
 # ---------------------------------------------------------------------------
 # Skip when PostgreSQL is unavailable
@@ -234,8 +238,12 @@ async def test_two_successful_sources(
 
     wsb_url = "https://www.reddit.com/r/wallstreetbets/new/.json?limit=100"
     stocks_url = "https://www.reddit.com/r/stocks/new/.json?limit=100"
+    wsb_thread_url = "https://www.reddit.com/r/wallstreetbets/comments/mock/weekend_thread/.json?limit=500&sort=new"
+    wsb_thread_url_secondary = "https://www.reddit.com/r/wallstreetbets/comments/mock/fresh_dd/.json?limit=500&sort=new"
 
     httpx_mock.add_response(url=wsb_url, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=wsb_thread_url, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=wsb_thread_url_secondary, json=MOCK_THREAD_RESPONSE_SECONDARY)
     httpx_mock.add_response(url=stocks_url, json=MOCK_STOCKS_RESPONSE)
 
     runner = _build_test_runner(db_session, subreddits)

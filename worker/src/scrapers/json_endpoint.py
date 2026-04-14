@@ -27,6 +27,13 @@ logger = logging.getLogger(__name__)
 _MAX_BACKOFF_ATTEMPTS = 3
 _MAX_BACKOFF_SECONDS = 60
 _PAGE_SIZE = 100
+_THREAD_PAGE_SIZE = 500
+_ACCEPT_HEADER = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+_ACCEPT_LANGUAGE_OPTIONS = [
+    "en-US,en;q=0.9",
+    "en-US,en;q=0.8",
+    "en-GB,en;q=0.9",
+]
 
 
 class JsonEndpointScraper:
@@ -129,19 +136,145 @@ class JsonEndpointScraper:
                         return
 
                     content_type = "post" if item_kind == "t3" else "comment"
+                    permalink = (item.get("permalink") or "").strip()
+                    thread_url = f"https://www.reddit.com{permalink}" if permalink else ""
 
                     yield RawComment(
                         text=body,
                         upvotes=max(0, int(item.get("ups", 0))),
+                        reply_count=self._reply_count_for_item(item, item_kind),
                         created_utc=created_utc,
                         content_type=content_type,
+                        source_thread_url=thread_url,
                     )
                     count += 1
+
+                    if item_kind == "t3" and count < limit:
+                        if permalink:
+                            try:
+                                async for thread_comment in self._fetch_thread_comments(
+                                    client=client,
+                                    permalink=permalink,
+                                    since=since,
+                                    remaining=limit - count,
+                                ):
+                                    yield thread_comment
+                                    count += 1
+                                    if count >= limit:
+                                        return
+                            except ScraperUnavailableError:
+                                logger.warning(
+                                    "thread_fetch_unavailable permalink=%s",
+                                    permalink,
+                                )
+                                continue
 
                 if not after:
                     break
 
                 await asyncio.sleep(self._request_delay)
+
+    async def _fetch_thread_comments(
+        self,
+        client: httpx.AsyncClient,
+        permalink: str,
+        since: datetime,
+        remaining: int,
+    ) -> AsyncIterator[RawComment]:
+        """Fetch nested comments for a post via thread ``.json``."""
+        if remaining <= 0:
+            return
+
+        thread_url = (
+            f"https://www.reddit.com{permalink}.json"
+            f"?limit={_THREAD_PAGE_SIZE}&sort=new"
+        )
+        response = await self._get_with_backoff(client, thread_url)
+        canonical_thread_url = f"https://www.reddit.com{permalink}"
+        payload = response.json()
+        if not isinstance(payload, list) or len(payload) < 2:
+            return
+
+        comments_listing = payload[1].get("data", {}) if isinstance(payload[1], dict) else {}
+        yielded = 0
+        for raw_comment in self._iter_comment_tree(
+            comments_listing.get("children", []), since, canonical_thread_url
+        ):
+            yield raw_comment
+            yielded += 1
+            if yielded >= remaining:
+                return
+
+        await asyncio.sleep(self._request_delay)
+
+    @classmethod
+    def _iter_comment_tree(
+        cls,
+        children: list[dict[object, object]],
+        since: datetime,
+        thread_url: str,
+    ):
+        """Yield comments from a Reddit thread tree newer than ``since``."""
+        for child in children:
+            if child.get("kind") != "t1":
+                continue
+
+            item = child.get("data", {})
+            body = (item.get("body") or "").strip()
+            if not body:
+                continue
+
+            created_utc = datetime.fromtimestamp(float(item["created_utc"]), tz=UTC)
+            if created_utc <= since:
+                continue
+
+            yield RawComment(
+                text=body,
+                upvotes=max(0, int(item.get("ups", 0))),
+                reply_count=cls._reply_count_for_item(item, "t1"),
+                created_utc=created_utc,
+                content_type="comment",
+                source_thread_url=thread_url,
+            )
+
+            replies = item.get("replies")
+            if isinstance(replies, dict):
+                replies_data = replies.get("data", {})
+                reply_children = replies_data.get("children", [])
+                yield from cls._iter_comment_tree(reply_children, since, thread_url)
+
+    @classmethod
+    def _reply_count_for_item(
+        cls,
+        item: dict[object, object],
+        item_kind: str,
+    ) -> int:
+        """Return a numeric engagement proxy without retaining thread IDs."""
+        if item_kind == "t3":
+            return max(0, int(item.get("num_comments", 0)))
+
+        replies = item.get("replies")
+        if not isinstance(replies, dict):
+            return 0
+
+        reply_children = replies.get("data", {}).get("children", [])
+        return cls._count_descendant_comments(reply_children)
+
+    @classmethod
+    def _count_descendant_comments(cls, children: list[dict[object, object]]) -> int:
+        """Count all descendant comments under a Reddit comment."""
+        total = 0
+        for child in children:
+            if child.get("kind") != "t1":
+                continue
+
+            total += 1
+            item = child.get("data", {})
+            replies = item.get("replies")
+            if isinstance(replies, dict):
+                reply_children = replies.get("data", {}).get("children", [])
+                total += cls._count_descendant_comments(reply_children)
+        return total
 
     async def _get_with_backoff(
         self, client: httpx.AsyncClient, url: str
@@ -165,7 +298,7 @@ class JsonEndpointScraper:
         retried_5xx = False
 
         while True:
-            headers = {"User-Agent": random.choice(self._user_agents)}  # noqa: S311  # nosec B311
+            headers = self._build_headers(url)
             response = await client.get(url, headers=headers)
 
             if response.status_code == 200:
@@ -208,3 +341,20 @@ class JsonEndpointScraper:
             raise ScraperError(
                 f"Unexpected HTTP {response.status_code} from Reddit."
             )
+
+    def _build_headers(self, url: str) -> dict[str, str]:
+        """Return a browser-like header set for a Reddit request."""
+        return {
+            "User-Agent": random.choice(self._user_agents),  # noqa: S311  # nosec B311
+            "Accept": _ACCEPT_HEADER,
+            "Accept-Language": random.choice(_ACCEPT_LANGUAGE_OPTIONS),  # noqa: S311  # nosec B311
+            "Referer": "https://www.reddit.com/",
+            "DNT": "1",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "same-origin" if "/comments/" in url else "none",
+            "Sec-Fetch-User": "?1",
+        }

@@ -50,6 +50,9 @@ _DEFAULT_SUBREDDITS = [
     "EpicGamesPC",
     # Broad but still high-signal PC gaming discussion
     "pcgaming",
+    "pcmasterrace",
+    "Steam",
+    "GamingLeaksAndRumours",
     "truegaming",
     "patientgamers",
     # Deal / free-game conversation where EGS promos are frequently discussed
@@ -62,9 +65,20 @@ _DEFAULT_SUBREDDITS = [
 ]
 
 _DEFAULT_USER_AGENTS = [
-    "Mozilla/5.0 (compatible; SentiXWorker/1.0; +https://github.com/patsun123/sents)",
-    "Mozilla/5.0 (X11; Linux x86_64) SentiXWorker/1.0",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SentiXWorker/1.0",
+    (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/135.0.0.0 Safari/537.36"
+    ),
+    (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+        "Version/17.4 Safari/605.1.15"
+    ),
+    (
+        "Mozilla/5.0 (X11; Linux x86_64; rv:136.0) "
+        "Gecko/20100101 Firefox/136.0"
+    ),
 ]
 
 

@@ -252,7 +252,7 @@ async def get_recent_signals() -> JSONResponse:
     try:
         async with session_factory() as session:
             result = await session.execute(text("""
-                SELECT ticker_symbol, sentiment_polarity, upvote_weight,
+                SELECT ticker_symbol, sentiment_polarity, upvote_weight, reply_count,
                        collected_at, source_subreddit
                 FROM sentiment_signals
                 ORDER BY collected_at DESC
@@ -267,6 +267,7 @@ async def get_recent_signals() -> JSONResponse:
             "ticker": r["ticker_symbol"],
             "polarity": int(r["sentiment_polarity"]),
             "upvotes": int(r["upvote_weight"]),
+            "reply_count": int(r["reply_count"]),
             "collected_at": r["collected_at"].isoformat(),
             "subreddit": r["source_subreddit"],
         }
@@ -400,13 +401,20 @@ def _epic_subreddit_weight_sql(column: str = "source_subreddit") -> str:
 def _epic_weighted_score_sql(
     polarity_col: str = "sentiment_polarity",
     upvotes_col: str = "upvote_weight",
+    reply_count_col: str = "reply_count",
     subreddit_col: str = "source_subreddit",
     content_type_col: str = "source_content_type",
 ) -> str:
     subreddit_weight = _epic_subreddit_weight_sql(subreddit_col)
+    # Posts keep the stronger headline-level bonus. Comments get only a mild,
+    # capped engagement lift from replies so long discussions matter slightly
+    # more without letting massive threads dominate the aggregate.
     return (
         f"({polarity_col} * LN({upvotes_col} + 2) * "
-        f"(CASE {content_type_col} WHEN 'post' THEN 1.35 ELSE 1.0 END) * "
+        f"(CASE {content_type_col} "
+        f"WHEN 'post' THEN 1.35 "
+        f"ELSE (1.0 + LEAST(LN({reply_count_col} + 1), 1.5) * 0.1) "
+        f"END) * "
         f"({subreddit_weight}))"
     )
 
@@ -600,22 +608,72 @@ async def get_epic_communities() -> JSONResponse:
 
 @app.get("/api/epic/recent-signals")
 async def get_epic_recent_signals() -> JSONResponse:
-    """Recent Epic Games Store sentiment signals."""
+    """Recent Epic Games Store sentiment grouped by thread."""
     try:
         async with session_factory() as session:
             result = await session.execute(
                 text(f"""
+                    WITH recent AS (
+                        SELECT
+                            sentiment_polarity,
+                            upvote_weight,
+                            reply_count,
+                            collected_at,
+                            source_subreddit,
+                            source_thread_url,
+                            source_content_type,
+                            ({_epic_weighted_score_sql()}) AS weighted_score
+                        FROM sentiment_signals
+                        WHERE ticker_symbol = :entity
+                        ORDER BY collected_at DESC
+                        LIMIT 200
+                    ),
+                    grouped AS (
+                        SELECT
+                            COALESCE(
+                                NULLIF(source_thread_url, ''),
+                                CONCAT(
+                                    'ungrouped:',
+                                    source_subreddit,
+                                    ':',
+                                    EXTRACT(EPOCH FROM collected_at)::bigint,
+                                    ':',
+                                    source_content_type,
+                                    ':',
+                                    upvote_weight
+                                )
+                            ) AS thread_group,
+                            MAX(NULLIF(source_thread_url, '')) AS thread_url,
+                            MAX(collected_at) AS latest_collected_at,
+                            MIN(collected_at) AS first_collected_at,
+                            string_agg(DISTINCT source_subreddit, ' · ' ORDER BY source_subreddit) AS communities,
+                            COUNT(*) AS signal_count,
+                            COUNT(*) FILTER (WHERE sentiment_polarity = 1) AS positive_count,
+                            COUNT(*) FILTER (WHERE sentiment_polarity = -1) AS negative_count,
+                            COUNT(*) FILTER (WHERE source_content_type = 'post') AS post_count,
+                            COUNT(*) FILTER (WHERE source_content_type = 'comment') AS comment_count,
+                            MAX(upvote_weight) AS max_upvotes,
+                            MAX(reply_count) AS max_reply_count,
+                            ROUND(SUM(weighted_score)::numeric, 2) AS weighted_score
+                        FROM recent
+                        GROUP BY thread_group
+                    )
                     SELECT
-                        sentiment_polarity,
-                        upvote_weight,
-                        collected_at,
-                        source_subreddit,
-                        source_content_type,
-                        ROUND(({_epic_weighted_score_sql()})::numeric, 2) AS weighted_score
-                    FROM sentiment_signals
-                    WHERE ticker_symbol = :entity
-                    ORDER BY collected_at DESC
-                    LIMIT 60
+                        thread_url,
+                        latest_collected_at,
+                        first_collected_at,
+                        communities,
+                        signal_count,
+                        positive_count,
+                        negative_count,
+                        post_count,
+                        comment_count,
+                        max_upvotes,
+                        max_reply_count,
+                        weighted_score
+                    FROM grouped
+                    ORDER BY latest_collected_at DESC
+                    LIMIT 20
                 """),
                 {"entity": _EPIC_ENTITY},
             )
@@ -627,12 +685,18 @@ async def get_epic_recent_signals() -> JSONResponse:
         [
             {
                 "entity": _EPIC_ENTITY,
-                "polarity": int(row["sentiment_polarity"]),
-                "upvotes": int(row["upvote_weight"]),
-                "content_type": row["source_content_type"],
                 "weighted_score": float(row["weighted_score"] or 0),
-                "collected_at": row["collected_at"].isoformat(),
-                "community": row["source_subreddit"],
+                "signal_count": int(row["signal_count"] or 0),
+                "positive_count": int(row["positive_count"] or 0),
+                "negative_count": int(row["negative_count"] or 0),
+                "post_count": int(row["post_count"] or 0),
+                "comment_count": int(row["comment_count"] or 0),
+                "upvotes": int(row["max_upvotes"] or 0),
+                "reply_count": int(row["max_reply_count"] or 0),
+                "collected_at": row["latest_collected_at"].isoformat(),
+                "first_collected_at": row["first_collected_at"].isoformat(),
+                "community": row["communities"] or "",
+                "thread_url": row["thread_url"] or None,
             }
             for row in rows
         ]

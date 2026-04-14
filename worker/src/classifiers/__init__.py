@@ -2,7 +2,8 @@
 Classifier factory.
 
 Select classifier via CLASSIFIER_BACKEND environment variable:
-  - "vader" (default): lightweight, no model download
+  - "epic_rules" (default): Epic Games Store specific rule-first classifier
+  - "vader": lightweight, no model download
   - "finbert": finance-domain transformer (requires finbert module)
 
 Example:
@@ -21,7 +22,7 @@ def get_classifier() -> SentimentClassifier:
     """
     Return the configured sentiment classifier.
 
-    Reads CLASSIFIER_BACKEND env var. Defaults to 'vader'.
+    Reads CLASSIFIER_BACKEND env var. Defaults to 'epic_rules'.
 
     Returns:
         A SentimentClassifier implementation.
@@ -30,9 +31,13 @@ def get_classifier() -> SentimentClassifier:
         ValueError: Unknown backend specified.
         ImportError: 'finbert' selected but FinBERTClassifier not available.
     """
-    backend = os.getenv("CLASSIFIER_BACKEND", "vader").lower().strip()
+    backend = os.getenv("CLASSIFIER_BACKEND", "epic_rules").lower().strip()
 
     match backend:
+        case "epic_rules":
+            from .epic_rules import EpicRulesClassifier
+
+            return EpicRulesClassifier()
         case "vader":
             from .vader import VADERClassifier
 
@@ -55,5 +60,5 @@ def get_classifier() -> SentimentClassifier:
         case _:
             raise ValueError(
                 f"Unknown CLASSIFIER_BACKEND: '{backend}'. "
-                f"Supported values: 'vader', 'finbert'."
+                f"Supported values: 'epic_rules', 'vader', 'finbert'."
             )

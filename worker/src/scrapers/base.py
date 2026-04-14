@@ -25,7 +25,9 @@ class RawComment:
     text: str  # Comment body — in-memory only, never persisted
     upvotes: int  # Upvote count at time of fetch (>= 0)
     created_utc: datetime  # UTC creation time
+    reply_count: int = 0  # Derived engagement count (>= 0), no IDs retained
     content_type: str = "comment"  # "post" or "comment"
+    source_thread_url: str = ""  # Canonical Reddit thread URL for UI linking
 
 
 class ScraperError(Exception):

@@ -43,11 +43,19 @@ def _make_mock_comment(body: str, ups: int, created_utc: float) -> MagicMock:
     comment.body = body
     comment.ups = ups
     comment.created_utc = created_utc
+    comment.replies.list.return_value = []
+    comment.submission.permalink = "/r/test/comments/abc123/submission_title/"
     return comment
 
 
 def _make_mock_submission(comments: list[Any]) -> MagicMock:
     submission = MagicMock()
+    submission.title = "Submission title"
+    submission.selftext = ""
+    submission.ups = 15
+    submission.num_comments = len(comments)
+    submission.created_utc = _RECENT_TS
+    submission.permalink = "/r/test/comments/abc123/submission_title/"
     submission.comments.replace_more.return_value = []
     submission.comments.list.return_value = comments
     return submission
@@ -112,12 +120,16 @@ async def test_fetch_returns_rawcomments(monkeypatch: pytest.MonkeyPatch) -> Non
         scraper = _make_scraper(monkeypatch)
         comments = [c async for c in scraper.fetch_comments("test", _PAST_SINCE)]
 
-    assert len(comments) == 1
+    assert len(comments) == 2
     assert isinstance(comments[0], RawComment)
-    assert comments[0].text == "AAPL to the moon!"
-    assert comments[0].upvotes == 30
+    assert comments[0].content_type == "post"
+    assert comments[0].reply_count == 1
+    assert comments[0].source_thread_url == "https://www.reddit.com/r/test/comments/abc123/submission_title/"
+    assert comments[1].text == "AAPL to the moon!"
+    assert comments[1].upvotes == 30
     assert comments[0].created_utc.tzinfo == UTC
-    assert comments[0].content_type == "comment"
+    assert comments[1].content_type == "comment"
+    assert comments[1].source_thread_url == "https://www.reddit.com/r/test/comments/abc123/submission_title/"
 
 
 @pytest.mark.asyncio
@@ -134,8 +146,8 @@ async def test_fetch_excludes_old_comments(monkeypatch: pytest.MonkeyPatch) -> N
         scraper = _make_scraper(monkeypatch)
         comments = [c async for c in scraper.fetch_comments("test", _PAST_SINCE)]
 
-    assert len(comments) == 1
-    assert comments[0].text == "New comment"
+    assert len(comments) == 2
+    assert comments[1].text == "New comment"
 
 
 @pytest.mark.asyncio
@@ -151,7 +163,24 @@ async def test_negative_upvotes_clamped(monkeypatch: pytest.MonkeyPatch) -> None
         scraper = _make_scraper(monkeypatch)
         comments = [c async for c in scraper.fetch_comments("test", _PAST_SINCE)]
 
-    assert comments[0].upvotes == 0
+    assert comments[1].upvotes == 0
+
+
+@pytest.mark.asyncio
+async def test_comment_reply_count_derived_from_replies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """OAuth scraper should carry nested reply counts as numeric metadata."""
+    mock_comment = _make_mock_comment("Nested thread", 8, _RECENT_TS)
+    mock_comment.replies.list.return_value = [MagicMock(), MagicMock()]
+    submission = _make_mock_submission([mock_comment])
+
+    with patch("praw.Reddit") as mock_reddit_cls:
+        mock_reddit = mock_reddit_cls.return_value
+        mock_reddit.subreddit.return_value.new.return_value = [submission]
+
+        scraper = _make_scraper(monkeypatch)
+        comments = [c async for c in scraper.fetch_comments("test", _PAST_SINCE)]
+
+    assert comments[1].reply_count == 2
 
 
 @pytest.mark.asyncio

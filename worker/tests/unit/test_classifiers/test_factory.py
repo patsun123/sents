@@ -2,7 +2,8 @@
 Unit tests for the classifier factory (get_classifier).
 
 Covers:
-- Default backend is VADER
+- Default backend is EpicRules
+- Explicit CLASSIFIER_BACKEND=epic_rules returns EpicRulesClassifier
 - Explicit CLASSIFIER_BACKEND=vader returns VADERClassifier
 - Unknown backend raises ValueError with helpful message
 - CLASSIFIER_BACKEND=finbert raises ImportError (module not yet implemented)
@@ -12,15 +13,30 @@ from __future__ import annotations
 
 import pytest
 
-from classifiers import get_classifier
-from classifiers.vader import VADERClassifier
+from src.classifiers import get_classifier
+from src.classifiers.epic_rules import EpicRulesClassifier
+from src.classifiers.vader import VADERClassifier
 
 
-def test_default_is_vader(monkeypatch: pytest.MonkeyPatch) -> None:
-    """When CLASSIFIER_BACKEND is not set, default to VADERClassifier."""
+def test_default_is_epic_rules(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When CLASSIFIER_BACKEND is not set, default to EpicRulesClassifier."""
     monkeypatch.delenv("CLASSIFIER_BACKEND", raising=False)
     classifier = get_classifier()
-    assert isinstance(classifier, VADERClassifier)
+    assert isinstance(classifier, EpicRulesClassifier)
+
+
+def test_epic_rules_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CLASSIFIER_BACKEND=epic_rules should return an EpicRulesClassifier."""
+    monkeypatch.setenv("CLASSIFIER_BACKEND", "epic_rules")
+    classifier = get_classifier()
+    assert isinstance(classifier, EpicRulesClassifier)
+
+
+def test_epic_rules_case_insensitive(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Backend name should be matched case-insensitively."""
+    monkeypatch.setenv("CLASSIFIER_BACKEND", "EPIC_RULES")
+    classifier = get_classifier()
+    assert isinstance(classifier, EpicRulesClassifier)
 
 
 def test_vader_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -64,7 +80,9 @@ def test_vader_classify_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
     """Factory-created classifier must produce a valid ClassificationResult."""
     monkeypatch.delenv("CLASSIFIER_BACKEND", raising=False)
     classifier = get_classifier()
-    result = classifier.classify("Best stock ever!")
+    result = classifier.classify(
+        "Looking forward to this as I prefer the Epic Store to Steam."
+    )
     assert result.polarity in (-1, 0, 1)
     assert isinstance(result.discarded, bool)
     assert 0.0 <= result.confidence <= 1.0

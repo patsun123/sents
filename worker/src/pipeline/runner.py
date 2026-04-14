@@ -153,8 +153,10 @@ class CycleRunner:
                                         "ticker_symbol": ticker,
                                         "sentiment_polarity": result.polarity,
                                         "upvote_weight": comment.upvotes,
+                                        "reply_count": comment.reply_count,
                                         "collected_at": comment.created_utc,
                                         "source_subreddit": source.subreddit_name,
+                                        "source_thread_url": comment.source_thread_url,
                                         "source_content_type": comment.content_type,
                                     }
                                 )

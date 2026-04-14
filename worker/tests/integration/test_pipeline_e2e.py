@@ -31,6 +31,8 @@ from tests.fixtures.reddit_responses import (
     MOCK_EMPTY_RESPONSE,
     MOCK_REDDIT_RESPONSE,
     MOCK_REDDIT_RESPONSE_OLD,
+    MOCK_THREAD_RESPONSE,
+    MOCK_THREAD_RESPONSE_SECONDARY,
 )
 
 # ---------------------------------------------------------------------------
@@ -62,6 +64,8 @@ pytestmark = [
 
 SUBREDDIT = "wallstreetbets"
 WSB_URL = f"https://www.reddit.com/r/{SUBREDDIT}/new/.json?limit=100"
+THREAD_URL = "https://www.reddit.com/r/wallstreetbets/comments/mock/weekend_thread/.json?limit=500&sort=new"
+THREAD_URL_SECONDARY = "https://www.reddit.com/r/wallstreetbets/comments/mock/fresh_dd/.json?limit=500&sort=new"
 
 
 def _build_runner(session: Any) -> Any:
@@ -148,6 +152,8 @@ async def test_full_cycle_success(
 ) -> None:
     """Full pipeline cycle stores signals and marks run as success."""
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL_SECONDARY, json=MOCK_THREAD_RESPONSE_SECONDARY)
 
     runner = _build_runner(seeded_db_session)
     run = await runner.run_cycle()
@@ -174,6 +180,8 @@ async def test_full_cycle_signals_have_correct_schema(
     from src.storage.signals import SignalStore  # noqa: PLC0415
 
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL_SECONDARY, json=MOCK_THREAD_RESPONSE_SECONDARY)
 
     runner = _build_runner(seeded_db_session)
     run = await runner.run_cycle()
@@ -206,6 +214,8 @@ async def test_it_ticker_not_stored(
     from src.storage.signals import SignalStore  # noqa: PLC0415
 
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL_SECONDARY, json=MOCK_THREAD_RESPONSE_SECONDARY)
 
     runner = _build_runner(seeded_db_session)
     await runner.run_cycle()
@@ -232,6 +242,8 @@ async def test_no_pii_after_cycle(
     from src.storage.signals import SignalStore  # noqa: PLC0415
 
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL_SECONDARY, json=MOCK_THREAD_RESPONSE_SECONDARY)
 
     runner = _build_runner(seeded_db_session)
     run = await runner.run_cycle()
@@ -278,6 +290,8 @@ async def test_incremental_fetch_no_duplicates(
     """Second cycle with only old-timestamp comments stores 0 new signals."""
     # First cycle: fresh data — stores signals
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=THREAD_URL_SECONDARY, json=MOCK_THREAD_RESPONSE_SECONDARY)
     runner = _build_runner(seeded_db_session)
     first_run = await runner.run_cycle()
 

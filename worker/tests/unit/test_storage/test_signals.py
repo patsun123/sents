@@ -27,6 +27,7 @@ def _make_signal_row(**kwargs: object) -> dict[str, object]:
         "ticker_symbol": "GME",
         "sentiment_polarity": 1,
         "upvote_weight": 10,
+        "reply_count": 0,
         "collected_at": datetime.now(tz=UTC),
         "source_subreddit": "wallstreetbets",
     }
@@ -109,6 +110,7 @@ async def test_get_signals_for_window_returns_list() -> None:
             ticker_symbol="GME",
             sentiment_polarity=1,
             upvote_weight=5,
+            reply_count=0,
             collected_at=datetime.now(tz=UTC),
             source_subreddit="wallstreetbets",
         )
