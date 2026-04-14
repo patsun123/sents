@@ -35,6 +35,29 @@
       --bevel: inset 0 1px 0 rgba(235, 245, 255, 0.06), inset 0 -1px 0 rgba(6, 14, 28, 0.34);
     }
 
+    body[data-storefront="epic"] {
+      --bg: #030405;
+      --bg-deep: #090a0b;
+      --paper: rgba(9, 10, 12, 0.9);
+      --panel: rgba(13, 14, 17, 0.86);
+      --panel-strong: rgba(15, 17, 20, 0.96);
+      --panel-soft: rgba(18, 20, 24, 0.74);
+      --ink: #f3f5f8;
+      --muted: #99a1ae;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.16);
+      --accent: #f2f4f8;
+      --accent-strong: #ffffff;
+      --accent-soft: rgba(255, 255, 255, 0.08);
+      --positive: #4de0a8;
+      --positive-soft: rgba(77, 224, 168, 0.12);
+      --negative: #ff7f8f;
+      --negative-soft: rgba(255, 127, 143, 0.14);
+      --shadow: 0 34px 90px rgba(0, 0, 0, 0.5);
+      --shadow-soft: 0 20px 54px rgba(0, 0, 0, 0.34);
+      --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.045), inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+    }
+
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
@@ -48,6 +71,14 @@
         radial-gradient(circle at 50% 100%, rgba(23, 79, 170, 0.14), transparent 32%),
         linear-gradient(180deg, #081325 0%, var(--bg) 46%, var(--bg-deep) 100%);
       position: relative;
+    }
+
+    body[data-storefront="epic"] {
+      background:
+        radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.035), transparent 18%),
+        radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.025), transparent 18%),
+        radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.018), transparent 28%),
+        linear-gradient(180deg, #050608 0%, var(--bg) 44%, var(--bg-deep) 100%);
     }
 
     body::after {
@@ -64,6 +95,21 @@
       z-index: 0;
     }
 
+    body[data-storefront="epic"]::after {
+      filter: blur(24px) saturate(0.25) brightness(0.24) contrast(1.05);
+      opacity: 0.18;
+    }
+
+    body[data-storefront="steam"]::after {
+      inset: 0;
+      background:
+        url("https://upload.wikimedia.org/wikipedia/commons/2/24/Steam_Logo.svg")
+        center center / min(92vw, 1500px) auto no-repeat;
+      filter: blur(26px) saturate(0.75) brightness(0.34);
+      opacity: 0.15;
+      transform: scale(1.16);
+    }
+
     body::before {
       content: "";
       position: fixed;
@@ -76,6 +122,13 @@
       mask-image: radial-gradient(circle at center, black 44%, transparent 92%);
       opacity: 0.55;
       z-index: 1;
+    }
+
+    body[data-storefront="epic"]::before {
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      opacity: 0.32;
     }
 
     .shell {
@@ -94,6 +147,10 @@
       background: radial-gradient(circle at center, rgba(31, 87, 175, 0.22), transparent 70%);
       filter: blur(24px);
       pointer-events: none;
+    }
+
+    body[data-storefront="epic"] .shell::before {
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), transparent 68%);
     }
 
     .hero {
@@ -122,12 +179,20 @@
       pointer-events: none;
     }
 
+    body[data-storefront="epic"] .hero::after {
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 70%);
+    }
+
     .hero::before {
       content: "";
       position: absolute;
       inset: 0;
       background: linear-gradient(125deg, rgba(255,255,255,0.04), transparent 28%, transparent 72%, rgba(124, 170, 255, 0.06));
       pointer-events: none;
+    }
+
+    body[data-storefront="epic"] .hero::before {
+      background: linear-gradient(125deg, rgba(255,255,255,0.03), transparent 30%, transparent 74%, rgba(255, 255, 255, 0.04));
     }
 
     .hero-top {
@@ -173,6 +238,13 @@
       color: #07111f;
       background: linear-gradient(135deg, #8ecfff, #5d9fff);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.32);
+    }
+
+    body[data-storefront="epic"] .hero-link.active,
+    body[data-storefront="epic"] .tab-btn.active {
+      color: #060708;
+      background: linear-gradient(135deg, #f5f7fa, #bcc2cb);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
     }
 
     .eyebrow {
@@ -243,6 +315,12 @@
       color: #06111f;
       border-color: transparent;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 10px 22px rgba(38, 96, 193, 0.34);
+    }
+
+    body[data-storefront="epic"] .button {
+      background: linear-gradient(135deg, #f3f4f6, #b4bbc4);
+      color: #050607;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.36), 0 10px 22px rgba(0, 0, 0, 0.3);
     }
 
     .button:hover,
@@ -688,6 +766,10 @@
       border-radius: 999px;
       background: linear-gradient(90deg, #2c6ee2, var(--accent-strong));
       width: 0%;
+    }
+
+    body[data-storefront="epic"] .community-fill {
+      background: linear-gradient(90deg, #707781, #f0f3f8);
     }
 
     .community-meta {
@@ -1246,6 +1328,7 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
     };
 
     function applyDashboardConfig() {
+      document.body.dataset.storefront = dashboardConfig.slug;
       document.title = `SentiX | ${dashboardConfig.displayName} Sentiment`;
       els.pageTitle.textContent = `${dashboardConfig.displayName} Sentiment`;
       els.quotePrimaryLabel.textContent = `${dashboardConfig.shortName} sentiment`;
@@ -1536,7 +1619,6 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
 
     function renderMarketTrend(history) {
       const rows = Array.isArray(history.data) ? history.data : [];
-      ensureTrendChart();
       trendRowsCache = rows;
 
       if (!rows.length) {
@@ -1567,6 +1649,14 @@ comment => 1.0 + LEAST(LN(reply_count + 1), 1.5) * 0.1</pre>
       els.trendChart.style.display = "block";
       els.volumeChart.style.display = "block";
       els.chartEmpty.style.display = "none";
+      ensureTrendChart();
+
+      const trendWidth = Math.max(els.trendChart.clientWidth, 320);
+      const trendHeight = Math.max(els.trendChart.clientHeight, 360);
+      const volumeWidth = Math.max(els.volumeChart.clientWidth, 320);
+      const volumeHeight = Math.max(els.volumeChart.clientHeight, 112);
+      trendChartApi.resize(trendWidth, trendHeight, true);
+      volumeChartApi.resize(volumeWidth, volumeHeight, true);
 
       const values = rows.map((row) => Number(row.weighted_score || 0));
       const mentionTotal = rows.reduce((sum, row) => sum + Number(row.mention_count || 0), 0);
