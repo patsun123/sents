@@ -19,7 +19,7 @@ import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from ..alerting.threshold import AlertThresholdTracker
 from ..classifiers.base import SentimentClassifier
@@ -29,8 +29,6 @@ from ..storage.models import CollectionRun
 from ..storage.runs import RunStore
 from ..storage.signals import SignalStore
 from ..storage.sources import SourceStore
-from ..tickers.disambiguator import TickerDisambiguator
-from ..tickers.extractor import TickerExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +41,20 @@ _CYCLE_DURATION_WARN_FRACTION = 0.8
 # Path to the health file written after each successful cycle.
 # The Dockerfile HEALTHCHECK verifies this file's mtime.
 _HEALTH_FILE = Path(".health")
+
+
+class CandidateExtractor(Protocol):
+    """Minimal extractor interface required by the cycle runner."""
+
+    def extract(self, text: str) -> list[Any]:
+        """Return extracted entity candidates from text."""
+
+
+class CandidateDisambiguator(Protocol):
+    """Minimal candidate filtering interface required by the cycle runner."""
+
+    def filter(self, candidates: list[Any]) -> list[str]:
+        """Return valid entity identifiers from extracted candidates."""
 
 
 class CycleRunner:
@@ -70,8 +82,8 @@ class CycleRunner:
         classifier: SentimentClassifier,
         primary_scraper: RedditScraper,
         fallback_scraper: RedditScraper,
-        extractor: TickerExtractor,
-        disambiguator: TickerDisambiguator,
+        extractor: CandidateExtractor,
+        disambiguator: CandidateDisambiguator,
         alert_tracker: AlertThresholdTracker | None = None,
     ) -> None:
         self._settings = settings

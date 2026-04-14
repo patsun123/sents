@@ -10,8 +10,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime
+from typing import Any, cast
 
 import httpx
 
@@ -23,6 +24,8 @@ from .base import (
 )
 
 logger = logging.getLogger(__name__)
+
+RedditObject = dict[str, Any]
 
 _MAX_BACKOFF_ATTEMPTS = 3
 _MAX_BACKOFF_SECONDS = 60
@@ -210,16 +213,16 @@ class JsonEndpointScraper:
     @classmethod
     def _iter_comment_tree(
         cls,
-        children: list[dict[object, object]],
+        children: list[RedditObject],
         since: datetime,
         thread_url: str,
-    ):
+    ) -> Iterator[RawComment]:
         """Yield comments from a Reddit thread tree newer than ``since``."""
         for child in children:
             if child.get("kind") != "t1":
                 continue
 
-            item = child.get("data", {})
+            item = cast(RedditObject, child.get("data", {}))
             body = (item.get("body") or "").strip()
             if not body:
                 continue
@@ -239,29 +242,35 @@ class JsonEndpointScraper:
 
             replies = item.get("replies")
             if isinstance(replies, dict):
-                replies_data = replies.get("data", {})
-                reply_children = replies_data.get("children", [])
+                replies_data = cast(RedditObject, replies.get("data", {}))
+                reply_children = cast(list[RedditObject], replies_data.get("children", []))
                 yield from cls._iter_comment_tree(reply_children, since, thread_url)
 
     @classmethod
     def _reply_count_for_item(
         cls,
-        item: dict[object, object],
+        item: RedditObject,
         item_kind: str,
     ) -> int:
         """Return a numeric engagement proxy without retaining thread IDs."""
         if item_kind == "t3":
-            return max(0, int(item.get("num_comments", 0)))
+            num_comments = item.get("num_comments", 0)
+            if isinstance(num_comments, bool):
+                return 0
+            if isinstance(num_comments, int | float | str):
+                return max(0, int(num_comments))
+            return 0
 
         replies = item.get("replies")
         if not isinstance(replies, dict):
             return 0
 
-        reply_children = replies.get("data", {}).get("children", [])
+        replies_data = cast(RedditObject, replies.get("data", {}))
+        reply_children = cast(list[RedditObject], replies_data.get("children", []))
         return cls._count_descendant_comments(reply_children)
 
     @classmethod
-    def _count_descendant_comments(cls, children: list[dict[object, object]]) -> int:
+    def _count_descendant_comments(cls, children: list[RedditObject]) -> int:
         """Count all descendant comments under a Reddit comment."""
         total = 0
         for child in children:
@@ -269,10 +278,11 @@ class JsonEndpointScraper:
                 continue
 
             total += 1
-            item = child.get("data", {})
+            item = cast(RedditObject, child.get("data", {}))
             replies = item.get("replies")
             if isinstance(replies, dict):
-                reply_children = replies.get("data", {}).get("children", [])
+                replies_data = cast(RedditObject, replies.get("data", {}))
+                reply_children = cast(list[RedditObject], replies_data.get("children", []))
                 total += cls._count_descendant_comments(reply_children)
         return total
 

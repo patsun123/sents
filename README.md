@@ -1,27 +1,17 @@
 # SentiX
 
-SentiX is currently being repurposed into a Reddit-driven sentiment tracker for
-the Epic Games Store.
+SentiX is a Dockerized Reddit sentiment tracker currently focused on the
+Epic Games Store. It scrapes selected gaming subreddits on a schedule,
+classifies Epic-related posts and comments as positive or negative, stores raw
+signals in PostgreSQL, and serves a live dashboard at `http://localhost:8000`.
 
-The current implementation focus is collecting Epic Games Store discussion from
-gaming-related Reddit communities, classifying each relevant mention as
-positive or negative, and storing those raw signals in PostgreSQL for later
-analysis and visualization.
+## What You Get
 
-## Current Focus
-
-- Scrapes Reddit on a schedule from Epic-relevant gaming communities
-- Detects Epic Games Store discussion with keyword and context rules
-- Classifies sentiment with a pluggable classifier interface
-- Stores privacy-safe raw signals only
-- Exposes Epic-specific JSON endpoints for overview, history, communities, and recent signals
-
-## Core Principles
-
-- Signal-first storage: store atomic signals, not precomputed scores
-- Zero PII: no usernames, comment IDs, post IDs, or comment bodies are persisted
-- Resilient ingestion: primary `.json` scraping lane with OAuth fallback
-- Source isolation: one failing community should not kill the whole cycle
+- FastAPI dashboard and JSON API
+- Reddit worker with public `.json` scraping and thread expansion
+- PostgreSQL for raw signal storage
+- Redis for API caching
+- Docker Compose setup that boots the full stack locally
 
 ## Repo Layout
 
@@ -31,216 +21,229 @@ worker/       Reddit ingestion worker, migrations, tests
 kitty-specs/  Feature spec, plan, contracts, and task breakdown
 ```
 
-## Architecture
+## Prerequisites
+
+- Git
+- Docker Desktop or Docker Engine with Compose support
+
+## Pull And Run
+
+### 1. Clone the repo
+
+```bash
+git clone <YOUR-REPO-URL>
+cd sse_io
+```
+
+### 2. Create a local env file
+
+This is optional for a basic local run, but recommended so your settings are
+explicit.
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### 3. Start the stack
+
+```bash
+docker compose up --build
+```
+
+Or detached:
+
+```bash
+docker compose up -d --build
+```
+
+### 4. Open the app
+
+- Dashboard: `http://localhost:8000`
+- API overview: `http://localhost:8000/api/epic/overview`
+
+The first startup will:
+
+1. Build the API and worker images
+2. Start PostgreSQL and Redis
+3. Run database migrations
+4. Seed default subreddits
+5. Start the worker scheduler
+
+## Default Local Behavior
+
+Out of the box, the stack is ready to run locally with no extra credentials.
+
+- API port: `8000`
+- Worker schedule: every `15` minutes
+- Default classifier: `epic_rules`
+- Reddit public `.json` scraping: enabled
+- Reddit OAuth fallback: optional
+
+### Default Communities
+
+The worker seeds and scans these communities by default:
+
+- `EpicGamesPC`
+- `pcgaming`
+- `pcmasterrace`
+- `Steam`
+- `GamingLeaksAndRumours`
+- `truegaming`
+- `patientgamers`
+- `GameDeals`
+- `FreeGameFindings`
+- `ShouldIbuythisgame`
+- `fuckepic`
+
+## Environment Variables
+
+The compose file already provides sane local defaults. Most people only need a
+`.env` file if they want to override them.
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgresql+asyncpg://sentix:sentix@postgres:5432/sentix` | PostgreSQL connection string |
+| `REDIS_URL` | `redis://redis:6379/0` | Redis connection string |
+| `CLASSIFIER_BACKEND` | `epic_rules` | Sentiment backend |
+| `CYCLE_INTERVAL_MINUTES` | `15` | Worker scan interval |
+| `ALERT_THRESHOLD` | `3` | Consecutive failures before alerting |
+| `SENTRY_DSN` | `""` | Optional Sentry DSN |
+| `LOG_LEVEL` | `INFO` | Worker log level |
+| `VADER_NEUTRAL_THRESHOLD` | `0.05` | Neutral-zone boundary for VADER only |
+
+## Optional Reddit OAuth Fallback
+
+The primary scraper uses Reddit's public `.json` endpoints and works without
+credentials. If you want the OAuth fallback lane available, set these in
+`.env` before starting the stack:
+
+```bash
+REDDIT_CLIENT_ID=...
+REDDIT_CLIENT_SECRET=...
+REDDIT_USERNAME=...
+REDDIT_PASSWORD=...
+```
+
+## Common Commands
+
+### Start in background
+
+```bash
+docker compose up -d --build
+```
+
+### View logs
+
+```bash
+docker compose logs -f
+```
+
+Worker only:
+
+```bash
+docker compose logs -f worker
+```
+
+API only:
+
+```bash
+docker compose logs -f api
+```
+
+### Stop the stack
+
+```bash
+docker compose down
+```
+
+### Stop and remove volumes
+
+This wipes local Postgres and Redis data.
+
+```bash
+docker compose down -v
+```
+
+## How The Pipeline Works
 
 ### Worker
 
-The worker is the main engine of the project.
+On startup the worker:
 
-On startup it:
-
-1. Loads environment-based settings
-2. Configures structured logging and optional Sentry alerting
+1. Loads settings from environment variables
+2. Configures structured logging and optional Sentry
 3. Runs Alembic migrations
-4. Seeds default subreddits if needed
-5. Starts an APScheduler loop
+4. Seeds default data sources
+5. Initializes the configured classifier
+6. Starts the scheduler
 
 On each cycle it:
 
-1. Loads enabled subreddits from PostgreSQL
-2. Computes a `since` cutoff from the last successful run
-3. Scrapes Reddit comments/posts
-4. Matches Epic Games Store-relevant text
-5. Classifies comment sentiment
-6. Bulk inserts raw sentiment signals
-7. Records run metadata and health state
+1. Loads enabled communities from PostgreSQL
+2. Scrapes subreddit listings from Reddit
+3. Expands selected threads via thread `.json`
+4. Detects Epic Games Store discussion
+5. Classifies polarity
+6. Stores privacy-safe raw signals
+7. Records run health and scrape metadata
 
 ### API
 
-The API serves JSON endpoints backed by PostgreSQL. The new Epic-focused
-surface includes:
+The API serves the dashboard plus Epic-specific endpoints:
 
 - `/api/epic/overview`
 - `/api/epic/sentiment-history`
 - `/api/epic/communities`
 - `/api/epic/recent-signals`
 
-## Data Model
+## Data And Privacy Model
 
 The worker stores raw signals shaped like:
 
 ```text
-(ticker_symbol, sentiment_polarity, upvote_weight, collected_at, source_subreddit)
+(ticker_symbol, sentiment_polarity, upvote_weight, reply_count, collected_at, source_subreddit)
 ```
 
-It also stores collection run metadata such as cycle status, comments processed,
-sources attempted/succeeded, and error summaries.
+It also stores run metadata such as cycle status, comments processed, sources
+attempted, sources succeeded, and error summaries.
 
-For the Epic-only slice, `ticker_symbol` is currently used as a synthetic entity
-key with the value `EGS_STORE`.
-
-Signals also carry `source_content_type` so posts and comments can be weighted
-differently during Epic-specific aggregation.
+The current Epic-specific slice uses `EGS_STORE` as a synthetic entity key.
 
 The project intentionally does not persist:
 
 - Reddit usernames
 - Reddit comment IDs
 - Reddit post IDs
-- raw comment text
-
-## Quick Start
-
-### Prerequisites
-
-- Docker
-- Docker Compose
-
-### Start The Stack
-
-From the repo root:
-
-```bash
-docker compose up --build
-```
-
-This starts:
-
-- `api` on `http://localhost:8000`
-- `worker`
-- `postgres`
-- `redis`
-
-### Optional Reddit OAuth Fallback
-
-The primary scraper uses Reddit's public `.json` endpoint and works without
-credentials. If you want the OAuth fallback lane available, set these env vars
-before starting the stack:
-
-```bash
-export REDDIT_CLIENT_ID=...
-export REDDIT_CLIENT_SECRET=...
-export REDDIT_USERNAME=...
-export REDDIT_PASSWORD=...
-```
-
-### Useful Environment Variables
-
-The worker service supports:
-
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | `postgresql+asyncpg://sentix:sentix@postgres:5432/sentix` | PostgreSQL connection string |
-| `REDIS_URL` | `redis://redis:6379/0` | Redis connection string |
-| `CLASSIFIER_BACKEND` | `vader` | Sentiment backend |
-| `CYCLE_INTERVAL_MINUTES` | `15` | Collection interval |
-| `ALERT_THRESHOLD` | `3` | Consecutive failures before alerting |
-| `SENTRY_DSN` | `""` | Optional Sentry DSN |
-| `LOG_LEVEL` | `INFO` | Worker log level |
-| `VADER_NEUTRAL_THRESHOLD` | `0.05` | Neutral-zone boundary |
-
-The compose file already wires sensible defaults for local development.
+- raw post/comment text
 
 ## Local Development
 
-### Worker Tests
-
-To work on the worker outside Docker:
+### Worker
 
 ```bash
 cd worker
 pip install -e ".[dev]"
-```
-
-Run tests:
-
-```bash
 pytest
 ```
 
-Run only unit tests:
+### API
 
-```bash
-pytest tests/unit/
-```
-
-Run integration tests:
-
-```bash
-pytest tests/integration/
-```
-
-Integration tests expect a PostgreSQL database, using
-`sentix_test` by default.
-
-### API Development
-
-The API is a small FastAPI app in `api/`. In Docker it runs with:
+In Docker, the API runs with:
 
 ```bash
 uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Operating The Pipeline
-
-### Add A Community
-
-Add a source without restarting the worker:
-
-```sql
-INSERT INTO data_sources (subreddit_name) VALUES ('options');
-```
-
-### Disable A Community
-
-```sql
-UPDATE data_sources
-SET enabled = false, disabled_at = NOW()
-WHERE subreddit_name = 'options';
-```
-
-Changes are picked up on the next collection cycle.
-
-## Key Design Notes
-
-### Epic Relevance Matching
-
-Epic Games Store sentiment uses keyword and context matching instead of ticker
-extraction. Strong phrases like `Epic Games Store`, `Epic launcher`, and `EGS`
-match directly. Generic uses of the word `epic` are ignored unless store
-context such as `exclusive`, `free games`, `coupon`, or `launcher` is present.
-
-### Epic Scoring
-
-Epic endpoints now use a weighted aggregate instead of the old linear
-`polarity * (upvotes + 1)` stock-style score.
-
-The new weighting combines:
-
-- sentiment polarity (`+1` or `-1`)
-- log-scaled engagement via `ln(upvotes + 2)` to reduce viral outlier dominance
-- content type weighting, with posts weighted above comments
-- community weighting, with focused Epic/deal communities weighted above broader
-  gaming communities and adversarial communities weighted a bit lower
-
-### Dual-Lane Scraping
-
-- Primary lane: Reddit public `.json` endpoint
-- Fallback lane: PRAW OAuth after repeated rate limiting
-
-### Sequential Execution
-
-APScheduler uses a single-instance schedule, and the worker also has an
-in-process queue to prevent overlapping cycles.
-
-### Privacy Guardrails
-
-The codebase includes both unit and integration tests that explicitly check for
-PII leakage in schema definitions and stored data.
-
 ## Where To Read Next
 
-- [worker/README.md](worker/README.md) for worker-specific setup and architecture
-- `api/src/main.py` for API routes
-- `worker/src/main.py` and `worker/src/pipeline/runner.py` for runtime flow
-- `worker/src/topics/epic_games_store.py` for Epic relevance rules
+- [worker/README.md](worker/README.md)
+- [api/src/main.py](api/src/main.py)
+- [worker/src/main.py](worker/src/main.py)
+- [worker/src/pipeline/runner.py](worker/src/pipeline/runner.py)
+- [worker/src/topics/epic_games_store.py](worker/src/topics/epic_games_store.py)
