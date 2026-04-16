@@ -1,0 +1,31 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            cd ~/sents
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --ignore-pull-failures || true
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+            docker image prune -f
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml ps

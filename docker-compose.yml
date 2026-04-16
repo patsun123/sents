@@ -5,7 +5,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://sentix:sentix@postgres:5432/sentix
+      DATABASE_URL: postgresql+asyncpg://sentix:${POSTGRES_PASSWORD:-sentix}@postgres:5432/sentix
     depends_on:
       postgres:
         condition: service_healthy
@@ -14,7 +14,7 @@ services:
     build: ./worker
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://sentix:sentix@postgres:5432/sentix
+      DATABASE_URL: postgresql+asyncpg://sentix:${POSTGRES_PASSWORD:-sentix}@postgres:5432/sentix
       REDIS_URL: redis://redis:6379/0
       REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
       REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: sentix
-      POSTGRES_PASSWORD: sentix
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sentix}
       POSTGRES_DB: sentix
     volumes:
       - postgres_data:/var/lib/postgresql/data
