@@ -27,5 +27,10 @@ jobs:
             git reset --hard origin/main
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --ignore-pull-failures || true
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+            # Reload Caddy so changes to the bind-mounted Caddyfile take effect
+            # without dropping active connections or re-running ACME.
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T caddy \
+              caddy reload --config /etc/caddy/Caddyfile --force || \
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml restart caddy
             docker image prune -f
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
