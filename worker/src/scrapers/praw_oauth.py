@@ -130,6 +130,28 @@ class PRAWOAuthScraper:
             reddit = self._get_reddit()
             subreddit_obj = reddit.subreddit(subreddit)
             for submission in subreddit_obj.new(limit=limit):
+                created_utc = datetime.fromtimestamp(submission.created_utc, tz=UTC)
+                if created_utc <= since:
+                    return results
+
+                title = (getattr(submission, "title", "") or "").strip()
+                selftext = (getattr(submission, "selftext", "") or "").strip()
+                post_text = " | ".join(part for part in (title, selftext) if part)
+                if post_text:
+                    thread_url = f"https://www.reddit.com{submission.permalink}"
+                    results.append(
+                        RawComment(
+                            text=post_text,
+                            upvotes=max(0, getattr(submission, "ups", 0)),
+                            reply_count=max(0, getattr(submission, "num_comments", 0)),
+                            created_utc=created_utc,
+                            content_type="post",
+                            source_thread_url=thread_url,
+                        )
+                    )
+                    if len(results) >= limit:
+                        return results
+
                 submission.comments.replace_more(limit=0)
                 for comment in submission.comments.list():
                     created_utc = datetime.fromtimestamp(
@@ -141,8 +163,10 @@ class PRAWOAuthScraper:
                         RawComment(
                             text=comment.body,
                             upvotes=max(0, comment.ups),
+                            reply_count=max(0, len(comment.replies.list())),
                             created_utc=created_utc,
                             content_type="comment",
+                            source_thread_url=f"https://www.reddit.com{comment.submission.permalink}",
                         )
                     )
                     if len(results) >= limit:

@@ -115,10 +115,12 @@ class SentimentSignal(Base):
     ticker_symbol: Mapped[str] = mapped_column(String(10), nullable=False)
     sentiment_polarity: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     upvote_weight: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reply_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     collected_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     source_subreddit: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_thread_url: Mapped[str] = mapped_column(String(512), nullable=False, default="")
     source_content_type: Mapped[str] = mapped_column(
         String(20), nullable=False, default="comment"
     )
@@ -132,6 +134,7 @@ class SentimentSignal(Base):
             "sentiment_polarity IN (-1, 1)", name="ck_signal_polarity"
         ),
         CheckConstraint("upvote_weight >= 0", name="ck_signal_upvotes"),
+        CheckConstraint("reply_count >= 0", name="ck_signal_reply_count"),
         CheckConstraint(
             "source_content_type IN ('post', 'comment')",
             name="ck_signal_content_type",

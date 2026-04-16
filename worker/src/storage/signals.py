@@ -41,8 +41,9 @@ class SignalStore:
         Args:
             signals: List of dicts.  Each dict must contain the keys
                 ``collection_run_id``, ``ticker_symbol``,
-                ``sentiment_polarity``, ``upvote_weight``, ``collected_at``,
-                ``source_subreddit``, and ``source_content_type``.
+                ``sentiment_polarity``, ``upvote_weight``, ``reply_count``,
+                ``collected_at``, ``source_subreddit``, ``source_thread_url``, and
+                ``source_content_type``.
                 No PII fields are accepted.
 
         Returns:

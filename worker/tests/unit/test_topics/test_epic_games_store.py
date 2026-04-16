@@ -23,6 +23,22 @@ def test_contextual_match_requires_store_context() -> None:
     assert [result.symbol for result in results] == [EPIC_GAMES_STORE_KEY]
 
 
+def test_prepositional_phrase_on_epic_matches() -> None:
+    extractor = EpicGamesStoreExtractor()
+
+    results = extractor.extract("Control is free on Epic right now.")
+
+    assert [result.symbol for result in results] == [EPIC_GAMES_STORE_KEY]
+
+
+def test_epic_exclusive_phrase_matches() -> None:
+    extractor = EpicGamesStoreExtractor()
+
+    results = extractor.extract("Another Epic exclusive is coming to PC.")
+
+    assert [result.symbol for result in results] == [EPIC_GAMES_STORE_KEY]
+
+
 def test_generic_epic_usage_does_not_match() -> None:
     extractor = EpicGamesStoreExtractor()
 

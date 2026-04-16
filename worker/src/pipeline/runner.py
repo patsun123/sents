@@ -19,18 +19,16 @@ import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from ..alerting.threshold import AlertThresholdTracker
-from ..classifiers.base import SentimentClassifier
+from ..classifiers.base import ClassificationResult, SentimentClassifier
 from ..config import Settings
 from ..scrapers.base import RedditScraper, ScraperRateLimitError, ScraperUnavailableError
 from ..storage.models import CollectionRun
 from ..storage.runs import RunStore
 from ..storage.signals import SignalStore
 from ..storage.sources import SourceStore
-from ..tickers.disambiguator import TickerDisambiguator
-from ..tickers.extractor import TickerExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +41,28 @@ _CYCLE_DURATION_WARN_FRACTION = 0.8
 # Path to the health file written after each successful cycle.
 # The Dockerfile HEALTHCHECK verifies this file's mtime.
 _HEALTH_FILE = Path(".health")
+
+
+class CandidateExtractor(Protocol):
+    """Minimal extractor interface required by the cycle runner."""
+
+    def extract(self, text: str) -> list[Any]:
+        """Return extracted entity candidates from text."""
+
+
+class CandidateDisambiguator(Protocol):
+    """Minimal candidate filtering interface required by the cycle runner."""
+
+    def filter(self, candidates: list[Any]) -> list[str]:
+        """Return valid entity identifiers from extracted candidates."""
+
+
+@runtime_checkable
+class TargetAwareClassifier(Protocol):
+    """Optional classifier extension for entity-specific sentiment scoring."""
+
+    def classify_for_target(self, target: str, text: str) -> ClassificationResult:
+        """Classify text relative to a specific target entity."""
 
 
 class CycleRunner:
@@ -70,8 +90,8 @@ class CycleRunner:
         classifier: SentimentClassifier,
         primary_scraper: RedditScraper,
         fallback_scraper: RedditScraper,
-        extractor: TickerExtractor,
-        disambiguator: TickerDisambiguator,
+        extractor: CandidateExtractor,
+        disambiguator: CandidateDisambiguator,
         alert_tracker: AlertThresholdTracker | None = None,
     ) -> None:
         self._settings = settings
@@ -83,6 +103,13 @@ class CycleRunner:
         self._disambiguator = disambiguator
         self._alert_tracker = alert_tracker
         self._consecutive_rate_limits: int = 0
+
+    def _classify_text(self, text: str, target: str) -> ClassificationResult:
+        """Classify text, using entity-aware scoring when available."""
+        classifier = self._classifier
+        if isinstance(classifier, TargetAwareClassifier):
+            return classifier.classify_for_target(target, text)
+        return classifier.classify(text)
 
     @property
     def _active_scraper(self) -> RedditScraper:
@@ -145,7 +172,7 @@ class CycleRunner:
                         valid_tickers = self._disambiguator.filter(candidates)
                         for ticker in valid_tickers:
                             # comment.text is passed in-memory only — never stored
-                            result = self._classifier.classify(comment.text)
+                            result = self._classify_text(comment.text, ticker)
                             if not result.discarded:
                                 signals_batch.append(
                                     {
@@ -153,8 +180,10 @@ class CycleRunner:
                                         "ticker_symbol": ticker,
                                         "sentiment_polarity": result.polarity,
                                         "upvote_weight": comment.upvotes,
+                                        "reply_count": comment.reply_count,
                                         "collected_at": comment.created_utc,
                                         "source_subreddit": source.subreddit_name,
+                                        "source_thread_url": comment.source_thread_url,
                                         "source_content_type": comment.content_type,
                                     }
                                 )

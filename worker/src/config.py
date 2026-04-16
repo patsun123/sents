@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     reddit_password: str = ""
 
     # Classifier
-    classifier_backend: str = "vader"
+    classifier_backend: str = "epic_rules"
     vader_neutral_threshold: float = 0.05
 
     # Pipeline

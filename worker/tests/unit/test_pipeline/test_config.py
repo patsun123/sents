@@ -11,16 +11,18 @@ from src.config import Settings, get_settings
 class TestSettings:
     """Tests for Settings model."""
 
-    def test_default_database_url(self) -> None:
+    def test_default_database_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Default DATABASE_URL points to localhost sentix database."""
+        monkeypatch.delenv("DATABASE_URL", raising=False)
         settings = Settings()
         assert "localhost" in settings.database_url
         assert "sentix" in settings.database_url
 
-    def test_default_classifier_backend(self) -> None:
-        """Default classifier is vader."""
+    def test_default_classifier_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Default classifier is epic_rules."""
+        monkeypatch.delenv("CLASSIFIER_BACKEND", raising=False)
         settings = Settings()
-        assert settings.classifier_backend == "vader"
+        assert settings.classifier_backend == "epic_rules"
 
     def test_default_cycle_interval_minutes(self) -> None:
         """Default cycle interval is 15 minutes."""

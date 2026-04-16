@@ -27,7 +27,7 @@ from unittest.mock import AsyncMock
 import pytest
 import pytest_asyncio
 
-from tests.fixtures.reddit_responses import MOCK_REDDIT_RESPONSE
+from tests.fixtures.reddit_responses import MOCK_REDDIT_RESPONSE, MOCK_THREAD_RESPONSE
 
 # ---------------------------------------------------------------------------
 # Skip when PostgreSQL is unavailable
@@ -78,6 +78,14 @@ _FORBIDDEN_COLUMN_NAMES = {
 
 SUBREDDIT = "wallstreetbets"
 WSB_URL = f"https://www.reddit.com/r/{SUBREDDIT}/new/.json?limit=100"
+WSB_THREAD_URL = (
+    f"https://www.reddit.com/r/{SUBREDDIT}/comments/mock/weekend_thread/.json"
+    "?limit=500&sort=new"
+)
+WSB_THREAD_URL_SECONDARY = (
+    f"https://www.reddit.com/r/{SUBREDDIT}/comments/mock/fresh_dd/.json"
+    "?limit=500&sort=new"
+)
 
 
 def _build_test_runner(session: Any) -> Any:
@@ -150,6 +158,8 @@ async def test_no_pii_in_any_table(pii_seeded_session: Any, httpx_mock: Any) -> 
     from sqlalchemy import text  # noqa: PLC0415
 
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=WSB_THREAD_URL, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=WSB_THREAD_URL_SECONDARY, json=MOCK_THREAD_RESPONSE)
 
     runner = _build_test_runner(pii_seeded_session)
     run = await runner.run_cycle()
@@ -212,6 +222,8 @@ async def test_signal_fields_contain_no_comment_body(
     pii_fragment = "to the moon"
 
     httpx_mock.add_response(url=WSB_URL, json=MOCK_REDDIT_RESPONSE)
+    httpx_mock.add_response(url=WSB_THREAD_URL, json=MOCK_THREAD_RESPONSE)
+    httpx_mock.add_response(url=WSB_THREAD_URL_SECONDARY, json=MOCK_THREAD_RESPONSE)
 
     runner = _build_test_runner(pii_seeded_session)
     run = await runner.run_cycle()

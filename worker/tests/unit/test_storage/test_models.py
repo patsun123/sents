@@ -95,6 +95,7 @@ def test_sentiment_signal_columns() -> None:
         "ticker_symbol",
         "sentiment_polarity",
         "upvote_weight",
+        "reply_count",
         "collected_at",
         "source_subreddit",
         "source_content_type",
@@ -173,6 +174,10 @@ def test_sentiment_signal_upvotes_constraint_exists() -> None:
 
 def test_sentiment_signal_content_type_constraint_exists() -> None:
     assert "ck_signal_content_type" in _constraint_names(SentimentSignal)
+
+
+def test_sentiment_signal_reply_count_constraint_exists() -> None:
+    assert "ck_signal_reply_count" in _constraint_names(SentimentSignal)
 
 
 def test_scored_result_confidence_constraint_exists() -> None:

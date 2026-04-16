@@ -58,6 +58,7 @@ def _signal_dict(run_id: uuid.UUID, ticker: str = "GME") -> dict[str, object]:
         "ticker_symbol": ticker,
         "sentiment_polarity": 1,
         "upvote_weight": 5,
+        "reply_count": 0,
         "collected_at": datetime.now(tz=UTC),
         "source_subreddit": "wallstreetbets",
     }

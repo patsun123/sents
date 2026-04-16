@@ -30,56 +30,102 @@ MOCK_REDDIT_RESPONSE: dict[str, object] = {
     "kind": "Listing",
     "data": {
         "after": None,
-        "dist": 5,
+        "dist": 2,
         "children": [
             {
-                # Explicit $GME mention — positive sentiment
-                "kind": "t1",
+                # Thread starter; thread JSON carries the nested comments.
+                "kind": "t3",
                 "data": {
-                    "body": "$GME to the moon! Short squeeze incoming!",
-                    "ups": 10000,
+                    "title": "Weekend thread",
+                    "selftext": "$TSLA earnings going to crush expectations. Very bullish.",
+                    "ups": 500,
+                    "num_comments": 4,
+                    "permalink": "/r/wallstreetbets/comments/mock/weekend_thread/",
                     "created_utc": _NOW - 60,
                 },
             },
             {
-                # Explicit $TSLA mention — positive sentiment
+                # Second recent post
                 "kind": "t3",
                 "data": {
-                    "selftext": "$TSLA earnings going to crush expectations. Very bullish.",
-                    "ups": 500,
+                    "title": "Fresh DD",
+                    "selftext": "AAPL setup still looks good.",
+                    "ups": 42,
+                    "num_comments": 1,
+                    "permalink": "/r/wallstreetbets/comments/mock/fresh_dd/",
                     "created_utc": _NOW - 120,
-                },
-            },
-            {
-                # Bare TSLA mention — passes disambiguation as it is in universe
-                "kind": "t1",
-                "data": {
-                    "body": "TSLA looking great this week, loaded up on calls.",
-                    "ups": 1,
-                    "created_utc": _NOW - 180,
-                },
-            },
-            {
-                # "IT" bare mention — blocklisted, should be filtered
-                "kind": "t1",
-                "data": {
-                    "body": "IT is the best sector right now, trust me.",
-                    "ups": 5,
-                    "created_utc": _NOW - 240,
-                },
-            },
-            {
-                # Purely neutral text — no tickers, neutral VADER score
-                "kind": "t1",
-                "data": {
-                    "body": "The weather is nice today.",
-                    "ups": 2,
-                    "created_utc": _NOW - 300,
                 },
             },
         ],
     },
 }
+
+MOCK_THREAD_RESPONSE: list[dict[str, object]] = [
+    {"kind": "Listing", "data": {"children": []}},
+    {
+        "kind": "Listing",
+        "data": {
+            "children": [
+                {
+                    "kind": "t1",
+                    "data": {
+                        "body": "$GME to the moon! Short squeeze incoming!",
+                        "ups": 10000,
+                        "created_utc": _NOW - 61,
+                        "replies": "",
+                    },
+                },
+                {
+                    "kind": "t1",
+                    "data": {
+                        "body": "TSLA looking great this week, loaded up on calls.",
+                        "ups": 1,
+                        "created_utc": _NOW - 180,
+                        "replies": "",
+                    },
+                },
+                {
+                    "kind": "t1",
+                    "data": {
+                        "body": "IT is the best sector right now, trust me.",
+                        "ups": 5,
+                        "created_utc": _NOW - 240,
+                        "replies": "",
+                    },
+                },
+                {
+                    "kind": "t1",
+                    "data": {
+                        "body": "The weather is nice today.",
+                        "ups": 2,
+                        "created_utc": _NOW - 300,
+                        "replies": "",
+                    },
+                },
+            ]
+        },
+    },
+]
+
+MOCK_THREAD_RESPONSE_SECONDARY: list[dict[str, object]] = [
+    {"kind": "Listing", "data": {"children": []}},
+    {
+        "kind": "Listing",
+        "data": {
+            "children": [
+                {
+                    "kind": "t1",
+                    "data": {
+                        "body": "AAPL is quietly setting up.",
+                        "ups": 8,
+                        "created_utc": _NOW - 121,
+                        "replies": "",
+                    },
+                }
+            ]
+        },
+    },
+]
 
 
 # Response with explicitly old comment (created before since cutoff)
