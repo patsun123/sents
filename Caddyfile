@@ -1,4 +1,15 @@
 {$DOMAIN} {
 	encode zstd gzip
+
+	# Tell well-behaved crawlers to stay out.
+	handle /robots.txt {
+		header Content-Type "text/plain; charset=utf-8"
+		respond "User-agent: *\nDisallow: /\n" 200
+	}
+
+	# Tell everyone else (including scrapers that ignore robots.txt but honor
+	# the X-Robots-Tag header — Google, Bing, DuckDuckGo do).
+	header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+
 	reverse_proxy api:8000
 }
