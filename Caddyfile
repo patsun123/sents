@@ -4,7 +4,9 @@
 	# Tell well-behaved crawlers to stay out.
 	handle /robots.txt {
 		header Content-Type "text/plain; charset=utf-8"
-		respond "User-agent: *\nDisallow: /\n" 200
+		respond `User-agent: *
+Disallow: /
+` 200
 	}
 
 	# Tell everyone else (including scrapers that ignore robots.txt but honor
