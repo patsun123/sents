@@ -1,15 +1,29 @@
-# Added by Spec Kitty CLI (auto-managed)
-.claude/
-.codex/
-.opencode/
-.windsurf/
-.gemini/
-.cursor/
-.qwen/
-.kilocode/
-.augment/
-.roo/
-.amazonq/
-.github/copilot/
-.kittify/.dashboard
-.kittify/missions/__pycache__/
+# Added by Spec Kitty CLI (auto-managed)
+.claude/
+.codex/
+.opencode/
+.windsurf/
+.gemini/
+.cursor/
+.qwen/
+.kilocode/
+.augment/
+.roo/
+.amazonq/
+.github/copilot/
+.kittify/.dashboard
+.kittify/missions/__pycache__/
+
+# Environment files (use .env.example as template)
+.env
+.env.local
+.env.*.local
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Python bytecode / caches (anywhere)
+__pycache__/
+*.py[cod]
+*$py.class
