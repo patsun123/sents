@@ -108,7 +108,7 @@ The compose file already provides sane local defaults. Most people only need a
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | `postgresql+asyncpg://sentix:sentix@postgres:5432/sentix` | PostgreSQL connection string |
+| `POSTGRES_PASSWORD` | `sentix` | PostgreSQL password. `DATABASE_URL` for api + worker is derived from this. Change for any deploy beyond local. |
 | `REDIS_URL` | `redis://redis:6379/0` | Redis connection string |
 | `CLASSIFIER_BACKEND` | `epic_rules` | Sentiment backend |
 | `CYCLE_INTERVAL_MINUTES` | `15` | Worker scan interval |
@@ -116,6 +116,7 @@ The compose file already provides sane local defaults. Most people only need a
 | `SENTRY_DSN` | `""` | Optional Sentry DSN |
 | `LOG_LEVEL` | `INFO` | Worker log level |
 | `VADER_NEUTRAL_THRESHOLD` | `0.05` | Neutral-zone boundary for VADER only |
+| `DOMAIN` | `—` | Public hostname for prod Caddy TLS (required only by `docker-compose.prod.yml`) |
 
 ## Optional Reddit OAuth Fallback
 
@@ -239,6 +240,60 @@ In Docker, the API runs with:
 ```bash
 uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
+
+## Deployment
+
+Single-host production deploy (Digital Ocean Droplet or any Ubuntu box with
+Docker). TLS is terminated by Caddy using auto-provisioned Let's Encrypt
+certificates.
+
+### One-time server setup
+
+```bash
+# SSH to droplet as a non-root user (e.g. deploy)
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER   # log out/in after this
+git clone https://github.com/patsun123/sents.git && cd sents
+cp .env.example .env
+# Edit .env — at minimum set POSTGRES_PASSWORD and DOMAIN
+```
+
+Point a DNS A record for `$DOMAIN` at the droplet's IPv4 before the first
+`up` so Caddy can complete the ACME challenge on ports 80/443.
+
+### Start the stack
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+```
+
+Visit `https://$DOMAIN`. Caddy issues a certificate on first request.
+
+### Automated deploys (GitHub Actions)
+
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml) runs
+`git reset --hard origin/main && docker compose up -d --build` over SSH on
+every push to `main`. Required repo secrets:
+
+| Secret | Value |
+|---|---|
+| `DEPLOY_HOST` | Droplet IPv4 or hostname |
+| `DEPLOY_USER` | Unprivileged user with docker group + repo clone |
+| `DEPLOY_SSH_KEY` | Private key whose public key is in `~/.ssh/authorized_keys` on the droplet |
+| `DEPLOY_SSH_PORT` | Optional, defaults to 22 |
+
+The workflow is also `workflow_dispatch`-triggerable for manual redeploys.
+
+### Backups
+
+Nothing automated yet. Minimum recommended first step:
+
+```bash
+docker compose exec -T postgres pg_dump -U sentix sentix | gzip > backup-$(date +%F).sql.gz
+```
+
+Ship to DO Spaces, Backblaze, or `scp` off-box on a cron.
 
 ## Where To Read Next
 
