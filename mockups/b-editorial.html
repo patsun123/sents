@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>SentiX — The Epic Games Store Dispatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,600&family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5efe5;
+    --paper: #fbf7ee;
+    --ink: #0e1724;
+    --ink-soft: #3a4555;
+    --rule: #1e2a3a;
+    --ochre: #c17b21;
+    --accent: #8b1a2b;
+    --muted: #7a7065;
+    --positive: #3d6a4a;
+    --negative: #8b1a2b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: "Instrument Sans", -apple-system, sans-serif;
+    font-size: 16px; line-height: 1.55;
+    min-height: 100vh;
+    position: relative;
+  }
+  /* subtle paper grain */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence baseFrequency='0.75' numOctaves='2' seed='4'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    opacity: 0.035;
+    mix-blend-mode: multiply;
+  }
+  main { position: relative; z-index: 1; }
+
+  /* MASTHEAD */
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+    padding: 18px 36px 14px;
+    display: flex; align-items: baseline; gap: 32px;
+  }
+  .masthead .logo {
+    font-family: "Fraunces", serif;
+    font-weight: 900; font-size: 28px;
+    font-variation-settings: "SOFT" 100, "WONK" 1;
+    letter-spacing: -0.02em;
+  }
+  .masthead .logo em { font-style: italic; color: var(--accent); font-weight: 400; }
+  .masthead nav { display: flex; gap: 20px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); }
+  .masthead nav a { color: inherit; text-decoration: none; border-bottom: 1px solid transparent; padding-bottom: 1px; }
+  .masthead nav a:hover { border-bottom-color: var(--accent); }
+  .masthead .right {
+    margin-left: auto;
+    font-family: "Instrument Serif", serif;
+    font-size: 14px; font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  /* DATELINE */
+  .dateline {
+    padding: 10px 36px;
+    border-bottom: 1px solid var(--rule);
+    display: flex; justify-content: space-between;
+    font-family: "Instrument Serif", serif;
+    font-size: 13px; font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  /* LEDE SECTION */
+  .lede {
+    max-width: 1100px; margin: 0 auto;
+    padding: 48px 36px 20px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 56px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .kicker {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em;
+    color: var(--accent); font-weight: 600;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .kicker::before {
+    content: ""; width: 24px; height: 2px; background: var(--accent);
+  }
+  h1.headline {
+    font-family: "Fraunces", serif;
+    font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 96;
+    font-size: clamp(44px, 6.5vw, 80px);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin: 0 0 18px;
+    color: var(--ink);
+  }
+  h1.headline em {
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 144;
+    color: var(--accent);
+  }
+  .deck {
+    font-family: "Fraunces", serif;
+    font-weight: 400;
+    font-size: 21px; line-height: 1.4;
+    color: var(--ink-soft);
+    margin: 0 0 24px;
+    max-width: 38ch;
+  }
+  .byline {
+    font-family: "Instrument Serif", serif;
+    font-size: 14px; font-style: italic;
+    color: var(--muted);
+  }
+  .byline .name { color: var(--ink); font-style: normal; font-weight: 500; font-family: "Instrument Sans", sans-serif; letter-spacing: 0.02em; text-transform: uppercase; font-size: 12px; margin-right: 8px; }
+
+  /* RIGHT CARD */
+  .at-a-glance {
+    border-top: 3px double var(--rule);
+    border-bottom: 3px double var(--rule);
+    padding: 18px 0 22px;
+  }
+  .at-a-glance h4 {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 18px;
+    margin: 0 0 14px;
+    color: var(--accent);
+  }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px dotted rgba(14,23,36,0.2);
+    font-size: 14px;
+  }
+  .stat-row:last-child { border-bottom: 0; }
+  .stat-row .k { color: var(--ink-soft); letter-spacing: 0.04em; }
+  .stat-row .v { font-family: "Fraunces", serif; font-weight: 500; font-feature-settings: "tnum" 1; }
+  .stat-row .v.big {
+    font-size: 28px; letter-spacing: -0.02em;
+    font-variation-settings: "SOFT" 100, "opsz" 96;
+  }
+  .stat-row .v.pos { color: var(--positive); }
+  .stat-row .v.neg { color: var(--negative); }
+
+  /* STORY BODY */
+  .body-wrap { max-width: 1100px; margin: 0 auto; padding: 40px 36px 20px; }
+  .body-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 56px;
+  }
+  .article {
+    font-family: "Fraunces", serif;
+    font-weight: 400;
+    font-size: 19px; line-height: 1.65;
+    color: var(--ink);
+  }
+  .article p { margin: 0 0 20px; }
+  .article p::first-letter { font-size: 0; }
+  .article p:first-child::first-letter {
+    font-family: "Fraunces", serif;
+    font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
+    font-weight: 900;
+    float: left;
+    font-size: 84px;
+    line-height: 0.82;
+    margin: 4px 10px 0 0;
+    color: var(--accent);
+  }
+  .pullquote {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 72;
+    font-size: 28px;
+    line-height: 1.25;
+    color: var(--ink);
+    padding: 14px 0 14px 22px;
+    border-left: 3px solid var(--accent);
+    margin: 28px 0;
+  }
+  .article a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  .article strong { font-weight: 600; }
+
+  /* chart section */
+  .fig {
+    margin: 28px 0;
+    padding: 20px 0 16px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .fig-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--ochre); font-weight: 600;
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .fig-label .num { font-family: "Fraunces", serif; font-style: italic; font-weight: 400; letter-spacing: 0; text-transform: none; }
+  .fig-title {
+    font-family: "Fraunces", serif;
+    font-size: 22px; font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+  .fig-title em { font-style: italic; color: var(--ink-soft); font-weight: 400; }
+  .chart-wrap { height: 240px; position: relative; }
+  .chart-wrap svg { width: 100%; height: 100%; overflow: visible; }
+  .fig-caption {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  /* sidebar */
+  .sidebar h3 {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-variation-settings: "SOFT" 100, "WONK" 1;
+    font-weight: 500;
+    font-size: 24px;
+    margin: 0 0 12px;
+    color: var(--ink);
+    border-bottom: 2px solid var(--rule);
+    padding-bottom: 6px;
+  }
+  .sidebar-note {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .comm-list { list-style: none; padding: 0; margin: 0 0 28px; }
+  .comm-item {
+    display: grid;
+    grid-template-columns: 22px 1fr auto auto;
+    column-gap: 14px;
+    padding: 11px 0;
+    border-bottom: 1px dotted rgba(14,23,36,0.22);
+    align-items: baseline;
+    font-size: 14px;
+  }
+  .comm-item .rank {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    color: var(--ochre);
+    font-size: 16px;
+  }
+  .comm-item .name { color: var(--ink); font-weight: 500; }
+  .comm-item .name span { color: var(--muted); font-weight: 400; font-style: italic; font-family: "Instrument Serif", serif; }
+  .comm-item .mentions { font-family: "Fraunces", serif; font-feature-settings: "tnum" 1; font-size: 13px; color: var(--ink-soft); }
+  .comm-item .score { font-family: "Fraunces", serif; font-variation-settings: "opsz" 72; font-weight: 500; font-feature-settings: "tnum" 1; min-width: 58px; text-align: right; }
+  .comm-item .score.pos { color: var(--positive); }
+  .comm-item .score.neg { color: var(--negative); }
+
+  /* Dispatches */
+  .dispatches { padding: 40px 0 0; border-top: 2px solid var(--rule); margin-top: 32px; }
+  .dispatches h2 {
+    font-family: "Fraunces", serif;
+    font-variation-settings: "SOFT" 100, "opsz" 120;
+    font-weight: 500;
+    font-size: 42px;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+  }
+  .dispatches h2 em { font-style: italic; color: var(--accent); }
+  .dispatches .subhead {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 16px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .dispatch-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px 48px;
+  }
+  .dispatch {
+    padding: 16px 0;
+    border-top: 1px solid rgba(14,23,36,0.12);
+  }
+  .dispatch-meta {
+    display: flex; justify-content: space-between;
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .dispatch-meta .sub {
+    font-family: "Instrument Sans", sans-serif;
+    color: var(--ochre); font-weight: 600;
+  }
+  .dispatch-meta .pol {
+    font-family: "Fraunces", serif;
+    font-variation-settings: "opsz" 96, "WONK" 1;
+    font-style: italic;
+    font-size: 15px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .dispatch-meta .pol.pos { color: var(--positive); }
+  .dispatch-meta .pol.neg { color: var(--negative); }
+  .dispatch-quote {
+    font-family: "Fraunces", serif;
+    font-size: 18px;
+    line-height: 1.42;
+    color: var(--ink);
+  }
+  .dispatch-quote::before { content: "“"; color: var(--accent); font-size: 1.2em; margin-right: 2px; }
+  .dispatch-quote::after { content: "”"; color: var(--accent); font-size: 1.2em; }
+
+  /* Storefront chip */
+  .also-tracking {
+    margin: 44px 0 0; padding: 24px 0 0;
+    border-top: 3px double var(--rule);
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .also-tracking .label {
+    font-family: "Instrument Serif", serif;
+    font-style: italic; font-size: 15px; color: var(--muted);
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 8px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: 14px; font-weight: 500;
+    color: var(--ink);
+    text-decoration: none;
+    background: var(--paper);
+    transition: all 0.18s;
+  }
+  .chip:hover { background: var(--ink); color: var(--cream); }
+  .chip .marker { width: 8px; height: 8px; border-radius: 50%; background: var(--ochre); }
+  .chip.secondary .marker { background: var(--ink-soft); }
+
+  /* Colophon */
+  footer.colophon {
+    max-width: 1100px;
+    margin: 56px auto 0;
+    padding: 22px 36px 40px;
+    border-top: 1px solid var(--rule);
+    display: flex; flex-wrap: wrap; justify-content: space-between;
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    gap: 14px;
+  }
+  footer.colophon .robots {
+    font-family: "Instrument Sans", sans-serif;
+    font-style: normal;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .lede { grid-template-columns: 1fr; gap: 32px; padding: 32px 24px 20px; }
+    .body-grid { grid-template-columns: 1fr; gap: 36px; }
+    .dispatch-grid { grid-template-columns: 1fr; gap: 24px; }
+    .masthead { padding: 16px 24px 12px; flex-wrap: wrap; gap: 18px; }
+    .dateline { padding: 10px 24px; font-size: 12px; }
+    .body-wrap { padding: 32px 24px 20px; }
+    footer.colophon { padding: 22px 24px 40px; }
+    h1.headline { font-size: 44px; }
+    .deck { font-size: 18px; }
+  }
+  @media (max-width: 420px) {
+    .masthead .right { display: none; }
+    .stat-row .v.big { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="logo">Sent<em>i</em>X</div>
+    <nav>
+      <a href="#epic">Epic Games Store</a>
+      <a href="#steam">Steam</a>
+      <a href="#methodology">Methodology</a>
+      <a href="#archive">Archive</a>
+    </nav>
+    <div class="right">Thursday, April 16 · Vol. 1, No. 4</div>
+  </header>
+
+  <div class="dateline">
+    <span>Sentiment Desk · 30-day lookback · Last updated 14 minutes ago</span>
+    <span>Ingestion: Reddit · Classifier: epic_rules v2.1</span>
+  </div>
+
+  <!-- LEDE -->
+  <section class="lede">
+    <div>
+      <div class="kicker">The Platform Beat</div>
+      <h1 class="headline">The Epic <em>experiment</em> is holding, just barely.</h1>
+      <p class="deck">Four thousand mentions later, the community verdict on Tim Sweeney's storefront remains what it's been for years: grudging tolerance, punctuated by free games.</p>
+      <div class="byline"><span class="name">By The Desk</span> Thursday · 4 min read</div>
+    </div>
+    <aside class="at-a-glance">
+      <h4>At a glance</h4>
+      <div class="stat-row"><span class="k">Polarity index</span><span class="v big pos">+0.04</span></div>
+      <div class="stat-row"><span class="k">Mentions, 30 days</span><span class="v">4,287</span></div>
+      <div class="stat-row"><span class="k">Change vs. prior</span><span class="v neg">−12.3%</span></div>
+      <div class="stat-row"><span class="k">Positive signals</span><span class="v pos">2,164</span></div>
+      <div class="stat-row"><span class="k">Negative signals</span><span class="v neg">2,123</span></div>
+      <div class="stat-row"><span class="k">Communities</span><span class="v">11</span></div>
+    </aside>
+  </section>
+
+  <!-- BODY -->
+  <section class="body-wrap">
+    <div class="body-grid">
+      <article class="article">
+        <p>Epic Games Store sentiment, measured across eleven gaming subreddits over the last thirty days, landed at a polarity index of <strong>+0.04</strong> — almost exactly the neutral line, and a number the platform's defenders and detractors can both, depending on their inclinations, point to as evidence they were right all along.</p>
+
+        <p>The shape of the conversation has not fundamentally changed. Positive mentions cluster around the free weekly game giveaways, the MEGA Sale, and the occasional exclusivity deal that happens to ship competently. Negative mentions cluster around the launcher itself: its download size, its feature gaps, its social layer, and the ambient frustration of running a second storefront for five years while Steam exists.</p>
+
+        <div class="pullquote">“Still no cart that works, no notifications that arrive, and yet I'll claim next week's free game anyway.”<br>— r/pcgaming, April 14</div>
+
+        <p>What is new, according to the signals, is a subtle shift in volume. Mentions are down 12.3% versus the prior 30-day window, a figure that can be read two ways. Either the conversation has cooled — always plausible when a launcher becomes boring infrastructure — or the gaming discourse has moved on to more acute anxieties: GPU prices, Windows 11 telemetry, the question of whether Bethesda will ship anything finished.</p>
+
+        <div class="fig">
+          <div class="fig-label"><span>Fig. 1 — Daily weighted sentiment</span><span class="num">30 days to Apr 16</span></div>
+          <h3 class="fig-title">A <em>late-month surge</em>, driven by the MEGA Sale announcement.</h3>
+          <div class="chart-wrap">
+            <svg id="chart" viewBox="0 0 800 240" preserveAspectRatio="none">
+              <g stroke="rgba(14,23,36,0.08)" stroke-width="1">
+                <line x1="0" y1="60" x2="800" y2="60"/>
+                <line x1="0" y1="120" x2="800" y2="120"/>
+                <line x1="0" y1="180" x2="800" y2="180"/>
+              </g>
+              <line x1="0" y1="120" x2="800" y2="120" stroke="#1e2a3a" stroke-width="1"/>
+              <path id="chart-fill" fill="rgba(193,123,33,0.12)"/>
+              <path id="chart-line" fill="none" stroke="#8b1a2b" stroke-width="1.75"/>
+              <g id="chart-dots"></g>
+            </svg>
+          </div>
+          <p class="fig-caption">Weighted polarity — positive (light umber fill) and baseline (horizontal rule) shown. Marker points at 5-day intervals. Source: SentiX ingestion, Reddit <code>/new</code>.</p>
+        </div>
+
+        <p>A closer read of the subreddit-level data tells a more nuanced story. <strong>r/EpicGamesPC</strong>, the dedicated community, reads overwhelmingly positive; its members self-select. <strong>r/GameDeals</strong> and <strong>r/FreeGameFindings</strong> are mechanically positive — anything free is filed under good. The broader PC gaming subs — <strong>r/pcgaming</strong>, <strong>r/pcmasterrace</strong> — drift negative, dominated by launcher complaints and Steam comparisons. And <strong>r/fuckepic</strong>, reliably, remains a weighted score of −286.</p>
+
+        <p>None of this is a verdict. Sentiment is a measurement, not a judgment — and thirty days of Reddit is a narrow window on a complicated platform. But as a first reading of the discourse, the numbers suggest that the Epic Games Store has achieved its apparent goal for 2026: to be tolerated.</p>
+      </article>
+
+      <aside class="sidebar">
+        <h3>Communities speaking loudest</h3>
+        <p class="sidebar-note">Ranked by weighted score over the last 24 hours. Positive values in green, negative in crimson.</p>
+        <ol class="comm-list" id="comm-list"></ol>
+
+        <h3>Also tracking</h3>
+        <div class="also-tracking" style="margin:6px 0 0; padding:0; border:0;">
+          <a href="#steam" class="chip"><span class="marker"></span>Steam<span style="color:var(--muted);font-style:italic;font-family:'Instrument Serif',serif;"> · neighbouring beat</span></a>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Dispatches -->
+    <section class="dispatches">
+      <h2>Dispatches <em>from the field</em></h2>
+      <p class="subhead">Ten representative signals from the last hour of ingestion, paraphrased for length.</p>
+      <div class="dispatch-grid" id="dispatches"></div>
+    </section>
+
+    <!-- Footer chip -->
+    <div class="also-tracking">
+      <span class="label">End of dispatch.</span>
+      <a href="#epic" class="chip"><span class="marker"></span>Back to top</a>
+      <a href="#steam" class="chip secondary"><span class="marker"></span>Read: Steam Dispatch</a>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <span>A publication of the SentiX Sentiment Desk · Set in Fraunces and Instrument Serif.</span>
+    <span class="robots">Robots: noindex, nofollow, noarchive</span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const history = (function () {
+    const seed = [
+      -24, -18, -12, 8, 14, 22, 18, 6, -4, -16,
+      -28, -14, 4, 22, 34, 42, 38, 28, 12, -6,
+      -18, -22, -8, 14, 32, 48, 52, 44, 30, 22
+    ];
+    return seed.map((s, i) => ({ idx: i, score: s }));
+  })();
+  const communities = [
+    { community: "EpicGamesPC", mentions: 892, weighted: 412.5 },
+    { community: "GameDeals", mentions: 743, weighted: 188.7 },
+    { community: "FreeGameFindings", mentions: 601, weighted: 156.2 },
+    { community: "pcgaming", mentions: 578, weighted: -98.4 },
+    { community: "pcmasterrace", mentions: 512, weighted: -124.1 },
+    { community: "fuckepic", mentions: 384, weighted: -286.8 },
+    { community: "ShouldIbuythisgame", mentions: 288, weighted: 42.3 },
+    { community: "patientgamers", mentions: 182, weighted: 18.7 }
+  ];
+  const dispatches = [
+    { sub: "EpicGamesPC", pol: 1, quote: "Two AAA titles in the free lineup this month. I keep meaning to uninstall the launcher and I keep not doing it." },
+    { sub: "fuckepic", pol: -1, quote: "Nine gigabytes. For a launcher. In 2026. Someone at Epic needs to explain themselves." },
+    { sub: "GameDeals", pol: 1, quote: "EGS coupon stacks with the 80% off sale. Alan Wake 2 for eight dollars, before tax." },
+    { sub: "pcmasterrace", pol: -1, quote: "The cart system shipped in 2024. That's five years after launch. Five." },
+    { sub: "pcgaming", pol: -1, quote: "Exclusivity deals don't even move copies any more. What's the strategy here?" },
+    { sub: "FreeGameFindings", pol: 1, quote: "47 games claimed this year. I have opinions about most of them. I also keep coming back." },
+    { sub: "ShouldIbuythisgame", pol: 1, quote: "Worth it at twenty dollars. Would not have been worth sixty at launch on the platform. Complicated feelings." },
+    { sub: "patientgamers", pol: 0, quote: "Storefront is fine now. Launcher is still hostile. Both things true." },
+    { sub: "EpicGamesPC", pol: 1, quote: "The MEGA Sale pricing is, for once, competitive with Steam. I don't know why that surprises me." },
+    { sub: "fuckepic", pol: -1, quote: "Social features barely function. Two years of promises. Two." }
+  ];
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  // Chart
+  (function renderChart() {
+    const line = document.getElementById("chart-line");
+    const fill = document.getElementById("chart-fill");
+    const dots = document.getElementById("chart-dots");
+    const w = 800, h = 240, p = 4;
+    const xs = history.map((_, i) => p + (i * (w - 2 * p) / (history.length - 1)));
+    const maxAbs = Math.max.apply(null, history.map(d => Math.abs(d.score)));
+    const mid = h / 2;
+    const ys = history.map(d => mid - (d.score / maxAbs) * (h / 2 - 16));
+    let path = `M ${xs[0]} ${ys[0]}`;
+    for (let i = 1; i < xs.length; i++) {
+      const cx1 = xs[i - 1] + (xs[i] - xs[i - 1]) * 0.4;
+      const cx2 = xs[i] - (xs[i] - xs[i - 1]) * 0.4;
+      path += ` C ${cx1} ${ys[i - 1]}, ${cx2} ${ys[i]}, ${xs[i]} ${ys[i]}`;
+    }
+    line.setAttribute("d", path);
+    fill.setAttribute("d", `${path} L ${xs[xs.length - 1]} ${h} L ${xs[0]} ${h} Z`);
+    xs.forEach((x, i) => {
+      if (i % 5 === 0) {
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", x); c.setAttribute("cy", ys[i]);
+        c.setAttribute("r", "4");
+        c.setAttribute("fill", "#fbf7ee");
+        c.setAttribute("stroke", "#8b1a2b");
+        c.setAttribute("stroke-width", "1.5");
+        dots.appendChild(c);
+      }
+    });
+  })();
+
+  // Communities
+  (function renderComms() {
+    const root = document.getElementById("comm-list");
+    communities.forEach((c, i) => {
+      const li = el("li", "comm-item");
+      li.appendChild(el("span", "rank", String(i + 1) + "."));
+      const name = el("span", "name");
+      name.appendChild(document.createTextNode(c.community));
+      const subTag = el("span");
+      subTag.textContent = " · r/" + c.community.toLowerCase();
+      name.appendChild(subTag);
+      li.appendChild(name);
+      li.appendChild(el("span", "mentions", c.mentions.toLocaleString() + " ment."));
+      const scoreTxt = (c.weighted >= 0 ? "+" : "−") + Math.abs(c.weighted).toFixed(1);
+      li.appendChild(el("span", "score " + (c.weighted >= 0 ? "pos" : "neg"), scoreTxt));
+      root.appendChild(li);
+    });
+  })();
+
+  // Dispatches
+  (function renderDispatches() {
+    const root = document.getElementById("dispatches");
+    dispatches.forEach(d => {
+      const wrap = el("div", "dispatch");
+      const meta = el("div", "dispatch-meta");
+      meta.appendChild(el("span", "sub", "r/" + d.sub));
+      const polCls = d.pol > 0 ? "pos" : d.pol < 0 ? "neg" : "";
+      const polTxt = d.pol > 0 ? "positive" : d.pol < 0 ? "negative" : "neutral";
+      meta.appendChild(el("span", "pol " + polCls, polTxt));
+      wrap.appendChild(meta);
+      wrap.appendChild(el("p", "dispatch-quote", d.quote));
+      root.appendChild(wrap);
+    });
+  })();
+})();
+</script>
+</body>
+</html>

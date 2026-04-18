@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>SENTIX // EPIC GAMES STORE — NEURAL INTAKE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #030309;
+    --steel: #0a0b15;
+    --panel: #10131f;
+    --grid: #1a1e30;
+    --ink: #e8ebff;
+    --muted: #6b7395;
+    --magenta: #ff1e9a;
+    --cyan: #00e5ff;
+    --lime: #b8ff28;
+    --amber: #ffb84a;
+    --danger: #ff3a5e;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html,body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--void);
+    color: var(--ink);
+    font-family: "Chakra Petch", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%);
+    z-index: 100;
+    mix-blend-mode: soft-light;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    z-index: 0;
+  }
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 99; opacity: 0.04;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='3' seed='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+  }
+
+  main {
+    position: relative; z-index: 2;
+    max-width: 1440px; margin: 0 auto;
+    padding: 28px 32px 80px;
+  }
+
+  .hud-bar {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 12px 18px;
+    border: 1px solid rgba(0,229,255,0.25);
+    background: linear-gradient(90deg, rgba(0,229,255,0.06), transparent 60%);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    clip-path: polygon(0 0, 100% 0, 100% 72%, 97% 100%, 0 100%);
+  }
+  .hud-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); animation: pulse 2s ease-in-out infinite; }
+  .hud-bar .label { color: var(--muted); }
+  .hud-bar .val { color: var(--cyan); }
+  .hud-bar .spacer { flex: 1; }
+  .hud-bar .ident { color: var(--magenta); font-weight: 600; }
+
+  .theme-toggle {
+    display: inline-flex; align-items: stretch;
+    border: 1px solid rgba(0,229,255,0.5);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    background: rgba(0,229,255,0.04);
+    clip-path: polygon(0 0, 100% 0, 100% 72%, 96% 100%, 0 100%);
+  }
+  .theme-toggle a {
+    padding: 6px 12px;
+    color: var(--muted);
+    text-decoration: none;
+    border-right: 1px solid rgba(0,229,255,0.22);
+    transition: all 0.12s;
+  }
+  .theme-toggle a:last-child { border-right: 0; }
+  .theme-toggle a.active {
+    background: linear-gradient(180deg, rgba(0,229,255,0.22), rgba(0,229,255,0.06));
+    color: var(--cyan);
+    text-shadow: 0 0 12px var(--cyan);
+  }
+  .theme-toggle a:hover:not(.active) { color: var(--magenta); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .storefront-switch {
+    display: inline-flex; gap: 0;
+    margin: 32px 0 18px;
+    border: 1px solid rgba(255,30,154,0.4);
+    background: rgba(255,30,154,0.04);
+  }
+  .storefront-switch a {
+    padding: 10px 22px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.16em;
+    text-decoration: none; color: var(--muted);
+    text-transform: uppercase; font-weight: 500;
+    border-right: 1px solid rgba(255,30,154,0.2);
+    transition: all 0.15s;
+  }
+  .storefront-switch a:last-child { border-right: 0; }
+  .storefront-switch a.active {
+    background: linear-gradient(180deg, rgba(255,30,154,0.18), rgba(255,30,154,0.04));
+    color: var(--magenta);
+    text-shadow: 0 0 16px var(--magenta);
+  }
+  .storefront-switch a:hover { color: var(--cyan); }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 28px;
+    margin: 0 0 36px;
+    position: relative;
+  }
+  .hero-card {
+    position: relative;
+    padding: 40px 36px 36px;
+    border: 1px solid rgba(0,229,255,0.28);
+    background:
+      linear-gradient(120deg, rgba(255,30,154,0.04) 0%, transparent 40%),
+      linear-gradient(-120deg, rgba(0,229,255,0.04) 0%, transparent 40%),
+      rgba(10,11,21,0.72);
+    clip-path: polygon(0 12px, 12px 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+    overflow: hidden;
+  }
+  .hero-card::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--magenta), var(--cyan), transparent);
+    animation: sweep 4s linear infinite;
+  }
+  @keyframes sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .hero-card::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent 0, transparent 4px, rgba(255,255,255,0.015) 4px, rgba(255,255,255,0.015) 5px);
+    pointer-events: none;
+  }
+  .hero-kicker {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-kicker::before { content: ""; width: 28px; height: 1px; background: var(--cyan); }
+  .hero-title {
+    font-size: clamp(40px, 6.2vw, 78px);
+    font-weight: 700; letter-spacing: -0.02em;
+    margin: 0 0 18px;
+    line-height: 0.96;
+    background: linear-gradient(180deg, #ffffff 0%, #a0a8cf 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 60px rgba(255,30,154,0.08);
+  }
+  .hero-title em { font-style: normal; color: var(--magenta); -webkit-text-fill-color: var(--magenta); text-shadow: 0 0 22px rgba(255,30,154,0.5); }
+  .hero-subtitle { color: var(--muted); font-size: 15px; max-width: 58ch; margin: 0; line-height: 1.55; }
+  .hero-subtitle .c { color: var(--cyan); }
+  .hero-subtitle .m { color: var(--magenta); }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 32px; }
+  .kpi {
+    position: relative; padding: 14px 16px 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.35);
+  }
+  .kpi::before, .kpi::after {
+    content: ""; position: absolute; width: 10px; height: 10px;
+    border: 1px solid var(--cyan);
+  }
+  .kpi::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .kpi::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .kpi .label { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; color: var(--muted); text-transform: uppercase; }
+  .kpi .val { font-family: "JetBrains Mono", monospace; font-size: 24px; font-weight: 500; color: var(--ink); margin-top: 4px; letter-spacing: -0.01em; }
+  .kpi .delta { font-family: "JetBrains Mono", monospace; font-size: 10px; margin-top: 6px; color: var(--lime); }
+  .kpi .delta.neg { color: var(--danger); }
+
+  .gauge-card {
+    padding: 32px 24px; position: relative;
+    border: 1px solid rgba(184,255,40,0.22);
+    background:
+      radial-gradient(circle at 50% 10%, rgba(184,255,40,0.08), transparent 60%),
+      rgba(10,11,21,0.72);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  }
+  .gauge-card .k { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.24em; color: var(--lime); text-transform: uppercase; text-align: center; }
+  .gauge-wrap { position: relative; width: 220px; height: 220px; margin: 12px 0; }
+  .gauge-reading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .gauge-reading .num { font-family: "JetBrains Mono", monospace; font-size: 48px; font-weight: 700; color: var(--lime); text-shadow: 0 0 20px rgba(184,255,40,0.5); letter-spacing: -0.02em; }
+  .gauge-reading .u { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.3em; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+  .gauge-meta { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+  .gauge-meta span { color: var(--lime); }
+
+  .grid-main {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .panel {
+    position: relative;
+    padding: 24px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(12,14,24,0.78);
+    backdrop-filter: blur(6px);
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px dashed rgba(0,229,255,0.18);
+  }
+  .panel-head h3 {
+    margin: 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+  .panel-head h3::before { content: "❯ "; color: var(--magenta); }
+  .panel-head .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.1em; }
+
+  .chart-wrap { height: 260px; position: relative; }
+  .chart-wrap svg { width: 100%; height: 100%; overflow: visible; }
+  .chart-legend { display: flex; gap: 16px; font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 10px; }
+  .chart-legend .sw { display: inline-block; width: 8px; height: 8px; margin-right: 6px; vertical-align: middle; }
+
+  .comm-list { display: flex; flex-direction: column; gap: 4px; }
+  .comm-row {
+    display: grid;
+    grid-template-columns: 22px 1fr 60px 74px;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+  }
+  .comm-row:last-child { border-bottom: 0; }
+  .comm-rank { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.14em; }
+  .comm-name { font-weight: 500; font-size: 14px; letter-spacing: -0.01em; }
+  .comm-name .slash { color: var(--magenta); margin-right: 2px; }
+  .comm-bar {
+    position: relative; height: 6px; width: 100%;
+    background: rgba(255,255,255,0.05);
+    overflow: hidden;
+    grid-column: 2;
+    margin-top: 4px;
+  }
+  .comm-bar-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta));
+    box-shadow: 0 0 12px currentColor;
+  }
+  .comm-row.neg .comm-bar-fill { background: linear-gradient(90deg, var(--amber), var(--danger)); }
+  .comm-mentions, .comm-score { font-family: "JetBrains Mono", monospace; font-size: 12px; text-align: right; }
+  .comm-score.pos { color: var(--lime); }
+  .comm-score.neg { color: var(--danger); }
+
+  .signal-feed { display: flex; flex-direction: column; }
+  .signal {
+    display: grid;
+    grid-template-columns: 88px 1fr 28px;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+    align-items: start;
+  }
+  .signal:last-child { border-bottom: 0; }
+  .signal .ts { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.1em; padding-top: 2px; }
+  .signal .body { font-size: 13px; line-height: 1.5; color: #c6cce6; }
+  .signal .body .sub { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--cyan); text-transform: lowercase; display: block; margin-bottom: 4px; }
+  .signal .pol {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 16px; font-weight: 700;
+    text-align: center;
+    line-height: 1;
+  }
+  .signal .pol.pos { color: var(--lime); text-shadow: 0 0 10px var(--lime); }
+  .signal .pol.neg { color: var(--danger); text-shadow: 0 0 10px var(--danger); }
+
+  footer {
+    margin-top: 56px;
+    padding: 22px 0 0;
+    border-top: 1px dashed rgba(0,229,255,0.18);
+    display: flex; flex-wrap: wrap; gap: 16px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  footer .tag { color: var(--magenta); }
+  footer .brackets { color: var(--cyan); }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: 1fr; }
+    .grid-main { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+    main { padding: 20px 18px 60px; }
+    .hero-title { font-size: 44px; }
+  }
+  @media (max-width: 420px) {
+    .hud-bar { font-size: 9px; gap: 10px; }
+    .kpi-row { grid-template-columns: 1fr; }
+    .signal { grid-template-columns: 72px 1fr 24px; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<main>
+  <div class="hud-bar">
+    <span class="dot"></span>
+    <span><span class="label">SIG:</span> <span class="val">LIVE</span></span>
+    <span><span class="label">NET:</span> <span class="val">REDDIT</span></span>
+    <span><span class="label">T:</span> <span class="val" id="ts"></span></span>
+    <span class="spacer"></span>
+    <span class="theme-toggle">
+      <a href="a-neon-punk.html" class="active">A · NEON</a>
+      <a href="c-brutalist.html">C · BRUTAL</a>
+    </span>
+    <span class="ident">SENTIX // v0.9.4</span>
+  </div>
+
+  <div class="storefront-switch">
+    <a href="a-neon-punk.html" class="active">▸ EPIC_GAMES_STORE</a>
+    <a href="#steam">▸ STEAM</a>
+    <a href="#gog">▸ GOG (Q3)</a>
+  </div>
+
+  <section class="hero">
+    <div class="hero-card">
+      <div class="hero-kicker">Storefront Sentiment Intake / 30-day window</div>
+      <h1 class="hero-title">EPIC GAMES <em>STORE</em><br>is mixed-negative.</h1>
+      <p class="hero-subtitle">
+        The free-game cadence is driving positive chatter in <span class="c">r/EpicGamesPC</span> and <span class="c">r/GameDeals</span>, but launcher bloat complaints dominate <span class="m">r/pcgaming</span> and <span class="m">r/pcmasterrace</span>. Launcher download size (&quot;9GB for a launcher&quot;) trending in mentions over the last 72 hours.
+      </p>
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="label">Mentions / 30d</div>
+          <div class="val">4,287</div>
+          <div class="delta neg">▾ -12.3% vs prior</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Polarity Index</div>
+          <div class="val">+0.04</div>
+          <div class="delta">▴ +0.04σ</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Communities</div>
+          <div class="val">11</div>
+          <div class="delta">▴ 2 active</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Top Thread</div>
+          <div class="val" style="font-size:14px;">Free Games W16</div>
+          <div class="delta">▴ 312 signals</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gauge-card">
+      <div class="k">24h Weighted Score</div>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 220 220">
+          <defs>
+            <linearGradient id="g-ring" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ff1e9a"/>
+              <stop offset="50%" stop-color="#00e5ff"/>
+              <stop offset="100%" stop-color="#b8ff28"/>
+            </linearGradient>
+          </defs>
+          <g stroke="rgba(255,255,255,0.14)" stroke-width="1">
+            <circle cx="110" cy="110" r="100" fill="none"/>
+            <circle cx="110" cy="110" r="84" fill="none" stroke-dasharray="2 4"/>
+          </g>
+          <circle cx="110" cy="110" r="92" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+          <circle cx="110" cy="110" r="92" fill="none" stroke="url(#g-ring)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="578"
+                  stroke-dashoffset="180"
+                  transform="rotate(-90 110 110)"
+                  style="filter: drop-shadow(0 0 8px rgba(184,255,40,0.5));"/>
+          <g stroke-width="1">
+            <line x1="110" y1="8" x2="110" y2="20" stroke="#ff1e9a"/>
+            <line x1="110" y1="200" x2="110" y2="212" stroke="#b8ff28"/>
+          </g>
+        </svg>
+        <div class="gauge-reading">
+          <div class="num">+128</div>
+          <div class="u">Weighted Score</div>
+        </div>
+      </div>
+      <div class="gauge-meta">LAST SYNC: <span>00:03:41</span> AGO</div>
+    </div>
+  </section>
+
+  <section class="grid-main">
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Sentiment Timeline // 30d</h3>
+        <div class="eyebrow">WEIGHTED_SCORE · DAILY</div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="chart" viewBox="0 0 800 260" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="line-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#00e5ff"/>
+              <stop offset="50%" stop-color="#ff1e9a"/>
+              <stop offset="100%" stop-color="#b8ff28"/>
+            </linearGradient>
+            <linearGradient id="fill-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(0,229,255,0.24)"/>
+              <stop offset="100%" stop-color="rgba(0,229,255,0)"/>
+            </linearGradient>
+          </defs>
+          <g stroke="rgba(255,255,255,0.04)" stroke-width="1">
+            <line x1="0" y1="65" x2="800" y2="65"/>
+            <line x1="0" y1="130" x2="800" y2="130"/>
+            <line x1="0" y1="195" x2="800" y2="195"/>
+          </g>
+          <line x1="0" y1="130" x2="800" y2="130" stroke="rgba(255,30,154,0.3)" stroke-dasharray="4 4"/>
+          <path id="chart-fill" fill="url(#fill-grad)"/>
+          <path id="chart-line" fill="none" stroke="url(#line-grad)" stroke-width="2" style="filter: drop-shadow(0 0 6px rgba(0,229,255,0.5));"/>
+          <g id="chart-dots"></g>
+        </svg>
+      </div>
+      <div class="chart-legend">
+        <span><span class="sw" style="background:var(--cyan)"></span>Weighted Score</span>
+        <span><span class="sw" style="background:var(--magenta);opacity:0.6"></span>Baseline</span>
+        <span style="margin-left:auto">30 daily buckets · UTC</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Top Communities</h3>
+        <div class="eyebrow">24H · WEIGHTED</div>
+      </div>
+      <div id="comm-list" class="comm-list"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h3>Live Signal Feed</h3>
+      <div class="eyebrow">&gt; tail -f /var/sentix/signals.log</div>
+    </div>
+    <div id="signals" class="signal-feed"></div>
+  </section>
+
+  <footer>
+    <span class="brackets">[</span>
+    <span>SENTIX // EPIC GAMES STORE MOCKUP / A-NEON-PUNK</span>
+    <span class="tag">ROBOTS: NOINDEX NOFOLLOW NOARCHIVE</span>
+    <span>VERSION 0.9.4-rc1</span>
+    <span class="brackets">]</span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  // Deterministic mock data
+  const history = (function () {
+    const out = [];
+    const base = new Date("2026-03-17T00:00:00Z");
+    const seed = [
+      -24, -18, -12, 8, 14, 22, 18, 6, -4, -16,
+      -28, -14, 4, 22, 34, 42, 38, 28, 12, -6,
+      -18, -22, -8, 14, 32, 48, 52, 44, 30, 22
+    ];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(base); d.setDate(base.getDate() + i);
+      out.push({
+        date: d.toISOString().slice(0, 10),
+        score: seed[i],
+        mentions: 80 + Math.round(Math.abs(seed[i]) * 2.3 + (i * 1.4))
+      });
+    }
+    return out;
+  })();
+  const communities = [
+    { community: "EpicGamesPC", mentions: 892, weighted: 412.5 },
+    { community: "GameDeals", mentions: 743, weighted: 188.7 },
+    { community: "FreeGameFindings", mentions: 601, weighted: 156.2 },
+    { community: "pcgaming", mentions: 578, weighted: -98.4 },
+    { community: "pcmasterrace", mentions: 512, weighted: -124.1 },
+    { community: "fuckepic", mentions: 384, weighted: -286.8 },
+    { community: "ShouldIbuythisgame", mentions: 288, weighted: 42.3 },
+    { community: "patientgamers", mentions: 182, weighted: 18.7 }
+  ];
+  const signals = [
+    { ts: "00:14:22", sub: "EpicGamesPC", pol: 1, snippet: "Actually loving the new free game lineup. Two AAA titles this month alone." },
+    { ts: "00:18:04", sub: "fuckepic", pol: -1, snippet: "Why does the launcher need 9GB just to browse the store?" },
+    { ts: "00:26:51", sub: "GameDeals", pol: 1, snippet: "EGS 80% off coupon stacks on Alan Wake 2. Absolute steal." },
+    { ts: "00:34:17", sub: "pcmasterrace", pol: -1, snippet: "Still can't believe the cart system came 5 years late." },
+    { ts: "00:42:08", sub: "pcgaming", pol: -1, snippet: "Exclusivity deals are killing the PC gaming ecosystem. Hot take: this hurts devs too." },
+    { ts: "00:51:33", sub: "FreeGameFindings", pol: 1, snippet: "Claimed 47 free games from EGS this year. Wouldn't buy them but free is free." },
+    { ts: "01:04:11", sub: "ShouldIbuythisgame", pol: 1, snippet: "Finally picked up Alan Wake 2 on EGS sale. Worth it at $20." },
+    { ts: "01:11:42", sub: "patientgamers", pol: 0, snippet: "Mixed experience. Storefront is fine, launcher is hostile." },
+    { ts: "01:22:18", sub: "EpicGamesPC", pol: 1, snippet: "MEGA Sale dropped and prices are actually competitive with Steam this round." },
+    { ts: "01:34:59", sub: "fuckepic", pol: -1, snippet: "Social features are barely functional two years later." }
+  ];
+
+  // Clock
+  const pad = n => String(n).padStart(2, "0");
+  const setTS = () => {
+    const d = new Date();
+    const el = document.getElementById("ts");
+    if (el) el.textContent = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}Z`;
+  };
+  setTS(); setInterval(setTS, 1000);
+
+  // Chart
+  (function renderChart() {
+    const line = document.getElementById("chart-line");
+    const fill = document.getElementById("chart-fill");
+    const dots = document.getElementById("chart-dots");
+    const w = 800, h = 260, p = 12;
+    const xs = history.map((_, i) => p + (i * (w - 2 * p) / (history.length - 1)));
+    const maxAbs = Math.max.apply(null, history.map(d => Math.abs(d.score)));
+    const mid = h / 2;
+    const ys = history.map(d => mid - (d.score / maxAbs) * (h / 2 - 18));
+    let path = `M ${xs[0]} ${ys[0]}`;
+    for (let i = 1; i < xs.length; i++) {
+      const cx1 = xs[i - 1] + (xs[i] - xs[i - 1]) * 0.4;
+      const cx2 = xs[i] - (xs[i] - xs[i - 1]) * 0.4;
+      path += ` C ${cx1} ${ys[i - 1]}, ${cx2} ${ys[i]}, ${xs[i]} ${ys[i]}`;
+    }
+    line.setAttribute("d", path);
+    fill.setAttribute("d", `${path} L ${xs[xs.length - 1]} ${h} L ${xs[0]} ${h} Z`);
+    xs.forEach((x, i) => {
+      if (i % 5 === 0) {
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", x); c.setAttribute("cy", ys[i]);
+        c.setAttribute("r", "3");
+        c.setAttribute("fill", history[i].score >= 0 ? "#b8ff28" : "#ff3a5e");
+        c.setAttribute("stroke", "#030309");
+        c.setAttribute("stroke-width", "1.5");
+        dots.appendChild(c);
+      }
+    });
+  })();
+
+  // Safe DOM helpers
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  // Communities
+  (function renderComms() {
+    const root = document.getElementById("comm-list");
+    const max = Math.max.apply(null, communities.map(c => Math.abs(c.weighted)));
+    communities.forEach((c, i) => {
+      const row = el("div", "comm-row" + (c.weighted < 0 ? " neg" : ""));
+      const rank = el("div", "comm-rank", String(i + 1).padStart(2, "0"));
+      const name = el("div", "comm-name");
+      const slash = el("span", "slash", "r/");
+      name.appendChild(slash);
+      name.appendChild(document.createTextNode(c.community));
+      const mentions = el("div", "comm-mentions", c.mentions.toLocaleString());
+      const scoreTxt = (c.weighted >= 0 ? "+" : "") + c.weighted.toFixed(1);
+      const score = el("div", "comm-score " + (c.weighted >= 0 ? "pos" : "neg"), scoreTxt);
+      const bar = el("div", "comm-bar");
+      const pct = Math.min(100, (Math.abs(c.weighted) / max) * 100);
+      const fillEl = el("div", "comm-bar-fill");
+      fillEl.style.width = pct + "%";
+      bar.appendChild(fillEl);
+      bar.style.gridColumn = "2";
+      row.appendChild(rank);
+      row.appendChild(name);
+      row.appendChild(mentions);
+      row.appendChild(score);
+      row.appendChild(bar);
+      root.appendChild(row);
+    });
+  })();
+
+  // Signals
+  (function renderSignals() {
+    const root = document.getElementById("signals");
+    signals.forEach(s => {
+      const row = el("div", "signal");
+      const ts = el("div", "ts", s.ts + "Z");
+      const body = el("div", "body");
+      const sub = el("span", "sub", "r/" + s.sub);
+      body.appendChild(sub);
+      body.appendChild(document.createTextNode('"' + s.snippet + '"'));
+      const polCls = s.pol > 0 ? "pos" : s.pol < 0 ? "neg" : "";
+      const polChar = s.pol > 0 ? "+" : s.pol < 0 ? "\u2212" : "~";
+      const pol = el("div", "pol " + polCls, polChar);
+      row.appendChild(ts);
+      row.appendChild(body);
+      row.appendChild(pol);
+      root.appendChild(row);
+    });
+  })();
+})();
+</script>
+</body>
+</html>
