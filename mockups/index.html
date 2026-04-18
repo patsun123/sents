@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>SentiX — Dashboard Mockup Index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d12;
+    --paper: #18181f;
+    --ink: #f2f0ea;
+    --muted: #8a8693;
+    --rule: #2a2930;
+    --accent: #ffd085;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(circle at 15% 0%, rgba(255,208,133,0.05), transparent 40%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "Instrument Sans", sans-serif;
+    min-height: 100vh;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 72px 40px 80px; }
+  .kicker {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .kicker::before { content: ""; width: 28px; height: 1px; background: var(--accent); }
+  h1 {
+    font-family: "Fraunces", serif;
+    font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 96;
+    font-weight: 500;
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 0.96;
+    letter-spacing: -0.03em;
+    margin: 0 0 16px;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  p.lede { font-size: 18px; color: var(--muted); line-height: 1.55; max-width: 62ch; margin: 0 0 56px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  a.card {
+    display: block;
+    padding: 26px 28px 22px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    transition: transform 0.2s ease, border-color 0.2s;
+  }
+  a.card:hover { transform: translateY(-3px); border-color: var(--accent); }
+  a.card .badge {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  a.card h3 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 30px;
+    margin: 10px 0 8px;
+    letter-spacing: -0.02em;
+  }
+  a.card p {
+    color: var(--muted);
+    line-height: 1.5;
+    font-size: 14px;
+    margin: 0 0 14px;
+    min-height: 66px;
+  }
+  a.card .swatches {
+    display: flex; gap: 6px;
+    margin-top: auto;
+  }
+  a.card .sw { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.1); }
+  a.card .arrow {
+    position: absolute; top: 22px; right: 22px;
+    font-size: 18px; color: var(--muted);
+    transition: transform 0.2s;
+  }
+  a.card:hover .arrow { transform: translate(4px, -4px); color: var(--accent); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 700px) {
+    main { padding: 48px 24px 60px; }
+    .grid { grid-template-columns: 1fr; }
+    a.card p { min-height: 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">SentiX / Dashboard Mockups / 2026-04-16</div>
+  <h1>Four alternate <em>visual treatments</em><br>of the same dashboard.</h1>
+  <p class="lede">
+    Same data, same information architecture, four distinctive aesthetics. Click through each one at 1440px and 375px (resize your window, or use DevTools device toolbar) before picking a winner. No build step — just open the files.
+  </p>
+  <p class="lede" style="margin-top:-36px; font-size:15px; color:var(--accent);">
+    ↔ <strong style="color:var(--ink);">A and C now ship a one-click toggle</strong> in their own headers, so visitors can flip between Neon Punk and Brutalist without leaving the page.
+  </p>
+
+  <div class="grid">
+    <a class="card" href="a-neon-punk.html">
+      <div class="badge">A · NEON PUNK</div>
+      <h3>Gaming HUD</h3>
+      <p>Cyberpunk console vibes. Scanlines, angled clip-path panels, hot magenta + electric cyan. Reads like a game interface.</p>
+      <div class="swatches">
+        <span class="sw" style="background:#030309"></span>
+        <span class="sw" style="background:#ff1e9a"></span>
+        <span class="sw" style="background:#00e5ff"></span>
+        <span class="sw" style="background:#b8ff28"></span>
+      </div>
+      <span class="arrow">↗</span>
+    </a>
+
+    <a class="card" href="b-editorial.html">
+      <div class="badge">B · EDITORIAL</div>
+      <h3>FT Alphaville</h3>
+      <p>Cream paper, Fraunces serif, each ticker as a story with a lede and pullquotes. Reads as analysis, not a dashboard.</p>
+      <div class="swatches">
+        <span class="sw" style="background:#f5efe5"></span>
+        <span class="sw" style="background:#0e1724"></span>
+        <span class="sw" style="background:#8b1a2b"></span>
+        <span class="sw" style="background:#c17b21"></span>
+      </div>
+      <span class="arrow">↗</span>
+    </a>
+
+    <a class="card" href="c-brutalist.html">
+      <div class="badge">C · BRUTALIST</div>
+      <h3>Vercel × Linear</h3>
+      <p>Off-white graph paper, 2px black borders, Archivo Black headlines, Klein-blue accent. Crisp, modern, confident.</p>
+      <div class="swatches">
+        <span class="sw" style="background:#fefdf8"></span>
+        <span class="sw" style="background:#111"></span>
+        <span class="sw" style="background:#2340ff"></span>
+        <span class="sw" style="background:#0e7a3f"></span>
+      </div>
+      <span class="arrow">↗</span>
+    </a>
+
+    <a class="card" href="d-terminal.html">
+      <div class="badge">D · TERMINAL</div>
+      <h3>Bloomberg</h3>
+      <p>Dense monospace tables, amber highlights, keyboard shortcuts everywhere, ASCII bars. Power-user maximum density.</p>
+      <div class="swatches">
+        <span class="sw" style="background:#0a0a0a"></span>
+        <span class="sw" style="background:#ffb000"></span>
+        <span class="sw" style="background:#6bff7e"></span>
+        <span class="sw" style="background:#ff5555"></span>
+      </div>
+      <span class="arrow">↗</span>
+    </a>
+  </div>
+
+  <footer>
+    All four mockups share identical fixture data (30 days of seeded sentiment history, 8 communities, 10 signals). Robots: noindex, nofollow, noarchive.
+  </footer>
+</main>
+</body>
+</html>

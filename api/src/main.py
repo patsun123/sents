@@ -24,6 +24,7 @@ session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
 )
 
 _DASHBOARD_TEMPLATE = (Path(__file__).parent / "dashboard.html").read_text()
+_EPIC_DASHBOARD_TEMPLATE = (Path(__file__).parent / "epic_dashboard.html").read_text()
 
 # In-memory TTL caches: key -> (fetched_at, payload)
 _PRICE_CACHE: dict[str, tuple[float, Any]] = {}
@@ -174,12 +175,12 @@ def _render_dashboard_html(storefront: StorefrontConfig) -> str:
 
 @app.get("/")
 async def index() -> HTMLResponse:
-    return HTMLResponse(_render_dashboard_html(_STOREFRONTS["epic"]))
+    return HTMLResponse(_EPIC_DASHBOARD_TEMPLATE)
 
 
 @app.get("/epic")
 async def epic_dashboard() -> HTMLResponse:
-    return HTMLResponse(_render_dashboard_html(_STOREFRONTS["epic"]))
+    return HTMLResponse(_EPIC_DASHBOARD_TEMPLATE)
 
 
 @app.get("/steam")

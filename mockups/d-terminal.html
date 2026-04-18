@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>SENTIX.TERM // EPIC_GAMES_STORE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-panel: #111111;
+    --bg-row: #141414;
+    --bg-alt: #181818;
+    --ink: #d4d4d4;
+    --ink-dim: #8a8a8a;
+    --ink-faint: #555555;
+    --amber: #ffb000;
+    --amber-dim: #7a5500;
+    --green: #6bff7e;
+    --red: #ff5555;
+    --cyan: #5fd6e0;
+    --border: #262626;
+    --border-hot: #ffb000;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px; line-height: 1.4;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+  /* Terminal CRT glow */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 2px),
+      radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0,0,0,0.6) 100%);
+    z-index: 100;
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+  }
+
+  /* COMMAND BAR */
+  .cmd-bar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex; gap: 22px; align-items: center;
+    font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .cmd-bar .prompt { color: var(--amber); font-weight: 600; }
+  .cmd-bar .cmd-group { display: flex; gap: 14px; color: var(--ink-dim); }
+  .cmd-bar .kb { color: var(--amber); font-weight: 500; }
+  .cmd-bar .spacer { flex: 1; }
+  .cmd-bar .blink { color: var(--amber); animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* HEADER STRIP */
+  .header-strip {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px;
+    display: flex; align-items: center; gap: 0;
+    font-size: 11px;
+  }
+  .header-strip .seg {
+    padding: 4px 14px;
+    border-right: 1px solid var(--border);
+    color: var(--ink-dim);
+  }
+  .header-strip .seg:last-child { border-right: 0; }
+  .header-strip .seg .k { color: var(--ink-faint); margin-right: 6px; }
+  .header-strip .seg .v { color: var(--ink); }
+  .header-strip .seg .v.hot { color: var(--amber); }
+  .header-strip .seg .v.pos { color: var(--green); }
+  .header-strip .seg .v.neg { color: var(--red); }
+  .header-strip .spacer { flex: 1; }
+  .header-strip .status {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--ink);
+  }
+  .header-strip .status::before {
+    content: ""; width: 7px; height: 7px;
+    background: var(--green);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+
+  /* CONTAINER */
+  .term-body { padding: 0; max-width: 100%; }
+
+  /* CAPSULE HEADER */
+  .capsule {
+    padding: 22px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 30px;
+  }
+  .capsule .title-block .tag {
+    color: var(--amber);
+    font-size: 10px; letter-spacing: 0.2em;
+    margin-bottom: 8px;
+  }
+  .capsule h1 {
+    font-size: 38px;
+    font-weight: 700;
+    margin: 0 0 2px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .capsule h1 .slash { color: var(--amber); }
+  .capsule .sub {
+    color: var(--ink-dim);
+    font-size: 12px;
+  }
+  .capsule .reading {
+    display: flex; gap: 36px;
+    align-items: flex-start;
+  }
+  .capsule .reading .n {
+    text-align: right;
+  }
+  .capsule .reading .n .label {
+    font-size: 10px; letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  .capsule .reading .n .val {
+    font-size: 34px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-top: 4px;
+  }
+  .capsule .reading .n .val.pos { color: var(--green); }
+  .capsule .reading .n .val.neg { color: var(--red); }
+  .capsule .reading .n .val.amber { color: var(--amber); }
+  .capsule .reading .n .delta {
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 3px;
+  }
+  .capsule .reading .n .delta.pos { color: var(--green); }
+  .capsule .reading .n .delta.neg { color: var(--red); }
+
+  /* GRID LAYOUT */
+  .term-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .term-grid > .cell { border-right: 1px solid var(--border); }
+  .term-grid > .cell:last-child { border-right: 0; }
+
+  /* PANEL */
+  .panel {
+    padding: 0;
+  }
+  .panel-head {
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-panel);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .panel-head .left { color: var(--amber); font-weight: 600; display: flex; gap: 10px; align-items: center; }
+  .panel-head .left::before { content: "▣"; color: var(--amber-dim); }
+  .panel-head .meta { color: var(--ink-faint); }
+
+  /* CHART */
+  .chart-panel { padding: 16px 18px 18px; }
+  .chart-frame {
+    position: relative;
+    height: 260px;
+    border: 1px solid var(--border);
+    background:
+      linear-gradient(rgba(255,176,0,0.02) 1px, transparent 1px) 0 0 / 100% 26px,
+      linear-gradient(90deg, rgba(255,176,0,0.02) 1px, transparent 1px) 0 0 / 40px 100%;
+  }
+  .chart-frame svg { width: 100%; height: 100%; display: block; }
+  .y-axis {
+    position: absolute; top: 0; bottom: 0; left: -30px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    font-size: 9px;
+    color: var(--ink-faint);
+    text-align: right;
+    padding-right: 6px;
+  }
+  .chart-panel { padding-left: 48px; }
+  .chart-footer {
+    display: flex; justify-content: space-between;
+    margin-top: 8px;
+    padding-left: 0;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+  }
+
+  /* KPI grid (under chart) */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border);
+  }
+  .kpi-cell {
+    padding: 12px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .kpi-cell:last-child { border-right: 0; }
+  .kpi-cell .k { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.18em; text-transform: uppercase; }
+  .kpi-cell .v { font-size: 18px; margin-top: 4px; font-weight: 500; letter-spacing: -0.01em; }
+  .kpi-cell .v.pos { color: var(--green); }
+  .kpi-cell .v.neg { color: var(--red); }
+  .kpi-cell .v.amber { color: var(--amber); }
+
+  /* TABLES */
+  table.term {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.term th {
+    background: var(--bg-panel);
+    color: var(--amber);
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  table.term th:last-child { border-right: 0; }
+  table.term th.num { text-align: right; }
+  table.term td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    font-feature-settings: "tnum" 1;
+  }
+  table.term td:last-child { border-right: 0; }
+  table.term tr:hover td { background: var(--bg-row); }
+  table.term .rank { color: var(--ink-faint); width: 28px; }
+  table.term .name .pre { color: var(--amber); }
+  table.term .num { text-align: right; }
+  table.term .num.pos { color: var(--green); }
+  table.term .num.neg { color: var(--red); }
+  table.term .bars {
+    display: inline-block;
+    letter-spacing: 0;
+    color: var(--amber-dim);
+  }
+  table.term .bars.neg { color: var(--red); opacity: 0.8; }
+
+  /* Signal feed */
+  .feed-panel {
+    padding: 0;
+  }
+  .feed {
+    font-size: 12px;
+    max-height: 520px;
+    overflow: hidden;
+  }
+  .feed .row {
+    display: grid;
+    grid-template-columns: 70px 160px 36px 1fr;
+    gap: 0;
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--border);
+    align-items: baseline;
+  }
+  .feed .row:nth-child(even) { background: var(--bg-row); }
+  .feed .row:hover { background: var(--bg-alt); }
+  .feed .ts { color: var(--ink-faint); font-size: 11px; }
+  .feed .sub { color: var(--cyan); font-size: 11px; }
+  .feed .pol { font-weight: 700; font-size: 13px; }
+  .feed .pol.pos { color: var(--green); }
+  .feed .pol.neg { color: var(--red); }
+  .feed .pol.neu { color: var(--ink-dim); }
+  .feed .body { color: var(--ink); font-size: 12px; }
+
+  /* STATUS BAR */
+  .status-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--amber);
+    color: #000;
+    padding: 5px 20px;
+    display: flex; gap: 22px; align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    z-index: 200;
+  }
+  .status-bar .kb { background: #000; color: var(--amber); padding: 1px 6px; margin-right: 6px; }
+  .status-bar .sp { flex: 1; }
+  .status-bar .right { color: #000; opacity: 0.7; }
+
+  /* content padding for status bar */
+  main { padding-bottom: 40px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 960px) {
+    .capsule { grid-template-columns: 1fr; gap: 20px; }
+    .capsule .reading { gap: 20px; flex-wrap: wrap; }
+    .term-grid { grid-template-columns: 1fr; }
+    .term-grid > .cell { border-right: 0; border-bottom: 1px solid var(--border); }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-cell { border-bottom: 1px solid var(--border); }
+    .kpi-cell:nth-last-child(-n+2) { border-bottom: 0; }
+    .cmd-bar { flex-wrap: wrap; gap: 12px; font-size: 10px; }
+    .cmd-bar .spacer { display: none; }
+    .header-strip { flex-wrap: wrap; }
+    .header-strip .seg { border-bottom: 1px solid var(--border); flex: 1 0 50%; }
+    .status-bar { flex-wrap: wrap; font-size: 10px; }
+    .capsule h1 { font-size: 28px; }
+    .feed .row { grid-template-columns: 60px 1fr 30px; }
+    .feed .row .body { grid-column: 1 / -1; padding-top: 2px; padding-left: 0; color: var(--ink-dim); }
+  }
+  @media (max-width: 420px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .kpi-cell { border-right: 0; }
+    .capsule .reading .n .val { font-size: 24px; }
+    table.term th, table.term td { padding: 6px 8px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <!-- COMMAND BAR -->
+  <div class="cmd-bar">
+    <span class="prompt">sentix@prod:~$</span>
+    <span class="cmd-group">
+      <span><span class="kb">⌘K</span> SEARCH</span>
+      <span><span class="kb">⌘L</span> LOOKBACK</span>
+      <span><span class="kb">⌘R</span> REFRESH</span>
+      <span><span class="kb">⌘E</span> EXPORT</span>
+      <span><span class="kb">?</span>  HELP</span>
+    </span>
+    <span class="spacer"></span>
+    <span class="blink">█</span>
+  </div>
+
+  <!-- HEADER STRIP -->
+  <div class="header-strip">
+    <span class="seg"><span class="k">ENT</span><span class="v hot">EPIC_GAMES_STORE</span></span>
+    <span class="seg"><span class="k">WIN</span><span class="v">30D</span></span>
+    <span class="seg"><span class="k">CLS</span><span class="v">epic_rules</span></span>
+    <span class="seg"><span class="k">SRC</span><span class="v">REDDIT</span></span>
+    <span class="seg"><span class="k">P</span><span class="v pos">+0.04</span></span>
+    <span class="seg"><span class="k">Δ24H</span><span class="v neg">-12.3%</span></span>
+    <span class="seg"><span class="k">MENT</span><span class="v">4,287</span></span>
+    <span class="spacer"></span>
+    <span class="status">LIVE · 14m</span>
+  </div>
+
+  <!-- CAPSULE -->
+  <div class="capsule">
+    <div class="title-block">
+      <div class="tag">&gt; OVERVIEW [STOREFRONT #01]</div>
+      <h1>EPIC_GAMES_STORE<span class="slash">/</span></h1>
+      <div class="sub">Aggregate sentiment signal across 11 communities · lookback 30d · last ingest 2026-04-16T00:14Z</div>
+    </div>
+    <div class="reading">
+      <div class="n">
+        <div class="label">POLARITY</div>
+        <div class="val amber">+0.04</div>
+        <div class="delta pos">+0.04σ</div>
+      </div>
+      <div class="n">
+        <div class="label">WEIGHTED</div>
+        <div class="val pos">+128.4</div>
+        <div class="delta pos">+4.3%</div>
+      </div>
+      <div class="n">
+        <div class="label">MENTIONS</div>
+        <div class="val">4,287</div>
+        <div class="delta neg">-12.3%</div>
+      </div>
+      <div class="n">
+        <div class="label">COMMUNITIES</div>
+        <div class="val">11/12</div>
+        <div class="delta">ACTIVE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <section class="panel chart-panel" style="position:relative;">
+    <div class="panel-head">
+      <span class="left">TIMESERIES · WEIGHTED_SCORE · DAILY</span>
+      <span class="meta">2026-03-17 → 2026-04-16 · UTC</span>
+    </div>
+    <div style="position:relative; padding: 18px 20px 18px 48px;">
+      <div class="y-axis">
+        <span>+60</span>
+        <span>+30</span>
+        <span>0</span>
+        <span>-30</span>
+        <span>-60</span>
+      </div>
+      <div class="chart-frame">
+        <svg viewBox="0 0 900 260" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="fill-term" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,176,0,0.18)"/>
+              <stop offset="100%" stop-color="rgba(255,176,0,0)"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="130" x2="900" y2="130" stroke="rgba(255,176,0,0.28)" stroke-dasharray="2 4"/>
+          <path id="tfill" fill="url(#fill-term)"/>
+          <path id="tline" fill="none" stroke="#ffb000" stroke-width="1.5"/>
+          <g id="tdots"></g>
+        </svg>
+      </div>
+      <div class="chart-footer">
+        <span>■ WEIGHTED_SCORE  · · · BASELINE(0)</span>
+        <span>N=30 · μ=+8.4 · σ=23.1 · MAX=+52 · MIN=-28</span>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-cell"><div class="k">POS SIGNALS</div><div class="v pos">2,164</div></div>
+      <div class="kpi-cell"><div class="k">NEG SIGNALS</div><div class="v neg">2,123</div></div>
+      <div class="kpi-cell"><div class="k">P/N RATIO</div><div class="v amber">1.019</div></div>
+      <div class="kpi-cell"><div class="k">TOP THREAD</div><div class="v" style="font-size:13px;">FREE_GAMES_W16 (312)</div></div>
+    </div>
+  </section>
+
+  <!-- GRID: COMMUNITIES + SIGNALS -->
+  <section class="term-grid">
+    <div class="cell panel">
+      <div class="panel-head">
+        <span class="left">COMMUNITIES · 24H WEIGHTED</span>
+        <span class="meta">SORT: SCORE ▼</span>
+      </div>
+      <table class="term" id="comm-table">
+        <thead>
+          <tr>
+            <th class="rank">#</th>
+            <th>COMMUNITY</th>
+            <th class="num">MENT</th>
+            <th class="num">WEIGHTED</th>
+            <th>DIST</th>
+          </tr>
+        </thead>
+        <tbody id="comm-body"></tbody>
+      </table>
+    </div>
+    <div class="cell panel feed-panel">
+      <div class="panel-head">
+        <span class="left">STREAM · tail -f signals.log</span>
+        <span class="meta"><span style="color:var(--green)">●</span> 10/10</span>
+      </div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </section>
+
+  <!-- ALSO TRACKING -->
+  <section class="panel">
+    <div class="panel-head">
+      <span class="left">STOREFRONTS · TRACKED ENTITIES</span>
+      <span class="meta">USE ⌘↑/↓ TO NAVIGATE</span>
+    </div>
+    <table class="term">
+      <thead>
+        <tr>
+          <th class="rank">#</th>
+          <th>ENTITY</th>
+          <th>COMMUNITIES</th>
+          <th class="num">MENT 30D</th>
+          <th class="num">WEIGHTED</th>
+          <th class="num">POLARITY</th>
+          <th class="num">Δ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background: rgba(255,176,0,0.06);">
+          <td class="rank">01</td>
+          <td class="name">▶ <span class="pre">$</span>EPIC_GAMES_STORE</td>
+          <td>11</td>
+          <td class="num">4,287</td>
+          <td class="num pos">+128.4</td>
+          <td class="num amber" style="color:var(--amber)">+0.04</td>
+          <td class="num neg">-12.3%</td>
+        </tr>
+        <tr>
+          <td class="rank">02</td>
+          <td class="name">  <span class="pre">$</span><a href="#steam" style="color:var(--ink);text-decoration:none">STEAM</a></td>
+          <td>8</td>
+          <td class="num">7,942</td>
+          <td class="num pos">+892.1</td>
+          <td class="num" style="color:var(--green)">+0.21</td>
+          <td class="num pos">+2.1%</td>
+        </tr>
+        <tr style="color: var(--ink-faint);">
+          <td class="rank">03</td>
+          <td class="name">  <span class="pre" style="color:var(--ink-faint)">$</span>GOG_GALAXY</td>
+          <td>-</td>
+          <td class="num">-</td>
+          <td class="num">-</td>
+          <td class="num">-</td>
+          <td class="num">Q3-26</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span><span class="kb">⌘K</span>SEARCH</span>
+    <span><span class="kb">⌘L</span>LOOKBACK</span>
+    <span><span class="kb">⌘R</span>REFRESH</span>
+    <span><span class="kb">⌘/</span>FILTER</span>
+    <span><span class="kb">G</span>GO TO</span>
+    <span class="sp"></span>
+    <span class="right">SENTIX.TERM v0.9.4 · ROBOTS: NOINDEX</span>
+  </div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const history = (function () {
+    const seed = [
+      -24, -18, -12, 8, 14, 22, 18, 6, -4, -16,
+      -28, -14, 4, 22, 34, 42, 38, 28, 12, -6,
+      -18, -22, -8, 14, 32, 48, 52, 44, 30, 22
+    ];
+    return seed.map((s, i) => ({ idx: i, score: s }));
+  })();
+  const communities = [
+    { community: "EpicGamesPC", mentions: 892, weighted: 412.5 },
+    { community: "GameDeals", mentions: 743, weighted: 188.7 },
+    { community: "FreeGameFindings", mentions: 601, weighted: 156.2 },
+    { community: "pcgaming", mentions: 578, weighted: -98.4 },
+    { community: "pcmasterrace", mentions: 512, weighted: -124.1 },
+    { community: "fuckepic", mentions: 384, weighted: -286.8 },
+    { community: "ShouldIbuythisgame", mentions: 288, weighted: 42.3 },
+    { community: "patientgamers", mentions: 182, weighted: 18.7 }
+  ];
+  const signals = [
+    { ts: "00:14:22", sub: "r/EpicGamesPC", pol: 1, body: "Actually loving the new free game lineup. Two AAA titles this month alone." },
+    { ts: "00:18:04", sub: "r/fuckepic", pol: -1, body: "Why does the launcher need 9GB just to browse the store?" },
+    { ts: "00:26:51", sub: "r/GameDeals", pol: 1, body: "EGS 80% off coupon stacks on Alan Wake 2. Absolute steal." },
+    { ts: "00:34:17", sub: "r/pcmasterrace", pol: -1, body: "Still can't believe the cart system came 5 years late." },
+    { ts: "00:42:08", sub: "r/pcgaming", pol: -1, body: "Exclusivity deals are killing the PC gaming ecosystem." },
+    { ts: "00:51:33", sub: "r/FreeGameFindings", pol: 1, body: "Claimed 47 free games from EGS this year. Free is free." },
+    { ts: "01:04:11", sub: "r/ShouldIbuythisgame", pol: 1, body: "Finally picked up Alan Wake 2 on EGS sale. Worth it at $20." },
+    { ts: "01:11:42", sub: "r/patientgamers", pol: 0, body: "Mixed experience. Storefront is fine, launcher is hostile." },
+    { ts: "01:22:18", sub: "r/EpicGamesPC", pol: 1, body: "MEGA Sale dropped and prices are competitive with Steam." },
+    { ts: "01:34:59", sub: "r/fuckepic", pol: -1, body: "Social features are barely functional two years later." }
+  ];
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  // Chart
+  (function renderChart() {
+    const line = document.getElementById("tline");
+    const fill = document.getElementById("tfill");
+    const dots = document.getElementById("tdots");
+    const w = 900, h = 260, p = 8;
+    const xs = history.map((_, i) => p + (i * (w - 2 * p) / (history.length - 1)));
+    const maxAbs = 60;
+    const mid = h / 2;
+    const ys = history.map(d => mid - (d.score / maxAbs) * (h / 2 - 14));
+    let path = `M ${xs[0]} ${ys[0]}`;
+    for (let i = 1; i < xs.length; i++) path += ` L ${xs[i]} ${ys[i]}`;
+    line.setAttribute("d", path);
+    fill.setAttribute("d", `${path} L ${xs[xs.length - 1]} ${h} L ${xs[0]} ${h} Z`);
+    xs.forEach((x, i) => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", x); c.setAttribute("cy", ys[i]);
+      c.setAttribute("r", "1.8");
+      c.setAttribute("fill", "#ffb000");
+      dots.appendChild(c);
+    });
+  })();
+
+  // Bars string for visual ASCII
+  function barStr(weighted, max) {
+    const n = Math.max(1, Math.round(Math.min(1, Math.abs(weighted) / max) * 14));
+    return (weighted >= 0 ? "█" : "▓").repeat(n);
+  }
+
+  // Communities table
+  (function renderComms() {
+    const tbody = document.getElementById("comm-body");
+    const max = Math.max.apply(null, communities.map(c => Math.abs(c.weighted)));
+    communities.forEach((c, i) => {
+      const tr = el("tr");
+      tr.appendChild(el("td", "rank", String(i + 1).padStart(2, "0")));
+      const name = el("td", "name");
+      const pre = el("span", "pre", "r/");
+      name.appendChild(pre);
+      name.appendChild(document.createTextNode(c.community));
+      tr.appendChild(name);
+      tr.appendChild(el("td", "num", c.mentions.toLocaleString()));
+      const scoreTxt = (c.weighted >= 0 ? "+" : "") + c.weighted.toFixed(1);
+      tr.appendChild(el("td", "num " + (c.weighted >= 0 ? "pos" : "neg"), scoreTxt));
+      const distCell = el("td");
+      const barSpan = el("span", "bars" + (c.weighted >= 0 ? "" : " neg"), barStr(c.weighted, max));
+      distCell.appendChild(barSpan);
+      tr.appendChild(distCell);
+      tbody.appendChild(tr);
+    });
+  })();
+
+  // Feed
+  (function renderFeed() {
+    const root = document.getElementById("feed");
+    signals.forEach(s => {
+      const row = el("div", "row");
+      row.appendChild(el("div", "ts", s.ts));
+      row.appendChild(el("div", "sub", s.sub));
+      const polCls = s.pol > 0 ? "pos" : s.pol < 0 ? "neg" : "neu";
+      const polChar = s.pol > 0 ? "[+]" : s.pol < 0 ? "[-]" : "[~]";
+      row.appendChild(el("div", "pol " + polCls, polChar));
+      row.appendChild(el("div", "body", s.body));
+      root.appendChild(row);
+    });
+  })();
+})();
+</script>
+</body>
+</html>

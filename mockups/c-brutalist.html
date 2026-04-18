@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>SENTIX — EPIC GAMES STORE [C]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #fefdf8;
+    --rule: #111111;
+    --ink: #111111;
+    --muted: #676767;
+    --accent: #2340ff;         /* electric Klein blue */
+    --positive: #0e7a3f;
+    --negative: #c8162a;
+    --grid-bg: #f2efe6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Archivo", sans-serif;
+    font-size: 15px; line-height: 1.5;
+    min-height: 100vh;
+    position: relative;
+  }
+  /* Grid background (graph paper) */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(17,17,17,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17,17,17,0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  main { position: relative; z-index: 1; }
+
+  /* MASTHEAD */
+  .masthead {
+    border-bottom: 2px solid var(--rule);
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: stretch;
+  }
+  .masthead .brand {
+    padding: 18px 28px;
+    border-right: 2px solid var(--rule);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .masthead .brand .mark {
+    width: 28px; height: 28px; background: var(--accent);
+    position: relative;
+  }
+  .masthead .brand .mark::after {
+    content: ""; position: absolute; inset: 4px; background: var(--paper);
+  }
+  .masthead .brand .name {
+    font-family: "Archivo", sans-serif;
+    font-weight: 900; font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+  .masthead nav {
+    display: flex;
+  }
+  .masthead nav a {
+    padding: 0 22px;
+    display: flex; align-items: center;
+    color: var(--ink); text-decoration: none;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; font-weight: 500;
+    border-right: 2px solid var(--rule);
+    transition: background 0.12s;
+  }
+  .masthead nav a:hover { background: var(--accent); color: var(--paper); }
+  .masthead nav a.active {
+    background: var(--ink); color: var(--paper);
+  }
+  .masthead .meta {
+    padding: 18px 28px;
+    border-left: 2px solid var(--rule);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .theme-toggle {
+    display: inline-flex; align-items: stretch;
+    margin-left: auto;
+    border-left: 2px solid var(--rule);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .theme-toggle a {
+    padding: 0 18px;
+    display: flex; align-items: center;
+    color: var(--ink);
+    text-decoration: none;
+    border-right: 2px solid var(--rule);
+    font-weight: 500;
+    transition: background 0.12s;
+  }
+  .theme-toggle a:last-child { border-right: 0; }
+  .theme-toggle a.active {
+    background: var(--accent); color: var(--paper);
+  }
+  .theme-toggle a:hover:not(.active) { background: var(--ink); color: var(--paper); }
+  .masthead .meta .dot {
+    width: 8px; height: 8px; background: var(--accent);
+    animation: blink 1.8s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0.2; } }
+
+  /* TICKER RUNNER */
+  .ticker-runner {
+    border-bottom: 2px solid var(--rule);
+    padding: 8px 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .ticker-runner .tick { padding: 0 18px; }
+  .ticker-runner .tick .pos { color: #7cff7c; }
+  .ticker-runner .tick .neg { color: #ff7c7c; }
+
+  /* CONTAINER */
+  .container {
+    max-width: 1440px; margin: 0 auto; padding: 0;
+  }
+
+  /* HERO */
+  .hero {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    border-bottom: 2px solid var(--rule);
+  }
+  .hero .left {
+    padding: 48px 44px 36px;
+    border-right: 2px solid var(--rule);
+    position: relative;
+  }
+  .hero .tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    border: 2px solid var(--rule);
+    padding: 4px 10px;
+    margin-bottom: 28px;
+    background: var(--accent); color: var(--paper);
+    font-weight: 600;
+  }
+  .hero h1 {
+    font-family: "Archivo", sans-serif;
+    font-weight: 900;
+    font-size: clamp(44px, 7vw, 96px);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    margin: 0 0 28px;
+    text-transform: uppercase;
+  }
+  .hero h1 .slash {
+    color: var(--accent);
+    font-weight: 900;
+  }
+  .hero .lede {
+    font-size: 18px; line-height: 1.5;
+    max-width: 60ch;
+    margin: 0 0 24px;
+  }
+  .hero .read-meta {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .hero .right {
+    padding: 32px 36px 28px;
+    background: var(--grid-bg);
+    display: flex; flex-direction: column;
+    gap: 0;
+  }
+  .big-stat {
+    padding: 18px 0;
+    border-bottom: 2px solid var(--rule);
+  }
+  .big-stat:last-child { border-bottom: 0; }
+  .big-stat .label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .big-stat .val {
+    font-family: "Archivo", sans-serif;
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-feature-settings: "tnum" 1;
+  }
+  .big-stat .val.pos { color: var(--positive); }
+  .big-stat .val.neg { color: var(--negative); }
+  .big-stat .val.accent { color: var(--accent); }
+  .big-stat .sub {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .big-stat .sub strong { color: var(--ink); font-weight: 600; }
+
+  /* CHART ROW */
+  .chart-section {
+    padding: 44px 44px 40px;
+    border-bottom: 2px solid var(--rule);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 44px;
+    align-items: start;
+  }
+  .chart-section .side {
+    border: 2px solid var(--rule);
+    padding: 18px;
+    min-width: 220px;
+    background: var(--paper);
+  }
+  .chart-section .side-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 6px; margin-bottom: 12px;
+  }
+  .chart-section .side-line {
+    display: flex; justify-content: space-between;
+    padding: 7px 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    border-bottom: 1px dashed rgba(17,17,17,0.3);
+  }
+  .chart-section .side-line:last-child { border-bottom: 0; }
+  .chart-section .side-line .k { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+  .chart-section .side-line .v { font-weight: 600; color: var(--ink); font-feature-settings: "tnum" 1; }
+  .chart-section .chart-wrap {
+    border: 2px solid var(--rule);
+    padding: 24px;
+    background: var(--paper);
+    height: 320px;
+    position: relative;
+  }
+  .chart-title {
+    font-family: "Archivo", sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+  }
+  .chart-subtitle {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  .chart-wrap svg { width: 100%; height: calc(100% - 80px); display: block; }
+  .chart-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .chart-footer .legend { display: flex; gap: 16px; }
+  .chart-footer .legend .sw { display: inline-block; width: 18px; height: 2px; margin-right: 6px; vertical-align: middle; background: var(--accent); }
+
+  /* LOWER GRID */
+  .lower {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 2px solid var(--rule);
+  }
+  .lower > div {
+    padding: 40px 44px;
+  }
+  .lower .l-left { border-right: 2px solid var(--rule); }
+
+  .section-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 22px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--rule);
+  }
+  .section-head h2 {
+    font-family: "Archivo", sans-serif;
+    font-weight: 900;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .section-head h2 .slash { color: var(--accent); }
+  .section-head .count {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Communities */
+  .comm-table {
+    width: 100%; border-collapse: collapse;
+    font-family: "Archivo", sans-serif;
+  }
+  .comm-table th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted);
+    text-align: left;
+    padding: 8px 8px 8px 0;
+    border-bottom: 2px solid var(--rule);
+    font-weight: 500;
+  }
+  .comm-table th.num { text-align: right; }
+  .comm-table td {
+    padding: 14px 8px 14px 0;
+    border-bottom: 1px solid rgba(17,17,17,0.14);
+    font-size: 14px;
+  }
+  .comm-table tr:last-child td { border-bottom: 0; }
+  .comm-table .rank {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--muted);
+    width: 36px;
+  }
+  .comm-table .name { font-weight: 500; }
+  .comm-table .name .pre {
+    color: var(--accent);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    margin-right: 2px;
+  }
+  .comm-table .num {
+    text-align: right;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    font-feature-settings: "tnum" 1;
+  }
+  .comm-table .num.pos { color: var(--positive); font-weight: 600; }
+  .comm-table .num.neg { color: var(--negative); font-weight: 600; }
+  .comm-table .bar-cell { width: 140px; }
+  .bar-outer {
+    width: 100%; height: 8px; background: var(--grid-bg);
+    border: 1px solid var(--rule);
+    position: relative;
+  }
+  .bar-fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--accent); }
+  .bar-fill.neg { background: var(--negative); }
+
+  /* Signals */
+  .signals {
+    display: flex; flex-direction: column;
+  }
+  .signal {
+    display: grid;
+    grid-template-columns: 48px 1fr 54px;
+    gap: 16px;
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(17,17,17,0.14);
+    align-items: start;
+  }
+  .signal:first-child { padding-top: 0; }
+  .signal:last-child { border-bottom: 0; }
+  .signal .idx {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    padding-top: 2px;
+  }
+  .signal .body {
+    font-size: 14px; line-height: 1.45;
+    color: var(--ink);
+  }
+  .signal .meta {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .signal .meta .sub { color: var(--accent); font-weight: 600; }
+  .signal .pol {
+    border: 2px solid var(--rule);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 6px;
+    text-align: center;
+    font-weight: 600;
+  }
+  .signal .pol.pos { background: var(--positive); color: var(--paper); border-color: var(--positive); }
+  .signal .pol.neg { background: var(--negative); color: var(--paper); border-color: var(--negative); }
+  .signal .pol.neu { color: var(--muted); }
+
+  /* Footer */
+  footer.foot {
+    border-top: 2px solid var(--rule);
+    padding: 24px 44px 30px;
+    display: flex; justify-content: space-between;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    flex-wrap: wrap; gap: 14px;
+  }
+  footer.foot .robots { color: var(--ink); font-weight: 600; }
+  footer.foot a { color: var(--accent); text-decoration: none; }
+
+  /* Micro decor: rotated callout */
+  .stamp {
+    position: absolute; top: 44px; right: 44px;
+    font-family: "Archivo", sans-serif;
+    font-weight: 900; font-size: 11px;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 8px 14px;
+    border: 2px solid var(--rule);
+    transform: rotate(4deg);
+    background: var(--paper);
+  }
+  .stamp span { color: var(--accent); }
+
+  /* Responsive */
+  @media (max-width: 960px) {
+    .masthead { grid-template-columns: 1fr; }
+    .masthead .brand { border-right: 0; border-bottom: 2px solid var(--rule); }
+    .masthead nav { flex-wrap: wrap; border-bottom: 2px solid var(--rule); }
+    .masthead nav a { flex: 1 0 50%; padding: 12px 14px; border-bottom: 2px solid var(--rule); }
+    .masthead .meta { border-left: 0; }
+    .theme-toggle { border-left: 0; border-top: 2px solid var(--rule); }
+    .theme-toggle a { flex: 1; padding: 12px 14px; justify-content: center; }
+    .hero { grid-template-columns: 1fr; }
+    .hero .left { border-right: 0; border-bottom: 2px solid var(--rule); padding: 32px 24px 28px; }
+    .hero .right { padding: 24px; }
+    .chart-section { grid-template-columns: 1fr; padding: 28px 24px; gap: 24px; }
+    .lower { grid-template-columns: 1fr; }
+    .lower .l-left { border-right: 0; border-bottom: 2px solid var(--rule); }
+    .lower > div { padding: 28px 24px; }
+    .stamp { top: 20px; right: 20px; }
+    footer.foot { padding: 22px 24px 30px; }
+  }
+  @media (max-width: 420px) {
+    .hero h1 { font-size: 44px; }
+    .big-stat .val { font-size: 34px; }
+    .section-head h2 { font-size: 22px; }
+    .comm-table .bar-cell { display: none; }
+  }
+</style>
+</head>
+<body>
+<main class="container">
+
+  <header class="masthead">
+    <div class="brand">
+      <span class="mark"></span>
+      <span class="name">SENTIX</span>
+    </div>
+    <nav>
+      <a href="#epic" class="active">Epic Games Store</a>
+      <a href="#steam">Steam</a>
+      <a href="#methodology">Method</a>
+      <a href="#runs">Runs</a>
+    </nav>
+    <div class="meta">
+      <span class="dot"></span>
+      <span>LIVE · 14m AGO</span>
+    </div>
+    <div class="theme-toggle">
+      <a href="a-neon-punk.html">A · NEON</a>
+      <a href="c-brutalist.html" class="active">C · BRUTAL</a>
+    </div>
+  </header>
+
+  <!-- Ticker -->
+  <div class="ticker-runner">
+    <span class="tick">EPIC_GAMES_STORE <span class="pos">+128.4</span> (+4.3%)</span>
+    <span class="tick">STEAM <span class="pos">+892.1</span> (+2.1%)</span>
+    <span class="tick">MENTIONS/30D 4,287 <span class="neg">-12.3%</span></span>
+    <span class="tick">EpicGamesPC <span class="pos">+412.5</span></span>
+    <span class="tick">fuckepic <span class="neg">-286.8</span></span>
+    <span class="tick">GameDeals <span class="pos">+188.7</span></span>
+    <span class="tick">pcgaming <span class="neg">-98.4</span></span>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="left">
+      <span class="tag">STOREFRONT / 01</span>
+      <h1>Epic Games<br>Store<span class="slash">/</span>holding.</h1>
+      <p class="lede">Thirty-day weighted sentiment lands at <strong>+0.04</strong>. Not positive. Not negative. Roughly the same conversation the platform has had with its users for five years — free games in one hand, launcher complaints in the other.</p>
+      <div class="read-meta">Last ingest: 00:14 UTC · 11 communities · 4,287 signals</div>
+      <div class="stamp">SENTIX<br><span>REPORT 04/16</span></div>
+    </div>
+    <div class="right">
+      <div class="big-stat">
+        <div class="label">Polarity index</div>
+        <div class="val accent">+0.04</div>
+        <div class="sub">Neutral band · <strong>+0.04σ vs prior</strong></div>
+      </div>
+      <div class="big-stat">
+        <div class="label">Mentions, 30d</div>
+        <div class="val">4,287</div>
+        <div class="sub">Down <strong>12.3%</strong> vs prior 30d</div>
+      </div>
+      <div class="big-stat">
+        <div class="label">Weighted score</div>
+        <div class="val pos">+128.4</div>
+        <div class="sub">Positive skew, <strong>thin</strong> margin</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHART -->
+  <section class="chart-section">
+    <aside class="side">
+      <div class="side-title">Methodology</div>
+      <div class="side-line"><span class="k">Lookback</span><span class="v">30d</span></div>
+      <div class="side-line"><span class="k">Bucket</span><span class="v">1d</span></div>
+      <div class="side-line"><span class="k">Weighting</span><span class="v">log-upvote</span></div>
+      <div class="side-line"><span class="k">Classifier</span><span class="v">epic_rules</span></div>
+      <div class="side-line"><span class="k">Ingest</span><span class="v">Reddit /new</span></div>
+      <div class="side-line"><span class="k">Entity</span><span class="v">EPIC_GAMES_STORE</span></div>
+    </aside>
+    <div class="chart-wrap">
+      <h3 class="chart-title">Daily weighted sentiment.</h3>
+      <div class="chart-subtitle">30 days · to 16 APR 2026 · UTC buckets</div>
+      <svg id="chart" viewBox="0 0 800 220" preserveAspectRatio="none">
+        <g stroke="rgba(17,17,17,0.08)" stroke-width="1">
+          <line x1="0" y1="55" x2="800" y2="55"/>
+          <line x1="0" y1="110" x2="800" y2="110"/>
+          <line x1="0" y1="165" x2="800" y2="165"/>
+        </g>
+        <line x1="0" y1="110" x2="800" y2="110" stroke="#111" stroke-width="1.5"/>
+        <g id="chart-bars"></g>
+        <path id="chart-line" fill="none" stroke="#2340ff" stroke-width="2.25"/>
+        <g id="chart-dots"></g>
+      </svg>
+      <div class="chart-footer">
+        <div class="legend">
+          <span><span class="sw"></span>Weighted score</span>
+          <span><span class="sw" style="background:var(--ink);height:1px"></span>Baseline 0</span>
+        </div>
+        <span>SOURCE / SENTIX · REDDIT</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOWER GRID -->
+  <section class="lower">
+    <div class="l-left">
+      <div class="section-head">
+        <h2>Communities<span class="slash">/</span>24h</h2>
+        <span class="count">08 OF 11 ACTIVE</span>
+      </div>
+      <table class="comm-table" id="comm-table">
+        <thead>
+          <tr>
+            <th class="rank">#</th>
+            <th>Community</th>
+            <th class="bar-cell">Contribution</th>
+            <th class="num">Ment.</th>
+            <th class="num">Score</th>
+          </tr>
+        </thead>
+        <tbody id="comm-body"></tbody>
+      </table>
+    </div>
+    <div class="l-right">
+      <div class="section-head">
+        <h2>Signals<span class="slash">/</span>live</h2>
+        <span class="count">10 RECENT</span>
+      </div>
+      <div class="signals" id="signals"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>SENTIX · MOCKUP C · BRUTALIST · <a href="a-neon-punk.html">A-NEON</a> · <a href="b-editorial.html">B-EDITORIAL</a> · <a href="d-terminal.html">D-TERMINAL</a></span>
+    <span class="robots">ROBOTS: NOINDEX NOFOLLOW NOARCHIVE</span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const history = (function () {
+    const seed = [
+      -24, -18, -12, 8, 14, 22, 18, 6, -4, -16,
+      -28, -14, 4, 22, 34, 42, 38, 28, 12, -6,
+      -18, -22, -8, 14, 32, 48, 52, 44, 30, 22
+    ];
+    return seed.map((s, i) => ({ idx: i, score: s }));
+  })();
+  const communities = [
+    { community: "EpicGamesPC", mentions: 892, weighted: 412.5 },
+    { community: "GameDeals", mentions: 743, weighted: 188.7 },
+    { community: "FreeGameFindings", mentions: 601, weighted: 156.2 },
+    { community: "pcgaming", mentions: 578, weighted: -98.4 },
+    { community: "pcmasterrace", mentions: 512, weighted: -124.1 },
+    { community: "fuckepic", mentions: 384, weighted: -286.8 },
+    { community: "ShouldIbuythisgame", mentions: 288, weighted: 42.3 },
+    { community: "patientgamers", mentions: 182, weighted: 18.7 }
+  ];
+  const signals = [
+    { ts: "00:14", sub: "EpicGamesPC", pol: 1, body: "Actually loving the new free game lineup. Two AAA titles this month alone." },
+    { ts: "00:18", sub: "fuckepic", pol: -1, body: "Why does the launcher need 9GB just to browse the store?" },
+    { ts: "00:26", sub: "GameDeals", pol: 1, body: "EGS 80% off coupon stacks on Alan Wake 2. Absolute steal." },
+    { ts: "00:34", sub: "pcmasterrace", pol: -1, body: "Still can't believe the cart system came 5 years late." },
+    { ts: "00:42", sub: "pcgaming", pol: -1, body: "Exclusivity deals are killing the PC gaming ecosystem. Hot take: this hurts devs too." },
+    { ts: "00:51", sub: "FreeGameFindings", pol: 1, body: "Claimed 47 free games from EGS this year. Wouldn't buy them but free is free." },
+    { ts: "01:04", sub: "ShouldIbuythisgame", pol: 1, body: "Finally picked up Alan Wake 2 on EGS sale. Worth it at $20." },
+    { ts: "01:11", sub: "patientgamers", pol: 0, body: "Mixed experience. Storefront is fine, launcher is hostile." },
+    { ts: "01:22", sub: "EpicGamesPC", pol: 1, body: "MEGA Sale dropped and prices are actually competitive with Steam this round." },
+    { ts: "01:34", sub: "fuckepic", pol: -1, body: "Social features are barely functional two years later." }
+  ];
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  // Chart (line only)
+  (function renderChart() {
+    const line = document.getElementById("chart-line");
+    const dots = document.getElementById("chart-dots");
+    const w = 800, h = 220, p = 6;
+    const xs = history.map((_, i) => p + (i * (w - 2 * p) / (history.length - 1)));
+    const maxAbs = Math.max.apply(null, history.map(d => Math.abs(d.score)));
+    const mid = h / 2;
+    const ys = history.map(d => mid - (d.score / maxAbs) * (h / 2 - 10));
+    let path = `M ${xs[0]} ${ys[0]}`;
+    for (let i = 1; i < xs.length; i++) path += ` L ${xs[i]} ${ys[i]}`;
+    line.setAttribute("d", path);
+    xs.forEach((x, i) => {
+      if (i === 0 || i === xs.length - 1 || i % 5 === 0) {
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        c.setAttribute("x", x - 3); c.setAttribute("y", ys[i] - 3);
+        c.setAttribute("width", "6"); c.setAttribute("height", "6");
+        c.setAttribute("fill", "#fefdf8");
+        c.setAttribute("stroke", "#111"); c.setAttribute("stroke-width", "1.5");
+        dots.appendChild(c);
+      }
+    });
+  })();
+
+  // Communities
+  (function renderComms() {
+    const tbody = document.getElementById("comm-body");
+    const max = Math.max.apply(null, communities.map(c => Math.abs(c.weighted)));
+    communities.forEach((c, i) => {
+      const tr = el("tr");
+      tr.appendChild(el("td", "rank", String(i + 1).padStart(2, "0")));
+      const nameCell = el("td", "name");
+      const pre = el("span", "pre", "r/");
+      nameCell.appendChild(pre);
+      nameCell.appendChild(document.createTextNode(c.community));
+      tr.appendChild(nameCell);
+      const barCell = el("td", "bar-cell");
+      const outer = el("div", "bar-outer");
+      const fill = el("div", "bar-fill" + (c.weighted < 0 ? " neg" : ""));
+      fill.style.width = Math.min(100, (Math.abs(c.weighted) / max) * 100) + "%";
+      outer.appendChild(fill);
+      barCell.appendChild(outer);
+      tr.appendChild(barCell);
+      tr.appendChild(el("td", "num", c.mentions.toLocaleString()));
+      const scoreCls = c.weighted >= 0 ? "num pos" : "num neg";
+      tr.appendChild(el("td", scoreCls, (c.weighted >= 0 ? "+" : "") + c.weighted.toFixed(1)));
+      tbody.appendChild(tr);
+    });
+  })();
+
+  // Signals
+  (function renderSignals() {
+    const root = document.getElementById("signals");
+    signals.forEach((s, i) => {
+      const row = el("div", "signal");
+      row.appendChild(el("div", "idx", String(i + 1).padStart(2, "0")));
+      const body = el("div");
+      body.appendChild(el("div", "body", s.body));
+      const meta = el("div", "meta");
+      meta.appendChild(el("span", "sub", "r/" + s.sub));
+      meta.appendChild(document.createTextNode(" · " + s.ts + " UTC"));
+      body.appendChild(meta);
+      row.appendChild(body);
+      const polCls = s.pol > 0 ? "pos" : s.pol < 0 ? "neg" : "neu";
+      const polText = s.pol > 0 ? "POS" : s.pol < 0 ? "NEG" : "MIX";
+      row.appendChild(el("div", "pol " + polCls, polText));
+      root.appendChild(row);
+    });
+  })();
+})();
+</script>
+</body>
+</html>
