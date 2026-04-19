@@ -1,0 +1,31 @@
+# Home-machine override for running the worker outside the droplet.
+#
+# Reddit blocks the public .json endpoint from known datacenter ASNs (DO, AWS,
+# GCP, Hetzner, ...). Running the worker from a residential IP sidesteps that
+# entirely. The worker writes signals into the droplet's postgres over a
+# private Tailscale mesh — no public DB exposure.
+#
+# Prerequisites on this machine:
+#   - Tailscale installed and signed into the same tailnet as the droplet
+#   - Docker Desktop (or Docker Engine on Linux)
+#   - `.env` with matching POSTGRES_PASSWORD, plus DROPLET_TAILSCALE_IP set
+#
+# Start it:
+#   docker compose --profile embedded-worker \
+#     -f docker-compose.yml -f docker-compose.home.yml \
+#     up -d worker
+#
+# Tail it:
+#   docker compose --profile embedded-worker \
+#     -f docker-compose.yml -f docker-compose.home.yml logs -f worker
+services:
+  worker:
+    # Home worker does not depend on a local postgres/redis — it reaches the
+    # droplet's postgres over Tailscale. Redis is not required by the worker.
+    depends_on: !reset []
+    environment:
+      # Point the worker at the droplet's postgres via its Tailscale address.
+      DATABASE_URL: postgresql+asyncpg://sentix:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, must match the droplet}@${DROPLET_TAILSCALE_IP:?set DROPLET_TAILSCALE_IP in .env — on the droplet run `tailscale ip -4`}:5432/sentix
+      # Redis is unused by the worker path; give it a harmless placeholder so
+      # any accidental env consumer doesn't fail with a bad parse.
+      REDIS_URL: redis://localhost:6379/0

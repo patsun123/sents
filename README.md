@@ -295,6 +295,75 @@ docker compose exec -T postgres pg_dump -U sentix sentix | gzip > backup-$(date 
 
 Ship to DO Spaces, Backblaze, or `scp` off-box on a cron.
 
+## Running The Worker From Home (Split Deploy)
+
+Reddit blocks the public `.json` endpoint from most datacenter ASNs (DO, AWS,
+GCP, Hetzner, …). The worker therefore runs from a **residential IP** on a
+machine in your home — laptop, desktop, or Pi — and writes signals into the
+droplet's Postgres over a private Tailscale mesh. No public DB exposure, no
+port forwarding on your home router.
+
+The worker is behind a Compose profile (`embedded-worker`), so the droplet's
+prod deploy does NOT start it. The api + postgres + redis + caddy stack still
+lives on the droplet.
+
+### One-time droplet setup
+
+1. **Install Tailscale** on the droplet and enroll it. Generate a one-time
+   auth key at <https://login.tailscale.com/admin/settings/keys>:
+   ```bash
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up --authkey=tskey-auth-... --hostname=sents-prod
+   tailscale ip -4   # note this — it's the droplet's tailnet IP
+   ```
+2. **Record the IP in `.env` on the droplet** so compose can bind postgres to
+   it:
+   ```bash
+   echo "TAILSCALE_IP=$(tailscale ip -4)" >> ~/sents/.env
+   ```
+3. **Redeploy.** The next deploy will bind postgres to the Tailscale
+   interface only, and skip the worker service entirely.
+
+### One-time home-machine setup
+
+1. **Install Tailscale** (Windows / macOS client from tailscale.com, or on
+   Linux via the same install script). Sign into the same tailnet as the
+   droplet.
+2. **Install Docker Desktop** (Windows/macOS) or Docker Engine (Linux).
+3. **Clone the repo** locally.
+4. **Create `.env`** with the same `POSTGRES_PASSWORD` as on the droplet, plus
+   the droplet's Tailscale IP:
+   ```bash
+   cp .env.example .env
+   # edit .env:
+   #   POSTGRES_PASSWORD=<same value as droplet>
+   #   DROPLET_TAILSCALE_IP=<droplet's tailscale ip -4>
+   ```
+5. **Start the worker**:
+   ```bash
+   docker compose --profile embedded-worker \
+     -f docker-compose.yml -f docker-compose.home.yml \
+     up -d worker
+   ```
+6. **Tail logs** for one cycle to confirm signals are flowing:
+   ```bash
+   docker compose --profile embedded-worker \
+     -f docker-compose.yml -f docker-compose.home.yml \
+     logs -f worker
+   ```
+   Look for `cycle_complete status=success` and `signals_stored=N` where N > 0.
+
+### Tradeoffs
+
+- **Laptop sleep = scraping gaps.** The worker misses cycles while the
+  machine is asleep. The next cycle picks up from `last_successful_run.
+  started_at`, so data comes back in a burst on wake — but bounded by
+  Reddit's ~1000-item-per-subreddit ceiling. For 24/7 uptime, host the
+  worker on a Raspberry Pi or an always-on machine.
+- **Home IP changes** on ISP-triggered renewal don't matter — Tailscale
+  handles the mesh routing.
+- **To stop**: `docker compose --profile embedded-worker -f docker-compose.yml -f docker-compose.home.yml down worker`.
+
 ## Where To Read Next
 
 - [worker/README.md](worker/README.md)

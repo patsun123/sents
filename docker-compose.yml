@@ -11,6 +11,12 @@ services:
         condition: service_healthy
 
   worker:
+    # Worker is behind a profile so the droplet's prod deploy does NOT run it.
+    # Reddit blocks public .json from datacenter IPs; the worker runs from a
+    # residential IP instead (see docker-compose.home.yml).
+    # Local dev: `docker compose --profile embedded-worker up`
+    # Home:      `docker compose --profile embedded-worker -f docker-compose.yml -f docker-compose.home.yml up -d worker`
+    profiles: ["embedded-worker"]
     build: ./worker
     restart: unless-stopped
     environment:
