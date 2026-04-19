@@ -4,6 +4,14 @@ services:
     expose:
       - "8000"
 
+  # Expose postgres on the Tailscale interface only, so the home worker can
+  # reach it over the encrypted mesh but the public internet cannot. Docker
+  # binds to the specified IP, so if TAILSCALE_IP is not on the host, the
+  # container will retry until it is (handles boot ordering gracefully).
+  postgres:
+    ports:
+      - "${TAILSCALE_IP:?set TAILSCALE_IP in .env — run `tailscale ip -4` on the droplet}:5432:5432"
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped

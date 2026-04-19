@@ -27,6 +27,13 @@ jobs:
             git reset --hard origin/main
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --ignore-pull-failures || true
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+            # The worker lives behind the `embedded-worker` profile so it
+            # does not run on the droplet (Reddit blocks .json from DC IPs).
+            # Compose's --remove-orphans ignores profile-gated services, so
+            # explicitly stop + rm any leftover worker container from before
+            # the home-worker split. Idempotent — no-op once the container is
+            # already gone.
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml rm -sf worker 2>/dev/null || true
             # Reload Caddy so changes to the bind-mounted Caddyfile take effect
             # without dropping active connections or re-running ACME.
             docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T caddy \
