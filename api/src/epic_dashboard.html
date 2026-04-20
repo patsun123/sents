@@ -101,6 +101,26 @@
   }
   [data-layout="a"] .theme-toggle-a button:hover:not(.active) { color: var(--magenta); }
 
+  [data-layout="a"] .timeframe-toggle-a {
+    display: inline-flex; align-items: stretch;
+    border: 1px solid rgba(184,255,40,0.35);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    background: rgba(184,255,40,0.03);
+  }
+  [data-layout="a"] .timeframe-toggle-a button {
+    padding: 6px 9px; cursor: pointer;
+    font: inherit; color: var(--muted); background: transparent;
+    border: 0; border-right: 1px solid rgba(184,255,40,0.18);
+    transition: all 0.12s;
+  }
+  [data-layout="a"] .timeframe-toggle-a button:last-child { border-right: 0; }
+  [data-layout="a"] .timeframe-toggle-a button.active {
+    background: linear-gradient(180deg, rgba(184,255,40,0.22), rgba(184,255,40,0.06));
+    color: var(--lime); text-shadow: 0 0 10px var(--lime);
+  }
+  [data-layout="a"] .timeframe-toggle-a button:hover:not(.active) { color: var(--lime); }
+
   [data-layout="a"] .hero {
     display: grid; grid-template-columns: 1fr 360px; gap: 28px; margin: 32px 0 36px;
   }
@@ -278,7 +298,7 @@
 
   [data-layout="c"] .masthead {
     border-bottom: 2px solid var(--rule);
-    display: grid; grid-template-columns: auto 1fr auto auto;
+    display: grid; grid-template-columns: auto 1fr auto auto auto;
     align-items: stretch;
   }
   [data-layout="c"] .masthead .brand {
@@ -323,6 +343,22 @@
   }
   [data-layout="c"] .theme-toggle-c button:last-child { border-right: 0; }
   [data-layout="c"] .theme-toggle-c button.active { background: var(--accent); color: var(--paper); }
+
+  [data-layout="c"] .timeframe-toggle-c {
+    display: inline-flex; align-items: stretch;
+    border-left: 2px solid var(--rule);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  [data-layout="c"] .timeframe-toggle-c button {
+    padding: 0 12px; display: flex; align-items: center; cursor: pointer;
+    color: var(--ink); font: inherit; background: transparent;
+    border: 0; border-right: 2px solid var(--rule);
+    font-weight: 500; transition: background 0.12s;
+  }
+  [data-layout="c"] .timeframe-toggle-c button:last-child { border-right: 0; }
+  [data-layout="c"] .timeframe-toggle-c button.active { background: var(--ink); color: var(--paper); }
+  [data-layout="c"] .timeframe-toggle-c button:hover:not(.active) { background: var(--grid-bg); }
   [data-layout="c"] .theme-toggle-c button:hover:not(.active) { background: var(--ink); color: var(--paper); }
 
   [data-layout="c"] .ticker-runner {
@@ -554,6 +590,8 @@
     [data-layout="c"] .masthead .meta { border-left: 0; }
     [data-layout="c"] .theme-toggle-c { border-left: 0; border-top: 2px solid var(--rule); }
     [data-layout="c"] .theme-toggle-c button { flex: 1; padding: 12px 14px; justify-content: center; }
+    [data-layout="c"] .timeframe-toggle-c { border-left: 0; border-top: 2px solid var(--rule); }
+    [data-layout="c"] .timeframe-toggle-c button { flex: 1; padding: 12px 8px; justify-content: center; }
     [data-layout="c"] .hero { grid-template-columns: 1fr; }
     [data-layout="c"] .hero .left { border-right: 0; border-bottom: 2px solid var(--rule); padding: 32px 24px 28px; }
     [data-layout="c"] .hero .right { padding: 24px; }
@@ -582,6 +620,13 @@
     <span><span class="label">NET:</span> <span class="val">REDDIT</span></span>
     <span><span class="label">T:</span> <span class="val" data-a-clock></span></span>
     <span class="spacer"></span>
+    <span class="timeframe-toggle-a" role="group" aria-label="Timeframe">
+      <button type="button" data-tf-btn="1d">1D</button>
+      <button type="button" data-tf-btn="7d">7D</button>
+      <button type="button" data-tf-btn="1mo" class="active">1M</button>
+      <button type="button" data-tf-btn="3mo">3M</button>
+      <button type="button" data-tf-btn="1y">1Y</button>
+    </span>
     <span class="theme-toggle-a" role="group" aria-label="Theme">
       <button type="button" data-theme-btn="a" class="active">A · NEON</button>
       <button type="button" data-theme-btn="c">C · BRUTAL</button>
@@ -591,11 +636,11 @@
 
   <section class="hero">
     <div class="hero-card">
-      <div class="hero-kicker">Storefront Sentiment Intake / 30-day window</div>
+      <div class="hero-kicker">Storefront Sentiment Intake / <span data-a-hero-window>30-day</span> window</div>
       <h1 class="hero-title"><span data-a-hero-line1>Epic Games</span> <em data-a-hero-em>Store</em><br><span data-a-hero-line2>is awaiting data.</span></h1>
       <p class="hero-subtitle" data-a-hero-subtitle>Live signal ingestion has not yet returned data for this storefront. The scheduled scraper runs every 15 minutes — once credentials or proxying are resolved this card will update automatically.</p>
       <div class="kpi-row">
-        <div class="kpi"><div class="label">Mentions / 30d</div><div class="val" data-a-kpi-mentions>—</div><div class="delta" data-a-kpi-mentions-delta>awaiting data</div></div>
+        <div class="kpi"><div class="label">Mentions / <span data-a-kpi-mentions-window>30d</span></div><div class="val" data-a-kpi-mentions>—</div><div class="delta" data-a-kpi-mentions-delta>awaiting data</div></div>
         <div class="kpi"><div class="label">Polarity Index</div><div class="val" data-a-kpi-polarity>—</div><div class="delta" data-a-kpi-polarity-delta>awaiting data</div></div>
         <div class="kpi"><div class="label">Communities</div><div class="val" data-a-kpi-communities>—</div><div class="delta" data-a-kpi-communities-delta>awaiting data</div></div>
         <div class="kpi"><div class="label">Last Seen</div><div class="val" style="font-size:14px;" data-a-kpi-lastseen>—</div><div class="delta" data-a-kpi-lastseen-delta>awaiting data</div></div>
@@ -603,7 +648,7 @@
     </div>
 
     <div class="gauge-card">
-      <div class="k">24h Weighted Score</div>
+      <div class="k"><span data-a-gauge-window>24h</span> Weighted Score</div>
       <div class="gauge-wrap">
         <svg viewBox="0 0 220 220">
           <defs>
@@ -628,7 +673,7 @@
 
   <section class="grid-main">
     <div class="panel">
-      <div class="panel-head"><h3>Sentiment Timeline // 30d</h3><div class="eyebrow">WEIGHTED_SCORE · DAILY</div></div>
+      <div class="panel-head"><h3>Sentiment Timeline // <span data-a-chart-head-window>30d</span></h3><div class="eyebrow">WEIGHTED_SCORE · DAILY</div></div>
       <div class="chart-wrap">
         <svg data-a-chart-svg viewBox="0 0 800 260" preserveAspectRatio="none">
           <defs>
@@ -682,6 +727,13 @@
       <a href="/steam">Steam</a>
     </nav>
     <div class="meta"><span class="dot"></span><span data-c-meta>AWAITING</span></div>
+    <div class="timeframe-toggle-c" role="group" aria-label="Timeframe">
+      <button type="button" data-tf-btn="1d">1D</button>
+      <button type="button" data-tf-btn="7d">7D</button>
+      <button type="button" data-tf-btn="1mo" class="active">1M</button>
+      <button type="button" data-tf-btn="3mo">3M</button>
+      <button type="button" data-tf-btn="1y">1Y</button>
+    </div>
     <div class="theme-toggle-c" role="group" aria-label="Theme">
       <button type="button" data-theme-btn="a">A · NEON</button>
       <button type="button" data-theme-btn="c" class="active">C · BRUTAL</button>
@@ -703,7 +755,7 @@
     </div>
     <div class="right">
       <div class="big-stat"><div class="label">Polarity index</div><div class="val accent" data-c-polarity>—</div><div class="sub" data-c-polarity-sub>Awaiting data</div></div>
-      <div class="big-stat"><div class="label">Mentions, 30d</div><div class="val" data-c-mentions>—</div><div class="sub" data-c-mentions-sub>Awaiting data</div></div>
+      <div class="big-stat"><div class="label">Mentions, <span data-c-mentions-window>30d</span></div><div class="val" data-c-mentions>—</div><div class="sub" data-c-mentions-sub>Awaiting data</div></div>
       <div class="big-stat"><div class="label">Weighted score</div><div class="val" data-c-weighted>—</div><div class="sub" data-c-weighted-sub>Awaiting data</div></div>
     </div>
   </section>
@@ -711,7 +763,7 @@
   <section class="chart-section">
     <aside class="side">
       <div class="side-title">Methodology</div>
-      <div class="side-line"><span class="k">Lookback</span><span class="v">30d</span></div>
+      <div class="side-line"><span class="k">Lookback</span><span class="v" data-c-side-lookback>30d</span></div>
       <div class="side-line"><span class="k">Bucket</span><span class="v">1d</span></div>
       <div class="side-line"><span class="k">Weighting</span><span class="v">log-upvote</span></div>
       <div class="side-line"><span class="k">Classifier</span><span class="v">epic_rules</span></div>
@@ -740,7 +792,7 @@
   <section class="lower">
     <div class="l-left">
       <div class="section-head">
-        <h2>Communities<span class="slash">/</span>24h</h2>
+        <h2>Communities<span class="slash">/</span><span data-c-comm-heading-window>24h</span></h2>
         <span class="count" data-c-comm-count>0 ACTIVE</span>
       </div>
       <div data-c-comm-root></div>
@@ -784,6 +836,37 @@
   // Re-apply on load to sync button state with the pre-paint theme.
   applyTheme(document.documentElement.getAttribute("data-theme") || "a");
 
+  /* ===================== TIMEFRAME TOGGLE + PERSISTENCE ===================== */
+  const TIMEFRAME_KEY = "sentix-epic-lookback";
+  const VALID_LOOKBACKS = ["1d", "7d", "1mo", "3mo", "6mo", "1y"];
+  let currentLookback = (function () {
+    try {
+      const v = localStorage.getItem(TIMEFRAME_KEY);
+      if (VALID_LOOKBACKS.indexOf(v) >= 0) return v;
+    } catch (e) { /* ignore */ }
+    return "1mo";
+  })();
+  function syncTimeframeButtons(lb) {
+    document.querySelectorAll("[data-tf-btn]").forEach(btn => {
+      if (btn.getAttribute("data-tf-btn") === lb) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+  }
+  function applyTimeframe(lb) {
+    if (VALID_LOOKBACKS.indexOf(lb) < 0) return;
+    currentLookback = lb;
+    try { localStorage.setItem(TIMEFRAME_KEY, lb); } catch (e) { /* ignore */ }
+    syncTimeframeButtons(lb);
+    loadDashboard();
+  }
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest("[data-tf-btn]");
+    if (!btn) return;
+    applyTimeframe(btn.getAttribute("data-tf-btn"));
+  });
+  // Sync buttons to the loaded preference on page open (before first fetch).
+  syncTimeframeButtons(currentLookback);
+
   /* ===================== UTILS ===================== */
   function $(selAttr, root) {
     return (root || document).querySelector("[" + selAttr + "]");
@@ -809,6 +892,14 @@
     const total = pos + neg;
     if (total === 0) return "—";
     return ((pos - neg) / total >= 0 ? "+" : "") + ((pos - neg) / total).toFixed(2);
+  }
+  // Compact short label for the window — shown inline in KPI labels and
+  // hero copy so the page always tells you what window you're looking at.
+  function lookbackShort(lb) {
+    return { "1d": "24h", "7d": "7d", "1mo": "30d", "3mo": "90d", "6mo": "180d", "1y": "1y" }[lb] || lb;
+  }
+  function lookbackLong(lb) {
+    return { "1d": "24-hour", "7d": "7-day", "1mo": "30-day", "3mo": "90-day", "6mo": "180-day", "1y": "1-year" }[lb] || lb;
   }
   function relativeTime(isoStr) {
     if (!isoStr) return "—";
@@ -847,10 +938,11 @@
   }
 
   async function loadDashboard() {
+    const lb = encodeURIComponent(currentLookback);
     const [overview, history, communities, signals] = await Promise.all([
-      fetchJson("/api/epic/overview"),
-      fetchJson("/api/epic/sentiment-history?lookback=30d"),
-      fetchJson("/api/epic/communities"),
+      fetchJson("/api/epic/overview?lookback=" + lb),
+      fetchJson("/api/epic/sentiment-history?lookback=" + lb),
+      fetchJson("/api/epic/communities?lookback=" + lb),
       fetchJson("/api/epic/recent-signals"),
     ]);
 
@@ -861,8 +953,8 @@
       ? overview.communities.split("|").map(s => s.trim()).filter(Boolean).length
       : 0;
 
-    renderA({ overview, history, communities, signals, hasData, commCount });
-    renderC({ overview, history, communities, signals, hasData, commCount });
+    renderA({ overview, history, communities, signals, hasData, commCount, lookback: currentLookback });
+    renderC({ overview, history, communities, signals, hasData, commCount, lookback: currentLookback });
   }
 
   /* ===================== THEME A RENDER ===================== */
@@ -870,7 +962,17 @@
     const { overview, history, communities, signals, hasData, commCount } = ctx;
 
     // Signal status dot + label
+    const lb = ctx.lookback || "1mo";
+    const lbShort = lookbackShort(lb);
+    const lbLong = lookbackLong(lb);
+
     setText("data-a-signal-status", hasData ? "LIVE" : "WAITING");
+
+    // Dynamic window labels
+    setText("data-a-hero-window", lbLong);
+    setText("data-a-kpi-mentions-window", lbShort);
+    setText("data-a-gauge-window", lbShort);
+    setText("data-a-chart-head-window", lbShort);
 
     // Hero
     if (hasData) {
@@ -879,7 +981,7 @@
       const em = document.querySelector("[data-a-hero-em]");
       if (em) em.textContent = "STORE";
       setText("data-a-hero-line2", polarityIndex >= 0.05 ? "is trending positive." : polarityIndex <= -0.05 ? "is trending negative." : "is mixed.");
-      setText("data-a-hero-subtitle", overview.mention_count + " signals collected in the last 24 hours across " + commCount + " communities. Weighted score " + fmtScore(overview.weighted_score) + ".");
+      setText("data-a-hero-subtitle", overview.mention_count + " signals collected in the last " + lbLong + " across " + commCount + " communities. Weighted score " + fmtScore(overview.weighted_score) + ".");
       setText("data-a-kpi-mentions", fmtNum(overview.mention_count));
       setText("data-a-kpi-mentions-delta", overview.positive_count + "+ / " + overview.negative_count + "−");
       setText("data-a-kpi-polarity", fmtScore(polarityIndex));
@@ -1019,6 +1121,9 @@
   /* ===================== THEME C RENDER ===================== */
   function renderC(ctx) {
     const { overview, history, communities, signals, hasData, commCount } = ctx;
+    const lb = ctx.lookback || "1mo";
+    const lbShort = lookbackShort(lb);
+    const lbLong = lookbackLong(lb);
 
     setText("data-c-meta", hasData ? ("LIVE · " + relativeTime(overview.last_seen).toUpperCase()) : "AWAITING");
 
@@ -1026,12 +1131,17 @@
     const stamp = pad(now.getUTCMonth() + 1) + "/" + pad(now.getUTCDate());
     setText("data-c-stamp-date", stamp);
 
+    // Dynamic window labels
+    setText("data-c-mentions-window", lbShort);
+    setText("data-c-side-lookback", lbShort);
+    setText("data-c-comm-heading-window", lbShort);
+
     if (hasData) {
       const polarityIndex = (overview.positive_count - overview.negative_count) / Math.max(1, overview.mention_count);
       setText("data-c-hero-line1", "Epic Games");
       setText("data-c-hero-line2", "Store");
       setText("data-c-hero-state", polarityIndex >= 0.05 ? "trending." : polarityIndex <= -0.05 ? "negative." : "holding.");
-      setText("data-c-lede", "Thirty-day weighted sentiment lands at " + fmtScore(polarityIndex) + ". " + overview.mention_count + " signals across " + commCount + " communities. Weighted score " + fmtScore(overview.weighted_score) + ".");
+      setText("data-c-lede", "The " + lbLong + " weighted sentiment lands at " + fmtScore(polarityIndex) + ". " + overview.mention_count + " signals across " + commCount + " communities. Weighted score " + fmtScore(overview.weighted_score) + ".");
       setText("data-c-readmeta", "Last ingest: " + relativeTime(overview.last_seen) + " · " + commCount + " communities · " + fmtNum(overview.mention_count) + " signals");
       setText("data-c-polarity", fmtScore(polarityIndex));
       setText("data-c-polarity-sub", polarityIndex >= 0 ? "Positive band · above zero" : "Negative band · below zero");
