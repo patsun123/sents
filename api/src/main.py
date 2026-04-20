@@ -641,8 +641,17 @@ async def get_ticker_sentiment_history(
 
 
 @app.get("/api/epic/overview")
-async def get_epic_overview() -> JSONResponse:
-    """24h summary for the Epic Games Store sentiment tracker."""
+async def get_epic_overview(lookback: str = "1d") -> JSONResponse:
+    """Summary for the Epic Games Store sentiment tracker over the given window.
+
+    ``lookback`` accepts the same values as ``/api/epic/sentiment-history``:
+    ``1d``, ``7d``, ``1mo``, ``3mo``, ``6mo``, ``1y``. Defaults to ``1d`` so
+    existing callers that don't pass the param still get 24-hour summaries.
+    """
+    if lookback not in _LOOKBACK_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid lookback: {lookback}")
+    interval_expr, _ = _LOOKBACK_SQL[lookback]
+
     try:
         async with session_factory() as session:
             result = await session.execute(
@@ -657,7 +666,7 @@ async def get_epic_overview() -> JSONResponse:
                             ORDER BY source_subreddit) AS communities
                     FROM sentiment_signals
                     WHERE ticker_symbol = :entity
-                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                      AND collected_at >= NOW() - INTERVAL '{interval_expr}'
                 """),
                 {"entity": _EPIC_ENTITY},
             )
@@ -669,6 +678,7 @@ async def get_epic_overview() -> JSONResponse:
         {
             "entity": _EPIC_ENTITY,
             "display_name": "Epic Games Store",
+            "lookback": lookback,
             "mention_count": int(row["mention_count"] or 0),
             "weighted_score": float(row["weighted_score"] or 0),
             "positive_count": int(row["positive_count"] or 0),
@@ -729,8 +739,17 @@ async def get_epic_sentiment_history(lookback: str = "7d") -> JSONResponse:
 
 
 @app.get("/api/epic/communities")
-async def get_epic_communities() -> JSONResponse:
-    """Per-community Epic Games Store sentiment breakdown for the last 24 hours."""
+async def get_epic_communities(lookback: str = "1d") -> JSONResponse:
+    """Per-community Epic Games Store sentiment breakdown over the given window.
+
+    ``lookback`` accepts the same values as ``/api/epic/sentiment-history``.
+    Defaults to ``1d`` to preserve the previous 24-hour behavior for any
+    callers that don't pass the param.
+    """
+    if lookback not in _LOOKBACK_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid lookback: {lookback}")
+    interval_expr, _ = _LOOKBACK_SQL[lookback]
+
     try:
         async with session_factory() as session:
             result = await session.execute(
@@ -746,7 +765,7 @@ async def get_epic_communities() -> JSONResponse:
                         MAX(collected_at) AS last_seen
                     FROM sentiment_signals
                     WHERE ticker_symbol = :entity
-                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                      AND collected_at >= NOW() - INTERVAL '{interval_expr}'
                     GROUP BY source_subreddit
                     ORDER BY mention_count DESC, source_subreddit
                 """),
