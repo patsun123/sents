@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;900&family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 
 <script>
 /* No-FOUC theme bootstrap — runs before stylesheets parse */
@@ -208,6 +209,7 @@
 
   [data-layout="a"] .chart-wrap { height: 260px; position: relative; }
   [data-layout="a"] .chart-wrap svg { width: 100%; height: 100%; overflow: visible; }
+  [data-layout="a"] [data-a-chart-container] { width: 100%; height: 100%; }
   [data-layout="a"] .chart-legend { display: flex; gap: 16px; font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 10px; }
   [data-layout="a"] .chart-legend .sw { display: inline-block; width: 8px; height: 8px; margin-right: 6px; vertical-align: middle; }
 
@@ -466,6 +468,7 @@
     text-transform: uppercase; color: var(--muted); margin-bottom: 18px;
   }
   [data-layout="c"] .chart-wrap svg { width: 100%; height: calc(100% - 80px); display: block; }
+  [data-layout="c"] [data-c-chart-container] { width: 100%; height: calc(100% - 80px); }
   [data-layout="c"] .chart-footer {
     display: flex; justify-content: space-between; align-items: center;
     margin-top: 14px;
@@ -674,26 +677,10 @@
   <section class="grid-main">
     <div class="panel">
       <div class="panel-head"><h3>Sentiment Timeline // <span data-a-chart-head-window>30d</span></h3><div class="eyebrow">WEIGHTED_SCORE · DAILY</div></div>
-      <div class="chart-wrap">
-        <svg data-a-chart-svg viewBox="0 0 800 260" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="a-line-grad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#00e5ff"/><stop offset="50%" stop-color="#ff1e9a"/><stop offset="100%" stop-color="#b8ff28"/>
-            </linearGradient>
-            <linearGradient id="a-fill-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="rgba(0,229,255,0.24)"/><stop offset="100%" stop-color="rgba(0,229,255,0)"/>
-            </linearGradient>
-          </defs>
-          <g stroke="rgba(255,255,255,0.04)" stroke-width="1"><line x1="0" y1="65" x2="800" y2="65"/><line x1="0" y1="130" x2="800" y2="130"/><line x1="0" y1="195" x2="800" y2="195"/></g>
-          <line x1="0" y1="130" x2="800" y2="130" stroke="rgba(255,30,154,0.3)" stroke-dasharray="4 4"/>
-          <path data-a-chart-fill fill="url(#a-fill-grad)"/>
-          <path data-a-chart-line fill="none" stroke="url(#a-line-grad)" stroke-width="2" style="filter: drop-shadow(0 0 6px rgba(0,229,255,0.5));"/>
-          <g data-a-chart-dots></g>
-        </svg>
-      </div>
+      <div class="chart-wrap" data-a-chart-container role="img" aria-label="Sentiment timeline chart"></div>
       <div class="chart-legend">
-        <span><span class="sw" style="background:#00e5ff"></span>Weighted Score</span>
-        <span><span class="sw" style="background:#ff1e9a;opacity:0.6"></span>Baseline</span>
+        <span><span class="sw" style="background:var(--lime)"></span>Positive days</span>
+        <span><span class="sw" style="background:var(--danger)"></span>Negative days</span>
         <span style="margin-left:auto" data-a-chart-note>awaiting data</span>
       </div>
     </div>
@@ -773,12 +760,7 @@
     <div class="chart-wrap">
       <h3 class="chart-title">Daily weighted sentiment.</h3>
       <div class="chart-subtitle" data-c-chart-sub>30 days · UTC buckets</div>
-      <svg data-c-chart-svg viewBox="0 0 800 220" preserveAspectRatio="none">
-        <g stroke="rgba(17,17,17,0.08)" stroke-width="1"><line x1="0" y1="55" x2="800" y2="55"/><line x1="0" y1="110" x2="800" y2="110"/><line x1="0" y1="165" x2="800" y2="165"/></g>
-        <line x1="0" y1="110" x2="800" y2="110" stroke="#111" stroke-width="1.5"/>
-        <path data-c-chart-line fill="none" stroke="#2340ff" stroke-width="2.25"/>
-        <g data-c-chart-dots></g>
-      </svg>
+      <div data-c-chart-container role="img" aria-label="Sentiment timeline chart" style="width:100%;"></div>
       <div class="chart-footer">
         <div class="legend">
           <span><span class="sw"></span>Weighted score</span>
@@ -832,6 +814,10 @@
     const btn = e.target.closest("[data-theme-btn]");
     if (!btn) return;
     applyTheme(btn.getAttribute("data-theme-btn"));
+    // The now-visible theme's chart container just gained layout — lazy-init
+    // it with whatever history we already have cached. Next animation frame
+    // so the container's width has been applied before createChart reads it.
+    requestAnimationFrame(() => { if (typeof feedChart === "function" && lastHistory) feedChart(lastHistory); });
   });
   // Re-apply on load to sync button state with the pre-paint theme.
   applyTheme(document.documentElement.getAttribute("data-theme") || "a");
@@ -937,6 +923,10 @@
     }
   }
 
+  // Cache the most recent history payload so theme toggles can feed the
+  // newly-visible theme's chart without a refetch.
+  let lastHistory = null;
+
   async function loadDashboard() {
     const lb = encodeURIComponent(currentLookback);
     const [overview, history, communities, signals] = await Promise.all([
@@ -945,6 +935,8 @@
       fetchJson("/api/epic/communities?lookback=" + lb),
       fetchJson("/api/epic/recent-signals"),
     ]);
+
+    lastHistory = history;
 
     const hasData = overview && overview.mention_count > 0;
 
@@ -1001,8 +993,8 @@
       }
     }
 
-    // Chart
-    renderAChart(history);
+    // Chart (shared across both themes via feedChart)
+    feedChart(history);
 
     // Communities
     renderAComms(communities);
@@ -1011,45 +1003,96 @@
     renderASignals(signals);
   }
 
-  function renderAChart(history) {
-    const line = document.querySelector("[data-a-chart-line]");
-    const fill = document.querySelector("[data-a-chart-fill]");
-    const dots = document.querySelector("[data-a-chart-dots]");
-    const note = document.querySelector("[data-a-chart-note]");
-    if (!line || !fill || !dots) return;
-    while (dots.firstChild) dots.removeChild(dots.firstChild);
-    line.setAttribute("d", "");
-    fill.setAttribute("d", "");
-    if (!history || !history.data || history.data.length === 0) {
-      if (note) note.textContent = "awaiting data";
-      return;
+  /* ===================== CHART (lightweight-charts) =====================
+     Both themes share this implementation. `chartInstances.a` and
+     `chartInstances.c` each hold { chart, series } once initialized.
+     Charts init lazily on first data feed for their own theme so hidden
+     ones aren't built with zero width. Theme switch triggers re-init.
+  */
+  const chartInstances = { a: null, c: null };
+  const THEME_CHART_OPTS = {
+    a: {
+      containerAttr: "data-a-chart-container",
+      layout: { background: { color: "transparent" }, textColor: "#8a92b5", fontFamily: '"JetBrains Mono", monospace' },
+      grid: { vertLines: { color: "rgba(138,146,181,0.08)" }, horzLines: { color: "rgba(138,146,181,0.08)" } },
+      priceScaleBorder: "rgba(138,146,181,0.18)",
+      timeScaleBorder: "rgba(138,146,181,0.18)",
+      crosshair: { v: "rgba(0,229,255,0.4)", h: "rgba(0,229,255,0.24)" },
+      series: {
+        baseValue: { type: "price", price: 0 },
+        topLineColor: "#b8ff28",  topFillColor1: "rgba(184,255,40,0.24)",  topFillColor2: "rgba(184,255,40,0.02)",
+        bottomLineColor: "#ff3a5e", bottomFillColor1: "rgba(255,58,94,0.22)", bottomFillColor2: "rgba(255,58,94,0.02)",
+      }
+    },
+    c: {
+      containerAttr: "data-c-chart-container",
+      layout: { background: { color: "transparent" }, textColor: "#676767", fontFamily: '"IBM Plex Mono", monospace' },
+      grid: { vertLines: { color: "rgba(17,17,17,0.08)" }, horzLines: { color: "rgba(17,17,17,0.08)" } },
+      priceScaleBorder: "rgba(17,17,17,0.5)",
+      timeScaleBorder: "rgba(17,17,17,0.5)",
+      crosshair: { v: "rgba(35,64,255,0.5)", h: "rgba(35,64,255,0.3)" },
+      series: {
+        baseValue: { type: "price", price: 0 },
+        topLineColor: "#2340ff",  topFillColor1: "rgba(35,64,255,0.20)",  topFillColor2: "rgba(35,64,255,0.03)",
+        bottomLineColor: "#c8162a", bottomFillColor1: "rgba(200,22,42,0.18)", bottomFillColor2: "rgba(200,22,42,0.02)",
+      }
     }
-    const data = history.data;
-    const w = 800, h = 260, p = 12;
-    const xs = data.map((_, i) => p + (i * (w - 2 * p) / Math.max(1, data.length - 1)));
-    const scores = data.map(d => d.weighted_score);
-    const maxAbs = Math.max(1, Math.max.apply(null, scores.map(Math.abs)));
-    const mid = h / 2;
-    const ys = scores.map(s => mid - (s / maxAbs) * (h / 2 - 18));
-    let path = "M " + xs[0] + " " + ys[0];
-    for (let i = 1; i < xs.length; i++) {
-      const cx1 = xs[i - 1] + (xs[i] - xs[i - 1]) * 0.4;
-      const cx2 = xs[i] - (xs[i] - xs[i - 1]) * 0.4;
-      path += " C " + cx1 + " " + ys[i - 1] + ", " + cx2 + " " + ys[i] + ", " + xs[i] + " " + ys[i];
+  };
+  function ensureChart(themeKey) {
+    if (!window.LightweightCharts) return null;
+    if (chartInstances[themeKey]) return chartInstances[themeKey];
+    const opt = THEME_CHART_OPTS[themeKey];
+    const container = document.querySelector("[" + opt.containerAttr + "]");
+    if (!container) return null;
+    if (!container.clientWidth) return null; // container hidden; will init on theme switch
+    const chart = LightweightCharts.createChart(container, {
+      autoSize: true,
+      layout: opt.layout,
+      grid: opt.grid,
+      rightPriceScale: { borderColor: opt.priceScaleBorder, scaleMargins: { top: 0.1, bottom: 0.1 } },
+      timeScale: { borderColor: opt.timeScaleBorder, timeVisible: false, secondsVisible: false, rightOffset: 2, barSpacing: 16, fixLeftEdge: true, fixRightEdge: true },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+        vertLine: { color: opt.crosshair.v, width: 1, style: 2, labelBackgroundColor: opt.priceScaleBorder },
+        horzLine: { color: opt.crosshair.h, width: 1, style: 2, labelBackgroundColor: opt.priceScaleBorder }
+      },
+      handleScroll: false,
+      handleScale: false,
+    });
+    const series = chart.addBaselineSeries(Object.assign({
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      crosshairMarkerVisible: true,
+      priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+    }, opt.series));
+    chartInstances[themeKey] = { chart, series };
+    return chartInstances[themeKey];
+  }
+  function feedChart(history) {
+    const noteA = document.querySelector("[data-a-chart-note]");
+    const subC  = document.querySelector("[data-c-chart-sub]");
+    const hasData = history && history.data && history.data.length > 0;
+    if (noteA) noteA.textContent = hasData ? (history.data.length + " buckets · UTC") : "awaiting data";
+    if (subC)  subC.textContent  = hasData ? (history.data.length + " buckets · UTC") : "Awaiting data · ingestion every 15 min";
+    if (!hasData) return;
+    // lightweight-charts wants { time: unix_seconds, value: number }, sorted ascending, unique per time.
+    const seen = new Set();
+    const points = [];
+    for (const row of history.data) {
+      const t = Math.floor(new Date(row.timestamp).getTime() / 1000);
+      if (seen.has(t)) continue;
+      seen.add(t);
+      points.push({ time: t, value: Number(row.weighted_score) || 0 });
     }
-    line.setAttribute("d", path);
-    fill.setAttribute("d", path + " L " + xs[xs.length - 1] + " " + h + " L " + xs[0] + " " + h + " Z");
-    xs.forEach((x, i) => {
-      if (i % Math.max(1, Math.floor(xs.length / 6)) === 0) {
-        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        c.setAttribute("cx", x); c.setAttribute("cy", ys[i]);
-        c.setAttribute("r", "3");
-        c.setAttribute("fill", scores[i] >= 0 ? "#b8ff28" : "#ff3a5e");
-        c.setAttribute("stroke", "#030309"); c.setAttribute("stroke-width", "1.5");
-        dots.appendChild(c);
+    points.sort((a, b) => a.time - b.time);
+    ["a", "c"].forEach(tk => {
+      const inst = ensureChart(tk);
+      if (inst) {
+        inst.series.setData(points);
+        inst.chart.timeScale().fitContent();
       }
     });
-    if (note) note.textContent = data.length + " daily buckets · UTC";
   }
 
   function renderAComms(communities) {
@@ -1152,7 +1195,7 @@
     }
 
     renderCTicker(overview, communities);
-    renderCChart(history);
+    // Chart is shared across themes; feedChart is already called in renderA.
     renderCComms(communities);
     renderCSignals(signals);
   }
@@ -1180,40 +1223,6 @@
     (communities || []).slice(0, 5).forEach(c => {
       root.appendChild(mk("r/" + c.community, fmtScore(c.weighted_score), c.weighted_score >= 0 ? "pos" : "neg"));
     });
-  }
-
-  function renderCChart(history) {
-    const line = document.querySelector("[data-c-chart-line]");
-    const dots = document.querySelector("[data-c-chart-dots]");
-    const sub = document.querySelector("[data-c-chart-sub]");
-    if (!line || !dots) return;
-    while (dots.firstChild) dots.removeChild(dots.firstChild);
-    line.setAttribute("d", "");
-    if (!history || !history.data || history.data.length === 0) {
-      if (sub) sub.textContent = "Awaiting data · ingestion every 15 min";
-      return;
-    }
-    const data = history.data;
-    const w = 800, h = 220, p = 6;
-    const xs = data.map((_, i) => p + (i * (w - 2 * p) / Math.max(1, data.length - 1)));
-    const scores = data.map(d => d.weighted_score);
-    const maxAbs = Math.max(1, Math.max.apply(null, scores.map(Math.abs)));
-    const mid = h / 2;
-    const ys = scores.map(s => mid - (s / maxAbs) * (h / 2 - 10));
-    let path = "M " + xs[0] + " " + ys[0];
-    for (let i = 1; i < xs.length; i++) path += " L " + xs[i] + " " + ys[i];
-    line.setAttribute("d", path);
-    xs.forEach((x, i) => {
-      if (i === 0 || i === xs.length - 1 || i % Math.max(1, Math.floor(xs.length / 6)) === 0) {
-        const c = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        c.setAttribute("x", x - 3); c.setAttribute("y", ys[i] - 3);
-        c.setAttribute("width", "6"); c.setAttribute("height", "6");
-        c.setAttribute("fill", "#fefdf8");
-        c.setAttribute("stroke", "#111"); c.setAttribute("stroke-width", "1.5");
-        dots.appendChild(c);
-      }
-    });
-    if (sub) sub.textContent = data.length + " days · UTC buckets";
   }
 
   function renderCComms(communities) {
