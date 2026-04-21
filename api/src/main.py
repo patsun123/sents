@@ -25,6 +25,7 @@ session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
 
 _DASHBOARD_TEMPLATE = (Path(__file__).parent / "dashboard.html").read_text()
 _EPIC_DASHBOARD_TEMPLATE = (Path(__file__).parent / "epic_dashboard.html").read_text()
+_DASHBOARD_V2_TEMPLATE = (Path(__file__).parent / "dashboard_v2.html").read_text()
 
 # In-memory TTL caches: key -> (fetched_at, payload)
 _PRICE_CACHE: dict[str, tuple[float, Any]] = {}
@@ -173,6 +174,29 @@ def _render_dashboard_html(storefront: StorefrontConfig) -> str:
     )
 
 
+def _render_dashboard_v2_html(storefront: StorefrontConfig) -> str:
+    config = {
+        "slug": storefront.slug,
+        "entityKey": storefront.entity_key,
+        "displayName": storefront.display_name,
+        "shortName": storefront.short_name,
+        "apiBase": storefront.api_base,
+        "summaryCopy": storefront.summary_copy,
+        "communityNote": storefront.community_note,
+        "signalsNote": storefront.signals_note,
+        "formulaNote": storefront.formula_note,
+        "emptyHistory": storefront.empty_history,
+        "emptyCommunities": storefront.empty_communities,
+        "emptySignals": storefront.empty_signals,
+        "communityWeightNote": storefront.community_weight_note,
+    }
+    return (
+        _DASHBOARD_V2_TEMPLATE
+        .replace("__PAGE_HEAD_TITLE__", f"SentiX · {storefront.display_name}")
+        .replace("__DASHBOARD_CONFIG__", json.dumps(config))
+    )
+
+
 @app.get("/")
 async def index() -> HTMLResponse:
     return HTMLResponse(_EPIC_DASHBOARD_TEMPLATE)
@@ -186,6 +210,21 @@ async def epic_dashboard() -> HTMLResponse:
 @app.get("/steam")
 async def steam_dashboard() -> HTMLResponse:
     return HTMLResponse(_render_dashboard_html(_STOREFRONTS["steam"]))
+
+
+@app.get("/v2")
+async def dashboard_v2_default() -> HTMLResponse:
+    return HTMLResponse(_render_dashboard_v2_html(_STOREFRONTS["epic"]))
+
+
+@app.get("/epic/v2")
+async def dashboard_v2_epic() -> HTMLResponse:
+    return HTMLResponse(_render_dashboard_v2_html(_STOREFRONTS["epic"]))
+
+
+@app.get("/steam/v2")
+async def dashboard_v2_steam() -> HTMLResponse:
+    return HTMLResponse(_render_dashboard_v2_html(_STOREFRONTS["steam"]))
 
 
 @app.get("/api/tickers")
@@ -890,8 +929,17 @@ async def get_epic_recent_signals() -> JSONResponse:
 
 
 @app.get("/api/steam/overview")
-async def get_steam_overview() -> JSONResponse:
-    """24h summary for the Steam Store sentiment tracker."""
+async def get_steam_overview(lookback: str = "1d") -> JSONResponse:
+    """Summary for the Steam Store sentiment tracker over the given window.
+
+    ``lookback`` accepts the same values as ``/api/steam/sentiment-history``:
+    ``1d``, ``7d``, ``1mo``, ``3mo``, ``6mo``, ``1y``. Defaults to ``1d`` so
+    existing callers that don't pass the param still get 24-hour summaries.
+    """
+    if lookback not in _LOOKBACK_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid lookback: {lookback}")
+    interval_expr, _ = _LOOKBACK_SQL[lookback]
+
     try:
         async with session_factory() as session:
             result = await session.execute(
@@ -906,7 +954,7 @@ async def get_steam_overview() -> JSONResponse:
                             ORDER BY source_subreddit) AS communities
                     FROM sentiment_signals
                     WHERE ticker_symbol = :entity
-                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                      AND collected_at >= NOW() - INTERVAL '{interval_expr}'
                 """),
                 {"entity": _STEAM_ENTITY},
             )
@@ -918,6 +966,7 @@ async def get_steam_overview() -> JSONResponse:
         {
             "entity": _STEAM_ENTITY,
             "display_name": "Steam Store",
+            "lookback": lookback,
             "mention_count": int(row["mention_count"] or 0),
             "weighted_score": float(row["weighted_score"] or 0),
             "positive_count": int(row["positive_count"] or 0),
@@ -978,8 +1027,17 @@ async def get_steam_sentiment_history(lookback: str = "7d") -> JSONResponse:
 
 
 @app.get("/api/steam/communities")
-async def get_steam_communities() -> JSONResponse:
-    """Per-community Steam Store sentiment breakdown for the last 24 hours."""
+async def get_steam_communities(lookback: str = "1d") -> JSONResponse:
+    """Per-community Steam Store sentiment breakdown over the given window.
+
+    ``lookback`` accepts the same values as ``/api/steam/sentiment-history``.
+    Defaults to ``1d`` to preserve the previous 24-hour behavior for any
+    callers that don't pass the param.
+    """
+    if lookback not in _LOOKBACK_SQL:
+        raise HTTPException(status_code=400, detail=f"Invalid lookback: {lookback}")
+    interval_expr, _ = _LOOKBACK_SQL[lookback]
+
     try:
         async with session_factory() as session:
             result = await session.execute(
@@ -995,7 +1053,7 @@ async def get_steam_communities() -> JSONResponse:
                         MAX(collected_at) AS last_seen
                     FROM sentiment_signals
                     WHERE ticker_symbol = :entity
-                      AND collected_at >= NOW() - INTERVAL '24 hours'
+                      AND collected_at >= NOW() - INTERVAL '{interval_expr}'
                     GROUP BY source_subreddit
                     ORDER BY mention_count DESC, source_subreddit
                 """),
