@@ -45,7 +45,17 @@ curl -s https://sentix.yetanothertracker.com/api/epic/overview
 # 5. If the change touched worker/, ALSO redeploy the home worker (see "Worker changes")
 ```
 
-Deploy takes 90–120 seconds. When `gh run watch` exits with `✓`, the site is live.
+Deploy takes 90–120 seconds. When `gh run watch` exits with `✓`, the site is live AND has passed automated smoke tests.
+
+## Workflow structure
+
+The deploy workflow `.github/workflows/deploy.yml` has **three jobs running in sequence**:
+
+1. **`validate`** (runs on GitHub runner, no SSH) — `docker compose config --quiet` with test values, `caddy validate` on the Caddyfile, `py_compile` on `api/src/main.py`. If this fails, the droplet is not touched and the previous version stays live.
+2. **`deploy`** (SSHes to droplet) — checks the droplet's `.env` has `POSTGRES_PASSWORD`, `DOMAIN`, `TAILSCALE_IP` set, `git reset --hard origin/main`, rebuilds the stack, reloads Caddy, stops any orphan worker container.
+3. **`smoke-tests`** (runs on GitHub runner, no SSH) — hits the public URL exactly like a browser would. Asserts HTTP 200, expected JSON shape on API endpoints, 400 on invalid lookback, robots.txt + X-Robots-Tag block indexing, TLS cert valid >24h.
+
+If a later job fails, the earlier ones have already committed their changes — no auto-rollback. `git revert <SHA> && git push` is the manual remediation.
 
 ## Architecture (why things are structured this way)
 
@@ -148,18 +158,24 @@ A successful deploy takes 90–120 seconds. `gh run watch` exits `0` on success.
 
 ### 7. Verify the site is healthy
 
+The workflow now includes an automated `smoke-tests` job that asserts all of the below for you. If the workflow ends green, these are all true:
+
+- Site root returns HTTP 200
+- Dashboard HTML has A + C layouts, timeframe toggle, chart library
+- `/api/epic/overview` returns JSON with expected keys
+- `/api/epic/sentiment-history?lookback=1mo` returns a data array
+- `/api/epic/communities?lookback=1mo` returns an array
+- Invalid `?lookback=bogus` is rejected with HTTP 400
+- `robots.txt` + `X-Robots-Tag` indexing blocks are present
+- TLS certificate is valid for at least 24 more hours
+
+If the `smoke-tests` job goes red, investigate before trusting the deploy. Manual spot-checks:
+
 ```bash
-# 200 OK on the root
 curl -sI https://sentix.yetanothertracker.com/ | head -1
-
-# API returns JSON
 curl -s https://sentix.yetanothertracker.com/api/epic/overview
-
-# Still blocking search indexing
-curl -sI https://sentix.yetanothertracker.com/ | grep -i x-robots-tag
-
-# robots.txt serves the disallow
 curl -s https://sentix.yetanothertracker.com/robots.txt
+curl -sI https://sentix.yetanothertracker.com/ | grep -i x-robots-tag
 ```
 
 ## Worker changes (SPECIAL CASE — DO NOT SKIP)

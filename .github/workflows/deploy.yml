@@ -10,8 +10,53 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  # -----------------------------------------------------------------
+  # 1. VALIDATE — runs on the GH runner, no SSH, catches config errors
+  #    before the droplet is touched. If this fails, the droplet keeps
+  #    running the previous version (zero downtime from bad YAML).
+  # -----------------------------------------------------------------
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose config renders (base + prod)
+        env:
+          DOMAIN: example.com
+          TAILSCALE_IP: 100.0.0.0
+          POSTGRES_PASSWORD: test
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet
+
+      - name: Compose config renders (base + home)
+        env:
+          POSTGRES_PASSWORD: test
+          DROPLET_TAILSCALE_IP: 100.0.0.0
+        run: |
+          docker compose --profile embedded-worker \
+            -f docker-compose.yml -f docker-compose.home.yml config --quiet
+
+      - name: Caddyfile syntax is valid
+        run: |
+          docker run --rm \
+            -v "${PWD}/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e DOMAIN=example.com \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile \
+            2>&1 | tee /tmp/caddy.out
+          grep -q "Valid configuration" /tmp/caddy.out
+
+      - name: Python syntax check on api/src/main.py
+        run: python3 -m py_compile api/src/main.py
+
+  # -----------------------------------------------------------------
+  # 2. DEPLOY — SSH to droplet, sanity-check .env, roll the stack.
+  #    Only runs if validate passed.
+  # -----------------------------------------------------------------
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -23,21 +68,133 @@ jobs:
           script: |
             set -euo pipefail
             cd ~/sents
+
+            # Precheck — required .env vars must exist and be non-empty.
+            # Fails loudly before we touch docker.
+            for var in POSTGRES_PASSWORD DOMAIN TAILSCALE_IP; do
+              val=$(grep -E "^${var}=" .env 2>/dev/null | head -1 | cut -d= -f2-)
+              if [ -z "$val" ]; then
+                echo "FATAL: ${var} missing or empty in ~/sents/.env"
+                echo "Fix ~/sents/.env on the droplet and re-run this workflow."
+                exit 1
+              fi
+            done
+
             git fetch origin main
             git reset --hard origin/main
+
+            # Precheck — merged compose config is valid with the real env.
+            # If this fails, we abort before tearing down services.
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet
+
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull --ignore-pull-failures || true
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+
             # The worker lives behind the `embedded-worker` profile so it
             # does not run on the droplet (Reddit blocks .json from DC IPs).
             # Compose's --remove-orphans ignores profile-gated services, so
-            # explicitly stop + rm any leftover worker container from before
-            # the home-worker split. Idempotent — no-op once the container is
-            # already gone.
+            # explicitly stop + rm any leftover worker container. Idempotent.
             docker compose -f docker-compose.yml -f docker-compose.prod.yml rm -sf worker 2>/dev/null || true
-            # Reload Caddy so changes to the bind-mounted Caddyfile take effect
-            # without dropping active connections or re-running ACME.
+
+            # Reload Caddy so Caddyfile changes apply without dropping TLS
+            # connections or re-running ACME. Fallback to a full restart if
+            # the admin API isn't responding.
             docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T caddy \
               caddy reload --config /etc/caddy/Caddyfile --force || \
               docker compose -f docker-compose.yml -f docker-compose.prod.yml restart caddy
+
             docker image prune -f
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+
+  # -----------------------------------------------------------------
+  # 3. SMOKE TESTS — hit the public URL from outside the droplet,
+  #    exactly like a real browser. If any assertion fails the
+  #    workflow goes red and you know to investigate.
+  # -----------------------------------------------------------------
+  smoke-tests:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_URL: https://sentix.yetanothertracker.com
+    steps:
+      - name: Site root returns 200 (with retry for container warmup)
+        run: |
+          curl -fsSL --retry 12 --retry-delay 5 --retry-connrefused \
+            -o /dev/null -w "status=%{http_code} bytes=%{size_download}\n" \
+            "${BASE_URL}/"
+
+      - name: Dashboard HTML contains expected theme markers
+        run: |
+          html=$(curl -fsSL "${BASE_URL}/")
+          echo "$html" | grep -q 'data-layout="a"' || { echo "A layout missing"; exit 1; }
+          echo "$html" | grep -q 'data-layout="c"' || { echo "C layout missing"; exit 1; }
+          echo "$html" | grep -q 'data-tf-btn'      || { echo "timeframe toggle missing"; exit 1; }
+          echo "$html" | grep -q 'lightweight-charts' || { echo "chart library missing"; exit 1; }
+
+      - name: /api/epic/overview returns valid JSON with expected shape
+        run: |
+          resp=$(curl -fsSL "${BASE_URL}/api/epic/overview")
+          echo "$resp" | jq -e '
+            has("entity") and
+            has("display_name") and
+            has("lookback") and
+            has("mention_count") and
+            has("weighted_score") and
+            has("positive_count") and
+            has("negative_count")
+          ' > /dev/null || { echo "overview JSON shape wrong: $resp"; exit 1; }
+
+      - name: /api/epic/sentiment-history?lookback=1mo returns data array
+        run: |
+          resp=$(curl -fsSL "${BASE_URL}/api/epic/sentiment-history?lookback=1mo")
+          echo "$resp" | jq -e '.data | type == "array"' > /dev/null || {
+            echo "sentiment-history payload wrong: $resp"; exit 1;
+          }
+
+      - name: /api/epic/communities?lookback=1mo returns array
+        run: |
+          resp=$(curl -fsSL "${BASE_URL}/api/epic/communities?lookback=1mo")
+          echo "$resp" | jq -e 'type == "array"' > /dev/null || {
+            echo "communities payload wrong: $resp"; exit 1;
+          }
+
+      - name: Invalid lookback returns 400 (API input validation works)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/api/epic/overview?lookback=bogus")
+          [ "$code" = "400" ] || { echo "expected 400 for bad lookback, got $code"; exit 1; }
+
+      - name: robots.txt disallows indexing
+        run: |
+          body=$(curl -fsSL "${BASE_URL}/robots.txt")
+          echo "$body" | grep -qE '^User-agent:\s*\*' || { echo "robots.txt missing User-agent"; exit 1; }
+          echo "$body" | grep -qE '^Disallow:\s*/' || { echo "robots.txt missing Disallow"; exit 1; }
+
+      - name: X-Robots-Tag header blocks indexing on HTML + API
+        run: |
+          curl -sI "${BASE_URL}/" | grep -iqE '^x-robots-tag:.*noindex' || {
+            echo "X-Robots-Tag missing on /"; exit 1;
+          }
+          curl -sI "${BASE_URL}/api/epic/overview" | grep -iqE '^x-robots-tag:.*noindex' || {
+            echo "X-Robots-Tag missing on /api/epic/overview"; exit 1;
+          }
+
+      - name: TLS certificate valid for at least 24h
+        run: |
+          echo | openssl s_client -servername sentix.yetanothertracker.com \
+            -connect sentix.yetanothertracker.com:443 2>/dev/null \
+            | openssl x509 -noout -checkend 86400 || {
+              echo "TLS cert expires within 24h"; exit 1;
+            }
+
+      - name: Report what we checked
+        if: success()
+        run: |
+          echo "✓ Site HTTP 200"
+          echo "✓ Dashboard HTML has A+C layouts, timeframe toggle, chart lib"
+          echo "✓ /api/epic/overview JSON shape OK"
+          echo "✓ /api/epic/sentiment-history data array OK"
+          echo "✓ /api/epic/communities array OK"
+          echo "✓ Invalid lookback rejected with 400"
+          echo "✓ robots.txt + X-Robots-Tag indexing blocks present"
+          echo "✓ TLS cert >24h from expiry"
