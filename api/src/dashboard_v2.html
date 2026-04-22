@@ -388,16 +388,42 @@ function useApi(url, refreshMs) {
 // -------------------------------------------------------------------
 // Derive our frontend shape from real API responses
 // -------------------------------------------------------------------
+// Chart smoothing: each plotted value is a rolling pos/neg aggregate over a
+// trailing window of `SMOOTH_WINDOW_BY_RANGE[range]` buckets. Without this,
+// a bucket with a single positive signal spikes to 100 and a single negative
+// signal drops to 0, which makes the chart look dramatically volatile even
+// on days with one mention. Rolling the counts (not the already-rescaled
+// prices) is more honest than averaging prices because it naturally weights
+// by volume — a 20-mention day dominates a 1-mention day inside the window.
+const SMOOTH_WINDOW_BY_RANGE = {
+  "1H": 3,   // trailing 3 hourly buckets ≈ 3h smoothing
+  "1D": 3,
+  "1W": 3,   // trailing 3 daily buckets
+  "1M": 5,   // trailing 5 daily buckets
+  "3M": 7,
+  "ALL": 14, // trailing 2-week rolling
+};
+
 function buildSeries(history, range) {
   const rows = history?.data ?? [];
-  let mapped = rows.map(r => ({
-    t: r.timestamp,
-    v: priceFromCounts(r.positive, r.negative),
-    mentions: r.mention_count,
-    weighted_score: r.weighted_score,
-    pos: r.positive,
-    neg: r.negative,
-  }));
+  const window = SMOOTH_WINDOW_BY_RANGE[range] || 3;
+  let mapped = rows.map((r, i) => {
+    let posSum = 0, negSum = 0;
+    const start = Math.max(0, i - window + 1);
+    for (let j = start; j <= i; j++) {
+      posSum += rows[j].positive || 0;
+      negSum += rows[j].negative || 0;
+    }
+    return {
+      t: r.timestamp,
+      v: priceFromCounts(posSum, negSum),              // smoothed 0–100 bullish score
+      vRaw: priceFromCounts(r.positive, r.negative),   // per-bucket, kept for debug
+      mentions: r.mention_count,
+      weighted_score: r.weighted_score,
+      pos: r.positive,
+      neg: r.negative,
+    };
+  });
   if (range === "1H") {
     // Client-side slice: last hour of points. Backend buckets hourly for 1d/7d.
     const cutoff = Date.now() - 60 * 60 * 1000;
