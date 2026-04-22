@@ -314,7 +314,7 @@ const ACCENT_COLORS = {
 const RANGE_TO_LOOKBACK = { "1H": "1d", "1D": "1d", "1W": "7d", "1M": "1mo", "ALL": "1y" };
 
 const fmtPct = (n) => (n == null || !isFinite(n)) ? "—" : (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
-const fmtPrice = (n) => (n == null || !isFinite(n)) ? "—" : n.toFixed(2);
+const fmtPrice = (n) => (n == null || !isFinite(n)) ? "—" : (n > 0 ? "+" : "") + n.toFixed(2);
 const fmtBig = (n) => {
   if (n == null) return "0";
   if (n >= 1_000_000) return (n/1_000_000).toFixed(1) + "M";
@@ -331,12 +331,15 @@ const relTime = (isoStr) => {
   return Math.round(sec / 86400) + "d ago";
 };
 
-// Convert backend pos/neg counts → 0–100 "bullish %" price.
+// Convert backend pos/neg counts → signed sentiment score in [-100, +100].
+// 0 = perfectly balanced pos/neg (neutral), +100 = all positive, -100 = all
+// negative. This is v1's "polarity index" * 100: positive and negative
+// numbers read directly as bullish / bearish magnitude.
 function priceFromCounts(pos, neg) {
   const total = (pos || 0) + (neg || 0);
-  if (total === 0) return 50;
-  const score = 50 + 50 * ((pos - neg) / total);
-  return Math.max(0, Math.min(100, score));
+  if (total === 0) return 0;
+  const score = 100 * ((pos - neg) / total);
+  return Math.max(-100, Math.min(100, score));
 }
 
 // Classify a subreddit's sector from its name — cosmetic, grouping in sector map.
@@ -417,7 +420,7 @@ function buildSeries(history, range) {
     }
     return {
       t: r.timestamp,
-      v: priceFromCounts(posSum, negSum),              // smoothed 0–100 bullish score
+      v: priceFromCounts(posSum, negSum),              // smoothed -100..+100 sentiment
       vRaw: priceFromCounts(r.positive, r.negative),   // per-bucket, kept for debug
       mentions: r.mention_count,
       weighted_score: r.weighted_score,
@@ -470,11 +473,11 @@ function toCandles(series, buckets = 24) {
 }
 
 // Chart component. Wraps TradingView's lightweight-charts — same library the
-// v1 dashboard uses, so both dashboards render with the same fidelity. We use
-// a baseline series at 50 (neutral) so above-50 fills bullish green and
-// below-50 fills bearish red, preserving v2's 0-100 "stock exchange" framing
-// while handing the hard parts (time axis, Y-axis labels, crosshair tooltip,
-// responsive sizing) to the library.
+// v1 dashboard uses, so both dashboards render with the same fidelity. The
+// series is a baseline series at price=0 (neutral), so positive values fill
+// bullish green above the zero line and negative values fill bearish red
+// below it. The library handles the hard parts: time axis, Y-axis labels,
+// crosshair tooltip, responsive sizing.
 function Chart({ series, height = 320, onHover, hoverIndex }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
@@ -518,7 +521,7 @@ function Chart({ series, height = 320, onHover, hoverIndex }) {
       handleScale: false,
     });
     const bl = chart.addBaselineSeries({
-      baseValue: { type: "price", price: 50 },
+      baseValue: { type: "price", price: 0 },
       topLineColor: "#5effb3",     // bullish line
       topFillColor1: "rgba(94, 255, 179, 0.35)",
       topFillColor2: "rgba(94, 255, 179, 0.02)",
@@ -682,16 +685,17 @@ function Overview({ range, onRangeChange, chartType, density, onPickSub }) {
 
   const series = useMemo(() => buildSeries(history.data, range), [history.data, range]);
   const perSub = useMemo(() => buildPerSub(comms.data), [comms.data]);
-  // hoverVal is the 0-100 bullish value from the chart's crosshair. When the
-  // user isn't hovering, the hero falls back to aggPrice (the full-window
-  // aggregate) so the big number matches the Aggregate Sentiment KPI.
+  // hoverVal is the signed sentiment value from the chart's crosshair
+  // (-100..+100, 0 = neutral). When the user isn't hovering, the hero falls
+  // back to aggPrice (the full-window aggregate) so the big number matches
+  // the Aggregate Sentiment KPI.
   const [hoverVal, setHoverVal] = useState(null);
   const handleChartHover = useCallback((_idx, info) => {
     setHoverVal(info ? info.value : null);
   }, []);
 
   const aggPrice = useMemo(() => {
-    if (!overview.data) return 50;
+    if (!overview.data) return 0;
     return priceFromCounts(overview.data.positive_count, overview.data.negative_count);
   }, [overview.data]);
   const aggDelta = useMemo(() => {
@@ -703,8 +707,11 @@ function Overview({ range, onRangeChange, chartType, density, onPickSub }) {
   const mostBullish = sortedByBull.slice(0, 5);
   const mostBearish = sortedByBull.slice(-5).reverse();
   const mostActive  = useMemo(() => [...perSub].sort((a, b) => b.mentions - a.mentions).slice(0, 5), [perSub]);
-  const bullCount = perSub.filter(s => s.price > 55).length;
-  const bearCount = perSub.filter(s => s.price < 45).length;
+  // Bullish / bearish thresholds: ±10 on the -100..+100 scale matches the
+  // original ±5 band on the old 0..100 scale (same underlying 10% polarity
+  // margin on either side of neutral). Between -10 and +10 counts as neutral.
+  const bullCount = perSub.filter(s => s.price > 10).length;
+  const bearCount = perSub.filter(s => s.price < -10).length;
   const neuCount  = perSub.length - bullCount - bearCount;
 
   const anyLoading = overview.loading || history.loading || comms.loading;
@@ -729,7 +736,7 @@ function Overview({ range, onRangeChange, chartType, density, onPickSub }) {
             <div className="cch-label">{CFG.summaryCopy}</div>
             <div className="cch-value mono">
               {fmtPrice(hoverVal != null ? hoverVal : aggPrice)}
-              <span className={`cch-chg ${(hoverVal != null ? hoverVal : aggPrice) >= 50 ? "up" : "dn"}`}>{(hoverVal != null ? hoverVal : aggPrice) >= 50 ? "Bullish" : "Bearish"}</span>
+              <span className={`cch-chg ${(hoverVal != null ? hoverVal : aggPrice) >= 0 ? "up" : "dn"}`}>{(hoverVal != null ? hoverVal : aggPrice) >= 0 ? "Bullish" : "Bearish"}</span>
             </div>
           </div>
           <div className="range-picker">
@@ -756,7 +763,7 @@ function Overview({ range, onRangeChange, chartType, density, onPickSub }) {
               <tbody>{mostActive.map(r => (
                 <tr key={r.sym} onClick={() => onPickSub(r.sym)}>
                   <td><span className="sym">{r.sym}</span><span className="sub-name">{r.name}</span></td>
-                  <td className={`mono right ${r.price >= 50 ? "up" : "dn"}`}>{fmtPrice(r.price)}</td>
+                  <td className={`mono right ${r.price >= 0 ? "up" : "dn"}`}>{fmtPrice(r.price)}</td>
                   <td className="mono right">{fmtBig(r.mentions)}</td>
                   <td className="mono right muted">{r.post_count}/{r.comment_count}</td>
                 </tr>
@@ -790,7 +797,7 @@ function Overview({ range, onRangeChange, chartType, density, onPickSub }) {
                   <td className="muted mono">{String(i+1).padStart(2,'0')}</td>
                   <td><span className="sym">{r.sym}</span><span className="sub-name">{r.name}</span></td>
                   <td><span className="chip">{r.sector}</span></td>
-                  <td className={`mono right ${r.price >= 50 ? "up" : "dn"}`}>{fmtPrice(r.price)}</td>
+                  <td className={`mono right ${r.price >= 0 ? "up" : "dn"}`}>{fmtPrice(r.price)}</td>
                   <td className="mono right"><span className="up">{r.positive_count}</span> / <span className="dn">{r.negative_count}</span></td>
                   <td className="mono right">{fmtBig(r.mentions)}</td>
                   <td className="mono right muted">{r.post_count}/{r.comment_count}</td>
@@ -816,7 +823,7 @@ function MoversList({ rows, onPick }) {
           </div>
           <div className="mono tiny muted"><span className="up">{r.positive_count}</span> / <span className="dn">{r.negative_count}</span></div>
           <div className="mover-right">
-            <div className={`mono ${r.price >= 50 ? "up" : "dn"}`}>{fmtPrice(r.price)}</div>
+            <div className={`mono ${r.price >= 0 ? "up" : "dn"}`}>{fmtPrice(r.price)}</div>
             <div className="mono tiny muted">{fmtBig(r.mentions)} mentions</div>
           </div>
         </button>
@@ -837,8 +844,10 @@ function SectorMap({ perSub, onPick }) {
           <div className="sector-tiles">
             {subs.map(s => {
               const pct = (s.mentions / total) * 100;
-              const delta = s.price - 50;
-              const intensity = Math.min(1, Math.abs(delta) / 30);
+              const delta = s.price;
+              // Heatmap saturates at |sentiment| >= 60 out of the new ±100 scale
+              // (equivalent intensity to the old |delta-50| >= 30 on the 0..100 scale).
+              const intensity = Math.min(1, Math.abs(delta) / 60);
               const bg = delta >= 0
                 ? `color-mix(in oklch, var(--bull), var(--panel-2) ${Math.round((1-intensity)*85)}%)`
                 : `color-mix(in oklch, var(--bear), var(--panel-2) ${Math.round((1-intensity)*85)}%)`;
@@ -894,7 +903,7 @@ function Detail({ subSym, range, onRangeChange, chartType, density, onBack, onPi
       <div className="detail-pricebar">
         <div className="price-main">
           <span className="price-num mono">{fmtPrice(last)}</span>
-          <span className={`price-chg mono ${last >= 50 ? "up" : "dn"}`}>{last >= 50 ? "▲" : "▼"} {last >= 50 ? "Bullish" : "Bearish"}</span>
+          <span className={`price-chg mono ${last >= 0 ? "up" : "dn"}`}>{last >= 0 ? "▲" : "▼"} {last >= 0 ? "Bullish" : "Bearish"}</span>
         </div>
         <div className="price-stats">
           <Stat label="Positive"  value={String(subData.positive_count)}/>
@@ -917,7 +926,7 @@ function Detail({ subSym, range, onRangeChange, chartType, density, onBack, onPi
               <button key={s.sym} className="related" onClick={() => onPickSub(s.sym)}>
                 <div className="related-head">
                   <span className="sym">{s.sym}</span>
-                  <span className={`mono tiny ${s.price >= 50 ? "up" : "dn"}`}>{fmtPrice(s.price)}</span>
+                  <span className={`mono tiny ${s.price >= 0 ? "up" : "dn"}`}>{fmtPrice(s.price)}</span>
                 </div>
                 <div className="mono tiny muted">{fmtBig(s.mentions)} · {s.positive_count}+ / {s.negative_count}-</div>
                 <div className="sub-name">{s.name}</div>
@@ -1015,7 +1024,7 @@ function ThreadCard({ r, onPick }) {
   const pos = r.positive_count || 0, neg = r.negative_count || 0;
   const price = priceFromCounts(pos, neg);
   const sentPct = Math.round(price);
-  const up = price >= 50;
+  const up = price >= 0;
   const communities = (r.community || "").split(" | ").filter(Boolean);
   const primary = communities[0] || "unknown";
   return (
@@ -1047,7 +1056,7 @@ function ThreadCard({ r, onPick }) {
           <span className="muted tiny">{r.signal_count} signal{r.signal_count === 1 ? "" : "s"}</span>
         </div>
         <div className="post-tokens">
-          <Token label={price >= 70 ? "very bullish" : price >= 55 ? "mild bullish" : price >= 45 ? "neutral" : price >= 30 ? "mild bearish" : "very bearish"} up={up} neutral={price >= 45 && price <= 55}/>
+          <Token label={price >= 40 ? "very bullish" : price >= 10 ? "mild bullish" : price >= -10 ? "neutral" : price >= -40 ? "mild bearish" : "very bearish"} up={up} neutral={price >= -10 && price <= 10}/>
           <Token label={`${r.post_count} posts`}/>
           <Token label={`${r.comment_count} comments`}/>
         </div>
