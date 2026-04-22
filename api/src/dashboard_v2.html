@@ -569,13 +569,21 @@ function Chart({ series, height = 320, onHover, hoverIndex }) {
     chartRef.current?.timeScale().fitContent();
   }, [series]);
 
-  if (!series || series.length < 2) {
-    return <div className="empty-state" style={{ height }}>{series && series.length === 1 ? "Only one data point in this window — need two or more to draw a line." : "No data in this window."}</div>;
-  }
+  const isEmpty = !series || series.length < 2;
+  const emptyMsg = series && series.length === 1
+    ? "Only one data point in this window — need two or more to draw a line."
+    : "No data in this window.";
 
   return (
-    <div className="chart-wrap">
+    <div className="chart-wrap" style={{ position: "relative" }}>
+      {/*
+        Container is always mounted so the effect can wire up lightweight-charts
+        as soon as it runs. If data isn't ready yet, an overlay covers the chart
+        with an explanatory message; the chart keeps the size it had and will
+        draw when data arrives.
+      */}
       <div ref={containerRef} style={{ width: "100%", height: `${height}px` }} role="figure" aria-label="Sentiment timeline chart"/>
+      {isEmpty && <div className="empty-state" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{emptyMsg}</div>}
     </div>
   );
 }
