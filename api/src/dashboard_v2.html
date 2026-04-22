@@ -10,6 +10,7 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 :root {
   --bg-0: oklch(17% 0.03 260);
@@ -468,69 +469,113 @@ function toCandles(series, buckets = 24) {
   return out;
 }
 
-function Chart({ series, accent, chartType = "area", height = 320, onHover, hoverIndex, density = "normal" }) {
-  const W = 980, padL = 44, padR = 16, padT = 18, padB = 28;
-  const H = height;
-  const innerW = W - padL - padR, innerH = H - padT - padB;
-  const svgRef = useRef(null);
-  const candles = useMemo(() => toCandles(series || [], density === "dense" ? 48 : density === "spacious" ? 18 : 28), [series, density]);
-  if (!series || series.length < 2) {
-    return <div className="empty-state" style={{height: H}}>{series && series.length === 1 ? "Only one data point in this window — need two or more to draw a line." : "No data in this window."}</div>;
-  }
-  const xFor = (i) => padL + (i / (series.length - 1)) * innerW;
-  const yFor = (v) => padT + (1 - (v - 0) / 100) * innerH;
-  const linePath = series.map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(i).toFixed(2)} ${yFor(p.v).toFixed(2)}`).join(" ");
-  const areaPath = linePath + ` L ${xFor(series.length - 1).toFixed(2)} ${yFor(0).toFixed(2)} L ${xFor(0).toFixed(2)} ${yFor(0).toFixed(2)} Z`;
+// Chart component. Wraps TradingView's lightweight-charts — same library the
+// v1 dashboard uses, so both dashboards render with the same fidelity. We use
+// a baseline series at 50 (neutral) so above-50 fills bullish green and
+// below-50 fills bearish red, preserving v2's 0-100 "stock exchange" framing
+// while handing the hard parts (time axis, Y-axis labels, crosshair tooltip,
+// responsive sizing) to the library.
+function Chart({ series, height = 320, onHover, hoverIndex }) {
+  const containerRef = useRef(null);
+  const chartRef = useRef(null);
+  const seriesRef = useRef(null);
+  const onHoverRef = useRef(onHover);
+  onHoverRef.current = onHover;
 
-  function handleMove(e) {
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * W;
-    const rel = (x - padL) / innerW;
-    const idx = Math.max(0, Math.min(series.length - 1, Math.round(rel * (series.length - 1))));
-    onHover?.(idx, { x: xFor(idx), y: yFor(series[idx].v) });
+  // Create chart on mount, destroy on unmount.
+  useEffect(() => {
+    if (!containerRef.current || !window.LightweightCharts) return;
+    const chart = LightweightCharts.createChart(containerRef.current, {
+      autoSize: true,
+      layout: {
+        background: { color: "transparent" },
+        textColor: "#8c97ae",
+        fontFamily: '"JetBrains Mono", monospace',
+      },
+      grid: {
+        vertLines: { color: "rgba(140, 151, 174, 0.08)" },
+        horzLines: { color: "rgba(140, 151, 174, 0.08)" },
+      },
+      rightPriceScale: {
+        borderColor: "rgba(140, 151, 174, 0.18)",
+        scaleMargins: { top: 0.08, bottom: 0.08 },
+      },
+      timeScale: {
+        borderColor: "rgba(140, 151, 174, 0.18)",
+        timeVisible: true,
+        secondsVisible: false,
+        fixLeftEdge: true,
+        fixRightEdge: true,
+        rightOffset: 2,
+        barSpacing: 12,
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+        vertLine: { color: "rgba(94, 255, 179, 0.42)", width: 1, style: 2, labelBackgroundColor: "#101522" },
+        horzLine: { color: "rgba(94, 255, 179, 0.22)", width: 1, style: 2, labelBackgroundColor: "#101522" },
+      },
+      handleScroll: false,
+      handleScale: false,
+    });
+    const bl = chart.addBaselineSeries({
+      baseValue: { type: "price", price: 50 },
+      topLineColor: "#5effb3",     // bullish line
+      topFillColor1: "rgba(94, 255, 179, 0.35)",
+      topFillColor2: "rgba(94, 255, 179, 0.02)",
+      bottomLineColor: "#ff5b7a",  // bearish line
+      bottomFillColor1: "rgba(255, 91, 122, 0.30)",
+      bottomFillColor2: "rgba(255, 91, 122, 0.02)",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      crosshairMarkerVisible: true,
+      priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+    });
+    chartRef.current = chart;
+    seriesRef.current = bl;
+
+    // Coordinate hover with React state so the hero number above the chart
+    // updates as the crosshair moves.
+    chart.subscribeCrosshairMove((param) => {
+      if (!param || !param.time || !param.seriesData || !param.seriesData.get(bl)) {
+        onHoverRef.current?.(null);
+        return;
+      }
+      const point = param.seriesData.get(bl);
+      onHoverRef.current?.(null, { time: param.time, value: point.value });
+    });
+
+    return () => {
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    };
+  }, []);
+
+  // Feed data whenever series changes.
+  useEffect(() => {
+    if (!seriesRef.current || !series || series.length === 0) return;
+    // Deduplicate by timestamp, sort ascending, map to { time: unix_seconds, value }.
+    const seen = new Set();
+    const points = [];
+    for (const p of series) {
+      const tSec = Math.floor(new Date(p.t).getTime() / 1000);
+      if (seen.has(tSec)) continue;
+      seen.add(tSec);
+      points.push({ time: tSec, value: Number(p.v) || 0 });
+    }
+    points.sort((a, b) => a.time - b.time);
+    seriesRef.current.setData(points);
+    chartRef.current?.timeScale().fitContent();
+  }, [series]);
+
+  if (!series || series.length < 2) {
+    return <div className="empty-state" style={{ height }}>{series && series.length === 1 ? "Only one data point in this window — need two or more to draw a line." : "No data in this window."}</div>;
   }
-  const gridLines = [0, 25, 50, 75, 100];
-  const last = series[series.length - 1].v, first = series[0].v;
-  const up = last >= first;
-  const lineColor = up ? "var(--bull)" : "var(--bear)";
+
   return (
     <div className="chart-wrap">
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="chart-svg" onMouseMove={handleMove} onMouseLeave={() => onHover?.(null)}>
-        <defs>
-          <linearGradient id={`areaFill-${up ? "up" : "dn"}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={up ? "var(--bull)" : "var(--bear)"} stopOpacity="0.55"/>
-            <stop offset="60%" stopColor={up ? "var(--bull)" : "var(--bear)"} stopOpacity="0.12"/>
-            <stop offset="100%" stopColor={up ? "var(--bull)" : "var(--bear)"} stopOpacity="0"/>
-          </linearGradient>
-        </defs>
-        {gridLines.map(g => (
-          <g key={g}>
-            <line x1={padL} x2={W - padR} y1={yFor(g)} y2={yFor(g)} className="grid-line"/>
-            <text x={padL - 8} y={yFor(g) + 4} className="grid-label" textAnchor="end">{g}</text>
-          </g>
-        ))}
-        <line x1={padL} x2={W - padR} y1={yFor(50)} y2={yFor(50)} className="neutral-line"/>
-        {chartType === "area" && <><path d={areaPath} fill={`url(#areaFill-${up ? "up" : "dn"})`}/><path d={linePath} fill="none" stroke={lineColor} strokeWidth="2"/></>}
-        {chartType === "line" && <path d={linePath} fill="none" stroke={lineColor} strokeWidth="2"/>}
-        {chartType === "candle" && candles.map((c, i) => {
-          const cx = padL + (i / (candles.length - 1)) * innerW;
-          const w = Math.max(4, innerW / candles.length * 0.6);
-          const cup = c.close >= c.open;
-          const color = cup ? "var(--bull)" : "var(--bear)";
-          return (
-            <g key={i}>
-              <line x1={cx} x2={cx} y1={yFor(c.high)} y2={yFor(c.low)} stroke={color} strokeWidth="1.4"/>
-              <rect x={cx - w/2} y={yFor(Math.max(c.open, c.close))} width={w} height={Math.max(1.5, Math.abs(yFor(c.open) - yFor(c.close)))} fill={color} opacity={cup ? 0.9 : 1}/>
-            </g>
-          );
-        })}
-        {hoverIndex != null && series[hoverIndex] && (
-          <g>
-            <line x1={xFor(hoverIndex)} x2={xFor(hoverIndex)} y1={padT} y2={H - padB} className="hover-line"/>
-            <circle cx={xFor(hoverIndex)} cy={yFor(series[hoverIndex].v)} r="5" fill={lineColor} stroke="var(--bg-1)" strokeWidth="2"/>
-          </g>
-        )}
-      </svg>
+      <div ref={containerRef} style={{ width: "100%", height: `${height}px` }} role="figure" aria-label="Sentiment timeline chart"/>
     </div>
   );
 }
@@ -629,8 +674,13 @@ function Overview({ range, onRangeChange, chartType, density, onPickSub }) {
 
   const series = useMemo(() => buildSeries(history.data, range), [history.data, range]);
   const perSub = useMemo(() => buildPerSub(comms.data), [comms.data]);
-  const [hover, setHover] = useState(null);
-  const hoveredPoint = hover != null ? series[hover] : series[series.length - 1];
+  // hoverVal is the 0-100 bullish value from the chart's crosshair. When the
+  // user isn't hovering, the hero falls back to aggPrice (the full-window
+  // aggregate) so the big number matches the Aggregate Sentiment KPI.
+  const [hoverVal, setHoverVal] = useState(null);
+  const handleChartHover = useCallback((_idx, info) => {
+    setHoverVal(info ? info.value : null);
+  }, []);
 
   const aggPrice = useMemo(() => {
     if (!overview.data) return 50;
@@ -670,15 +720,15 @@ function Overview({ range, onRangeChange, chartType, density, onPickSub }) {
           <div className="cch-left">
             <div className="cch-label">{CFG.summaryCopy}</div>
             <div className="cch-value mono">
-              {fmtPrice(hoveredPoint?.v ?? aggPrice)}
-              <span className={`cch-chg ${(hoveredPoint?.v ?? aggPrice) >= 50 ? "up" : "dn"}`}>{(hoveredPoint?.v ?? aggPrice) >= 50 ? "Bullish" : "Bearish"}</span>
+              {fmtPrice(hoverVal != null ? hoverVal : aggPrice)}
+              <span className={`cch-chg ${(hoverVal != null ? hoverVal : aggPrice) >= 50 ? "up" : "dn"}`}>{(hoverVal != null ? hoverVal : aggPrice) >= 50 ? "Bullish" : "Bearish"}</span>
             </div>
           </div>
           <div className="range-picker">
             {["1H","1D","1W","1M","ALL"].map(r => <button key={r} className={r === range ? "range on" : "range"} onClick={() => onRangeChange(r)}>{r}</button>)}
           </div>
         </div>
-        <Chart series={series} chartType={chartType} height={320} onHover={setHover} hoverIndex={hover} density={density}/>
+        <Chart series={series} height={320} onHover={handleChartHover}/>
       </div>
 
       <section className="grid-2">
