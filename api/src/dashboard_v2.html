@@ -1017,7 +1017,10 @@ function App() {
   const [editMode, setEditMode] = useState(false);
   const [view, setView] = useState(() => localStorage.getItem(STORAGE_KEY + ".view") || "overview");
   const [activeSub, setActiveSub] = useState(() => localStorage.getItem(STORAGE_KEY + ".sub") || "");
-  const [range, setRange] = useState(() => localStorage.getItem(STORAGE_KEY + ".range") || "1W");
+  // Default range matches the v1 epic_dashboard's default ("1mo" lookback) so
+  // first-load KPIs show the same numbers on both dashboards. Users who have
+  // already picked a range keep their choice via the localStorage fallback.
+  const [range, setRange] = useState(() => localStorage.getItem(STORAGE_KEY + ".range") || "1M");
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY + ".tweaks", JSON.stringify(tweaks)); }, [tweaks]);
   useEffect(() => { localStorage.setItem(STORAGE_KEY + ".view", view); }, [view]);
