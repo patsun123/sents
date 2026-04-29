@@ -12,7 +12,7 @@ from typing import Any, AsyncGenerator
 
 import httpx
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -197,32 +197,35 @@ def _render_dashboard_v2_html(storefront: StorefrontConfig) -> str:
     )
 
 
-@app.get("/")
+_HTML_METHODS = ["GET", "HEAD"]
+
+
+@app.api_route("/", methods=_HTML_METHODS)
 async def index() -> HTMLResponse:
     return HTMLResponse(_EPIC_DASHBOARD_TEMPLATE)
 
 
-@app.get("/epic")
+@app.api_route("/epic", methods=_HTML_METHODS)
 async def epic_dashboard() -> HTMLResponse:
     return HTMLResponse(_EPIC_DASHBOARD_TEMPLATE)
 
 
-@app.get("/steam")
+@app.api_route("/steam", methods=_HTML_METHODS)
 async def steam_dashboard() -> HTMLResponse:
     return HTMLResponse(_render_dashboard_html(_STOREFRONTS["steam"]))
 
 
-@app.get("/v2")
+@app.api_route("/v2", methods=_HTML_METHODS)
 async def dashboard_v2_default() -> HTMLResponse:
     return HTMLResponse(_render_dashboard_v2_html(_STOREFRONTS["epic"]))
 
 
-@app.get("/epic/v2")
+@app.api_route("/epic/v2", methods=_HTML_METHODS)
 async def dashboard_v2_epic() -> HTMLResponse:
     return HTMLResponse(_render_dashboard_v2_html(_STOREFRONTS["epic"]))
 
 
-@app.get("/steam/v2")
+@app.api_route("/steam/v2", methods=_HTML_METHODS)
 async def dashboard_v2_steam() -> HTMLResponse:
     return HTMLResponse(_render_dashboard_v2_html(_STOREFRONTS["steam"]))
 
@@ -1633,3 +1636,87 @@ async def get_ticker(symbol: str) -> JSONResponse:
         "subreddits": row["subreddits"] or "",
         "last_seen": row["last_seen"].isoformat() if row["last_seen"] else None,
     })
+
+
+# ---------------------------------------------------------------------------
+# Catch-all: case-insensitive aliases + styled HTML 404
+# ---------------------------------------------------------------------------
+
+# Lowercase form -> canonical path. Keeps shared links working when a
+# messenger or auto-capitaliser turns "/epic" into "/Epic".
+_HTML_PATH_ALIASES: dict[str, str] = {
+    "epic": "/epic",
+    "steam": "/steam",
+    "v2": "/v2",
+    "epic/v2": "/epic/v2",
+    "steam/v2": "/steam/v2",
+}
+
+_NOT_FOUND_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<title>SentiX · Not Found</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #0a0a0f; color: #e6e6f0;
+  }
+  main { text-align: center; padding: 2rem; max-width: 36rem; }
+  h1 {
+    font-size: clamp(4rem, 16vw, 8rem); margin: 0 0 .5rem;
+    letter-spacing: .02em; color: #ff4d6d;
+  }
+  p { line-height: 1.5; margin: .5rem 0; opacity: .85; }
+  a { color: #7fd1ff; text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { color: #fff; }
+  .links { margin-top: 1.5rem; display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <main>
+    <h1>404</h1>
+    <p>That page doesn't exist on SentiX.</p>
+    <div class="links">
+      <a href="/epic">Epic Games Store</a>
+      <a href="/steam">Steam Store</a>
+    </div>
+  </main>
+</body>
+</html>
+"""
+
+
+@app.api_route(
+    "/{full_path:path}",
+    methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+async def catch_all(full_path: str) -> HTMLResponse | RedirectResponse:
+    """Match any path that did not hit an explicit route.
+
+    Two behaviors:
+    1. Case-insensitive redirect for known dashboard paths (so links shared
+       through messengers that auto-capitalise "/Epic" still resolve).
+    2. Styled HTML 404 for everything else, instead of FastAPI's default
+       JSON ``{"detail": "Not Found"}`` which reads as a broken site.
+
+    ``/api/...`` paths fall through to the JSON 404 — API consumers want
+    structured errors, not HTML.
+    """
+    normalized = full_path.strip("/").lower()
+
+    if normalized in _HTML_PATH_ALIASES:
+        return RedirectResponse(
+            url=_HTML_PATH_ALIASES[normalized],
+            status_code=301,
+        )
+
+    if full_path.startswith("api/") or full_path == "api":
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    return HTMLResponse(_NOT_FOUND_HTML, status_code=404)
